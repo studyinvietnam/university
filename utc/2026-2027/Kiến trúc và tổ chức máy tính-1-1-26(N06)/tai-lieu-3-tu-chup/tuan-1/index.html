@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghi Chú Kiến Thức Máy Tính & Hệ Thống Số - In Khổ Ngang</title>
+    <!-- MathJax Configuration & Script -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    
+    <style>
+        :root {
+            --bg-board: #1b3d2f;
+            --chalk-white: #f0f4f1;
+            --chalk-yellow: #f1e080;
+            --chalk-blue: #90caf9;
+            --border-frame: #dcdcdc;
+        }
+
+        body {
+            background-color: #121212;
+            color: var(--chalk-white);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        h1.main-title {
+            color: #ffffff;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-align: center;
+        }
+
+        .board-container {
+            width: 100%;
+            max-width: 1100px;
+            background-color: var(--bg-board);
+            border: 8px solid var(--border-frame);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.7), inset 0 0 100px rgba(0,0,0,0.5);
+            padding: 25px 35px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .board-header {
+            border-bottom: 2px dashed rgba(255,255,255,0.2);
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .board-number {
+            background: #ff4d4d;
+            color: white;
+            font-weight: bold;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+        }
+
+        .chalk-title {
+            font-size: 1.6rem;
+            color: var(--chalk-yellow);
+            font-weight: bold;
+            margin: 0;
+        }
+
+        /* --- Sơ đồ Bus Hệ Thống & Cache --- */
+        .system-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px 0 20px 0;
+            width: 100%;
+        }
+
+        .cache-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 8px;
+            color: var(--chalk-yellow);
+        }
+
+        .cache-circle {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--chalk-yellow);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2px;
+        }
+
+        .cache-dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--chalk-yellow);
+            border-radius: 50%;
+        }
+
+        .blocks-row {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            gap: 20px;
+        }
+
+        .block-unit {
+            flex: 1;
+            border: 2px solid var(--chalk-white);
+            padding: 15px 10px;
+            text-align: center;
+            background: rgba(255,255,255,0.03);
+            border-radius: 4px;
+            position: relative;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .bus-architecture {
+            width: 100%;
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .bus-line-group {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.95rem;
+        }
+
+        .bus-label {
+            width: 130px;
+            color: var(--chalk-yellow);
+            font-weight: bold;
+            text-align: right;
+            padding-right: 15px;
+        }
+
+        .bus-path {
+            flex: 1;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 2px dashed var(--chalk-blue);
+            position: relative;
+            padding-top: 4px;
+        }
+
+        .bus-direction {
+            color: var(--chalk-blue);
+            font-weight: bold;
+            font-size: 1.05rem;
+        }
+
+        /* Layout Grid & List */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding-left: 10px;
+            margin-top: 5px;
+        }
+
+        ul li {
+            margin-bottom: 8px;
+            position: relative;
+            padding-left: 18px;
+        }
+
+        ul li::before {
+            content: "•";
+            color: var(--chalk-yellow);
+            position: absolute;
+            left: 0;
+            font-size: 1.2rem;
+        }
+
+        .tree-structure {
+            margin-left: 15px;
+            border-left: 2px solid rgba(255,255,255,0.3);
+            padding-left: 12px;
+            margin-top: 4px;
+        }
+
+        .step-calc {
+            font-family: 'Courier New', Courier, monospace;
+            line-height: 1.5;
+            background: rgba(0,0,0,0.2);
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+
+        .hex-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .hex-table td {
+            padding: 5px 12px;
+        }
+
+        .highlight {
+            color: var(--chalk-yellow);
+            font-weight: bold;
+        }
+
+        .sub-text {
+            color: var(--chalk-blue);
+            font-size: 0.9em;
+        }
+
+        h3 {
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+
+        /* =========================================================
+           CẤU HÌNH PRINT DÀNH CHO KHỔ GIẤY NGANG (A4 LANDSCAPE)
+           ========================================================= */
+        @media print {
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
+    html,
+    body {
+        background-color: #121212 !important;
+        color: var(--chalk-white) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        gap: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        forced-color-adjust: none !important;
+    }
+
+    body * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        forced-color-adjust: none !important;
+    }
+
+    .main-title {
+        display: none !important;
+    }
+
+    .board-container {
+        width: 100% !important;
+        max-width: none !important;
+        height: 185mm !important;
+        background-color: var(--bg-board) !important;
+        color: var(--chalk-white) !important;
+        border: 8px solid var(--border-frame) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.7),
+                    inset 0 0 100px rgba(0,0,0,0.5) !important;
+        padding: 15mm 20mm !important;
+        box-sizing: border-box !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+    }
+
+
+    /* Trang 1: thu gọn vừa đủ khổ A4, không phóng quá lớn */
+    .board-container:first-of-type {
+        height: 185mm !important;
+        padding: 10mm 15mm !important;
+        margin: 0 auto !important;
+        box-sizing: border-box !important;
+    }
+
+    .board-container:first-of-type .system-diagram {
+        margin-top: 6px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .board-container:first-of-type .content-grid {
+        gap: 18px !important;
+    }
+
+    .board-container:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+
+    .board-header {
+        border-bottom: 2px dashed rgba(255,255,255,0.2) !important;
+    }
+
+    .chalk-title {
+        color: var(--chalk-yellow) !important;
+    }
+
+    .board-number {
+        background: #ff4d4d !important;
+        color: white !important;
+    }
+
+    .block-unit {
+        border: 2px solid var(--chalk-white) !important;
+        background: rgba(255,255,255,0.03) !important;
+        color: var(--chalk-white) !important;
+    }
+
+    .cache-node {
+        color: var(--chalk-yellow) !important;
+    }
+
+    .cache-circle {
+        border-color: var(--chalk-yellow) !important;
+    }
+
+    .cache-dot {
+        background-color: var(--chalk-yellow) !important;
+    }
+
+    .bus-architecture {
+        background: rgba(0,0,0,0.2) !important;
+    }
+
+    .bus-label,
+    .highlight {
+        color: var(--chalk-yellow) !important;
+    }
+
+    .bus-path {
+        border-top-color: var(--chalk-blue) !important;
+    }
+
+    .bus-direction,
+    .sub-text {
+        color: var(--chalk-blue) !important;
+    }
+
+    ul li::before {
+        color: var(--chalk-yellow) !important;
+    }
+
+    .tree-structure {
+        border-left-color: rgba(255,255,255,0.3) !important;
+    }
+
+    .step-calc {
+        background: rgba(0,0,0,0.2) !important;
+        color: var(--chalk-white) !important;
+    }
+
+    .hex-table td {
+        color: var(--chalk-white) !important;
+    }
+
+    hr {
+        border-color: rgba(255,255,255,0.1) !important;
+    }
+}
+    </style>
+</head>
+<body>
+
+    <h1 class="main-title">Tổng Hợp Bài Học Trên Bảng</h1>
+
+    <!-- BẢNG 1 -->
+    <div class="board-container">
+        <div class="board-header">
+            <h2 class="chalk-title">Cấu trúc chung của máy tính</h2>
+            <span class="board-number">Bảng 1</span>
+        </div>
+
+        <div class="system-diagram">
+            <!-- Biểu tượng Cache tròn có chấm giữa -->
+            <div class="cache-node">
+                <span style="font-size: 0.85rem; font-weight: bold;">cache</span>
+                <div class="cache-circle">
+                    <div class="cache-dot"></div>
+                </div>
+            </div>
+
+            <!-- Các khối chức năng chính -->
+            <div class="blocks-row">
+                <div class="block-unit">
+                    <strong>CPU</strong>
+                </div>
+                <div class="block-unit">
+                    <strong>Memory</strong>
+                </div>
+                <div class="block-unit">
+                    <strong>Input / Output</strong>
+                </div>
+            </div>
+
+            <!-- Hệ thống Bus -->
+            <div class="bus-architecture">
+                <div class="bus-line-group">
+                    <div class="bus-label">Address bus</div>
+                    <div class="bus-path">
+                        <span class="bus-direction" title="CPU phát địa chỉ">&rightarrow; (Out CPU)</span>
+                        <span class="bus-direction">&downarrow; Memory</span>
+                        <span class="bus-direction">&downarrow; I/O</span>
+                    </div>
+                </div>
+                <div class="bus-line-group">
+                    <div class="bus-label">Data bus</div>
+                    <div class="bus-path">
+                        <span class="bus-direction">&leftrightarrow; CPU</span>
+                        <span class="bus-direction">&leftrightarrow; Memory</span>
+                        <span class="bus-direction">&leftrightarrow; I/O</span>
+                    </div>
+                </div>
+                <div class="bus-line-group">
+                    <div class="bus-label">Control bus</div>
+                    <div class="bus-path">
+                        <span class="bus-direction">&leftrightarrow; CPU</span>
+                        <span class="bus-direction">&leftrightarrow; Memory</span>
+                        <span class="bus-direction">&leftrightarrow; I/O</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nội dung chi tiết -->
+        <div class="content-grid">
+            <div>
+                <ul>
+                    <li><strong>CPU</strong> (Central Processing Unit)
+                        <div class="tree-structure">
+                            + ALU (Arithmetic Logic Unit)<br>
+                            + CU (Control Unit)<br>
+                            + Registers
+                        </div>
+                    </li>
+                    <li><strong>Memory</strong>
+                        <div class="tree-structure">
+                            <strong>Main / Internal:</strong><br>
+                            <span class="sub-text">- ROM (Read-Only Memory)</span><br>
+                            <span class="sub-text">- RAM (Random Access Memory)</span><br>
+                            <span class="sub-text">- Cache</span><br>
+                            <strong>Extra / External:</strong><br>
+                            <span class="sub-text">- HD / SSD, Network</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div>
+                <p style="margin-top: 5px; margin-bottom: 5px;"><strong>Lưu trữ chương trình khi thực thi</strong></p>
+                <ul>
+                    <li><strong>Input:</strong> Keyboard, Mouse, Scanner, Mic, Modem...</li>
+                    <li><strong>Output:</strong> Monitor, Printer, Modem...</li>
+                </ul>
+                <div style="margin-top: 15px; border: 1px dashed var(--chalk-yellow); padding: 12px; border-radius: 4px;">
+                    <p style="margin:0;"><strong>Khởi động hệ thống:</strong></p>
+                    <small>POST &rarr; BIOS &rarr; Khởi động HT (Hệ điều hành)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG 2 -->
+    <div class="board-container">
+        <div class="board-header">
+            <h2 class="chalk-title">2. Binary & Đơn vị đo dung lượng</h2>
+            <span class="board-number">Bảng 2</span>
+        </div>
+
+        <p style="margin: 0 0 5px 0;"><strong>Dãy nhị phân cơ bản:</strong> 0, 1, 10, 11, 100...</p>
+        <p class="sub-text" style="margin: 0;">Đơn vị nhỏ nhất: 1 Bit (4 bits = 1 Nibble)</p>
+
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+
+        <div class="content-grid">
+            <div>
+                <h3>Chuyển đổi $10110_2$ sang Decimal:</h3>
+                <div class="step-calc">
+                    $$10110_2 = 1 \times 2^4 + 0 \times 2^3 + 1 \times 2^2 + 1 \times 2^1 + 0 \times 2^0$$
+                    $$= 16 + 0 + 4 + 2 + 0 = \mathbf{22_{10}}$$
+                </div>
+
+                <h3>Chia lấy dư (Chuyển 21 sang Nhị phân):</h3>
+                <div class="step-calc">
+                    21 : 2 = 10 (dư <strong>1</strong>)<br>
+                    10 : 2 = 5 &nbsp;(dư <strong>0</strong>)<br>
+                    5 : 2 = 2 &nbsp;&nbsp;(dư <strong>1</strong>)<br>
+                    2 : 2 = 1 &nbsp;&nbsp;(dư <strong>0</strong>)<br>
+                    1 : 2 = 0 &nbsp;&nbsp;(dư <strong>1</strong>)<br>
+                    &rarr; Kết quả: $\mathbf{10101_2}$
+                </div>
+            </div>
+
+            <div>
+                <h3>Đơn vị đo dung lượng:</h3>
+                <div class="step-calc">
+                    <ul style="margin: 0; padding-left: 5px;">
+                        <li>$1 \text{ Byte} = 8 \text{ bits}$</li>
+                        <li>$1 \text{ KB (Kilobyte)} = 2^{10} \text{ Bytes} = 1024 \text{ Bytes}$</li>
+                        <li>$1 \text{ MB (Megabyte)} = 2^{10} \text{ KB} = 2^{20} \text{ Bytes}$</li>
+                        <li>$1 \text{ GB (Gigabyte)} = 2^{10} \text{ MB}$</li>
+                    </ul>
+                </div>
+                <p class="highlight" style="margin-top: 15px;">Ví dụ: $1 \text{ KB} = 1 \times 2^{10} \text{ bytes}$</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG 3 -->
+    <div class="board-container">
+        <div class="board-header">
+            <h2 class="chalk-title">Biểu diễn thông tin (Chuyển đổi số thực)</h2>
+            <span class="board-number">Bảng 3</span>
+        </div>
+
+        <div class="content-grid">
+            <div>
+                <h3>1. Chuyển $18.125_{10}$ sang Nhị phân:</h3>
+                <p style="margin: 5px 0;"><strong>Phần nguyên (18):</strong></p>
+                <div class="step-calc">
+                    18 : 2 = 9 (dư 0)<br>
+                    9 : 2 = 4 (dư 1)<br>
+                    4 : 2 = 2 (dư 0)<br>
+                    2 : 2 = 1 (dư 0)<br>
+                    1 : 2 = 0 (dư 1)<br>
+                    &rarr; $18_{10} = 10010_2$
+                </div>
+
+                <p style="margin: 5px 0;"><strong>Phần thập phân (0.125):</strong></p>
+                <div class="step-calc">
+                    0.125 &times; 2 = <strong>0</strong>.25<br>
+                    0.25 &times; 2 = <strong>0</strong>.5<br>
+                    0.5 &times; 2 = <strong>1</strong>.0<br>
+                    &rarr; $0.125_{10} = 0.001_2$
+                </div>
+                <p class="highlight" style="margin-top: 10px;">&rarr; Kết quả: $18.125_{10} = 10010.001_2$</p>
+            </div>
+
+            <div>
+                <h3>2. Nhân liên tiếp tìm chuỗi lặp:</h3>
+                <p style="margin: 5px 0;">Ví dụ minh họa cho số thập phân vô hạn tuần hoàn:</p>
+                <div class="step-calc">
+                    0.81 &times; 2 = <strong>1</strong>.62<br>
+                    0.62 &times; 2 = <strong>1</strong>.24<br>
+                    0.24 &times; 2 = <strong>0</strong>.48<br>
+                    0.48 &times; 2 = <strong>0</strong>.96<br>
+                    ...<br>
+                    <span class="sub-text">&rarr; Lấy các phần nguyên: $0.1100_2...$</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG 4 -->
+    <div class="board-container">
+        <div class="board-header">
+            <h2 class="chalk-title">3. Hexadecimal (Hệ thập lục phân)</h2>
+            <span class="board-number">Bảng 4</span>
+        </div>
+
+        <p style="margin: 0 0 5px 0;"><strong>Ký tự hệ Hex:</strong> 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F</p>
+        <p class="sub-text" style="margin: 0;">Mỗi chữ số Hex tương ứng với nhóm 4 bits (4-bit binary code).</p>
+
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+
+        <div class="content-grid">
+            <div>
+                <h3>Bảng quy đổi Binary &rarr; Hex:</h3>
+                <table class="hex-table">
+                    <tr><td>0000 = 0</td><td>1000 = 8</td></tr>
+                    <tr><td>0001 = 1</td><td>1001 = 9</td></tr>
+                    <tr><td>0010 = 2</td><td>1010 = A (10)</td></tr>
+                    <tr><td>0011 = 3</td><td>1011 = B (11)</td></tr>
+                    <tr><td>0100 = 4</td><td>1100 = C (12)</td></tr>
+                    <tr><td>0101 = 5</td><td>1101 = D (13)</td></tr>
+                    <tr><td>0110 = 6</td><td>1110 = E (14)</td></tr>
+                    <tr><td>0111 = 7</td><td>1111 = F (15)</td></tr>
+                </table>
+            </div>
+
+            <div>
+                <h3>Ví dụ chuyển đổi Hex sang Decimal:</h3>
+                <div class="step-calc">
+                    Ví dụ với số $19_{16}$:<br>
+                    $$19_{16} = 1 \times 16^1 + 9 \times 16^0$$
+                    $$= 16 + 9 = \mathbf{25_{10}}$$
+                </div>
+
+                <h3>Dãy đếm tiếp theo trong Hex:</h3>
+                <p class="step-calc">
+                    ... 18, 19, 1A, 1B, 1C, 1D, 1E, 1F, 20 ...
+                </p>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
