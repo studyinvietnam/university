@@ -1,0 +1,11 @@
+5
+Nguyen Van A
+8 7 9
+Tran Thi B
+9 9 8
+Le Van C
+7 6 8
+Pham Thi D
+10 9 9
+Hoang Van E
+8 8 8

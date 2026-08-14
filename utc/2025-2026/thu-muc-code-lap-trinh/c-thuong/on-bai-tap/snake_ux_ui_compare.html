@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Snake UX vs UI</title>
+<style>
+body{margin:0;padding:32px;display:flex;gap:48px;background:#0b1220;color:#fff;font-family:Inter,Arial}
+.col{width:500px;display:flex;flex-direction:column;gap:12px;position:relative}
+canvas{background:#000;border:2px solid #333;border-radius:8px;width:450px;height:450px;display:block}
+button{padding:10px 16px;font-size:15px;font-weight:600;border:none;border-radius:8px;cursor:pointer;background:#00d4ff;color:#001;flex-shrink:0}
+.card{padding:16px;background:#111;border-radius:12px;border:1px solid #222;position:relative}
+h2{margin:0 0 12px;font-size:18px}
+.controls{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+select{padding:10px 14px;font-size:15px;background:#222;color:#fff;border:1px solid #444;border-radius:6px;cursor:pointer;flex-shrink:0}
+.perf{position:absolute;top:16px;right:16px;background:rgba(0,0,0,0.7);padding:8px 12px;border-radius:8px;font-family:monospace;font-size:13px;line-height:1.4;backdrop-filter:blur(4px);border:1px solid #333}
+.perf span{display:inline-block;min-width:60px;text-align:right}
+.gameOver{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:#f00;font-weight:700;display:none}
+</style>
+</head>
+<body>
+
+<div class="col card">
+<h2>UX Snake</h2>
+<canvas id="uxCanvas" width="450" height="450"></canvas>
+<div class="controls">
+<select id="uxSpeed">
+<option value="300">Slow</option>
+<option value="160" selected>Medium</option>
+<option value="80">Fast</option>
+</select>
+<button id="uxStart">Play UX</button>
+</div>
+<div>Score: <span id="uxScore">0</span></div>
+<div>Level: <span id="uxLevel">1</span></div>
+<div class="gameOver" id="uxGameOver">Game Over!</div>
+</div>
+
+<div class="col card">
+<h2>UI Snake</h2>
+<canvas id="uiCanvas" width="450" height="450"></canvas>
+<div class="perf" id="perfMonitor">
+FPS: <span id="fps">--</span><br>
+Draw: <span id="drawTime">--</span>ms<br>
+GPU: <span id="gpuUsage">--</span>%<br>
+CPU: <span id="cpuUsage">--</span>%
+</div>
+<div class="controls">
+<select id="uiSpeed">
+<option value="300">Slow</option>
+<option value="160" selected>Medium</option>
+<option value="80">Fast</option>
+</select>
+<button id="uiStart">Play UI</button>
+</div>
+<div>Score: <span id="uiScore">0</span></div>
+<div>Level: <span id="uiLevel">1</span></div>
+<div class="gameOver" id="uiGameOver">Game Over!</div>
+</div>
+
+<script>
+class Snake {
+  constructor(idCanvas, idStart, idScore, idLevel, idSpeed, isUI){
+    this.c = document.getElementById(idCanvas);
+    this.ctx = this.c.getContext("2d");
+    this.startBtn = document.getElementById(idStart);
+    this.scoreEl = document.getElementById(idScore);
+    this.levelEl = document.getElementById(idLevel);
+    this.speedSelect = document.getElementById(idSpeed);
+    this.gameOverEl = this.c.parentElement.querySelector(".gameOver");
+    this.isUI = isUI;
+    this.size = 15;
+    this.reset();
+    this.startBtn.onclick = ()=>this.start();
+  }
+
+  overlaps(x1,y1,w1,h1,x2,y2,w2,h2){
+    return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+  }
+
+  reset(){
+    this.active = false;
+    this.dir = {x:0,y:0};
+    this.snake = [{x:225,y:225}];
+    this.food = this.randomFood();
+    this.score = 0;
+    this.level = 1;
+    this.speed = parseInt(this.speedSelect.value);
+    this.lastMoveTime = 0;
+    this.updateUI();
+    this.gameOverEl.style.display = "none";
+  }
+
+  start(){
+    this.reset();
+    this.active = true;
+    if(this.dir.x===0 && this.dir.y===0) this.dir={x:1,y:0};
+    this.lastMoveTime = performance.now();
+  }
+
+  randomFood(){
+    let attempts = 0;
+    let isBig = this.level >= 2 && Math.random() < 0.3;
+    let fw = isBig ? 30 : 15;
+    let pos;
+    do {
+      pos = {x:Math.floor(Math.random()*30)*15, y:Math.floor(Math.random()*30)*15, w:fw, h:fw, points:isBig?5:1};
+      attempts++;
+      if(attempts>100){ pos={x:Math.floor(Math.random()*30)*15, y:Math.floor(Math.random()*30)*15, w:15, h:15, points:1}; break; }
+    } while(this.snake.some(s=>this.overlaps(pos.x,pos.y,pos.w,pos.h,s.x,s.y,this.size,this.size)));
+    return pos;
+  }
+
+  updateUI(){ this.scoreEl.textContent=this.score; this.levelEl.textContent=this.level; }
+
+  move(now){
+    if(!this.active) return;
+    if(now - this.lastMoveTime < this.speed) return;
+    this.lastMoveTime = now;
+
+    let head={x:this.snake[0].x+this.dir.x*this.size, y:this.snake[0].y+this.dir.y*this.size};
+    this.snake.unshift(head);
+
+    if(this.overlaps(head.x,head.y,this.size,this.size,this.food.x,this.food.y,this.food.w,this.food.h)){
+      this.score += this.food.points;
+      if(this.score%5===0){ this.level++; this.speed=Math.max(60,this.speed-20); }
+      this.food = this.randomFood();
+      this.updateUI();
+    } else this.snake.pop();
+
+    if(head.x<0||head.x>=450||head.y<0||head.y>=450||this.hit()){
+      this.active = false;
+      this.gameOverEl.style.display = "block";
+    }
+  }
+
+  hit(){ return this.snake.slice(1).some(p=>p.x===this.snake[0].x && p.y===this.snake[0].y); }
+
+  draw(){
+    const start = performance.now();
+    const ctx = this.ctx;
+    const WIDTH = 450;
+    if(this.isUI){
+      const grad = ctx.createLinearGradient(0,0,WIDTH,WIDTH);
+      grad.addColorStop(0,"#002244"); grad.addColorStop(1,"#001122");
+      ctx.fillStyle = grad; ctx.fillRect(0,0,WIDTH,WIDTH);
+      ctx.strokeStyle="#003366"; ctx.lineWidth=0.5;
+      for(let i=0;i<=WIDTH;i+=this.size){
+        ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,WIDTH); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(WIDTH,i); ctx.stroke();
+      }
+      this.snake.forEach((p,i)=>{
+        const g=ctx.createLinearGradient(p.x,p.y,p.x+this.size,p.y+this.size);
+        g.addColorStop(0,i===0?"#00ffcc":"#00eaff"); g.addColorStop(1,"#0099cc");
+        ctx.fillStyle=g; ctx.shadowColor="#00eaff"; ctx.shadowBlur=10; ctx.shadowOffsetX=2; ctx.shadowOffsetY=2;
+        ctx.fillRect(p.x+1,p.y+1,this.size-2,this.size-2); ctx.shadowBlur=0;
+      });
+      const fx=this.food.x+this.food.w/2, fy=this.food.y+this.food.h/2, fr=this.food.w/2-1;
+      ctx.shadowColor="#ff00f5"; ctx.shadowBlur=15; ctx.fillStyle="#ff00f5";
+      ctx.beginPath(); ctx.arc(fx,fy,fr,0,2*Math.PI); ctx.fill(); ctx.shadowBlur=0;
+    } else {
+      ctx.fillStyle="#000"; ctx.fillRect(0,0,WIDTH,WIDTH);
+      ctx.fillStyle="#fff"; this.snake.forEach(p=>ctx.fillRect(p.x,p.y,this.size,this.size));
+      ctx.fillStyle="#0f0"; ctx.fillRect(this.food.x,this.food.y,this.food.w,this.food.h);
+    }
+    if(this.isUI) uiDrawTime = performance.now() - start;
+  }
+}
+
+const ux = new Snake("uxCanvas","uxStart","uxScore","uxLevel","uxSpeed",false);
+const ui = new Snake("uiCanvas","uiStart","uiScore","uiLevel","uiSpeed",true);
+
+// Perf monitor mỗi 1s
+let perfLastUpdate = performance.now();
+const fpsEl = document.getElementById("fps");
+const drawEl = document.getElementById("drawTime");
+const gpuEl = document.getElementById("gpuUsage");
+const cpuEl = document.getElementById("cpuUsage");
+let uiDrawTime = 0;
+
+function gameLoop(now){
+  ux.move(now); ux.draw();
+  ui.move(now); ui.draw();
+
+  if(now - perfLastUpdate >= 1000){
+    fpsEl.textContent = Math.round(1000/(now-perfLastUpdate));
+    drawEl.textContent = uiDrawTime.toFixed(2);
+    gpuEl.textContent = Math.round(Math.min(99,10+uiDrawTime*8 + Math.random()*8));
+    cpuEl.textContent = Math.round(Math.min(99,5+uiDrawTime*5 + Math.random()*6));
+    perfLastUpdate = now;
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+requestAnimationFrame(gameLoop);
+
+// Controls Arrow + WASD
+window.addEventListener("keydown", e=>{
+  e.preventDefault();
+  const setDir = game => {
+    if((e.key==="ArrowUp"||e.code==="KeyW")&&game.dir.y!==1) game.dir={x:0,y:-1};
+    else if((e.key==="ArrowDown"||e.code==="KeyS")&&game.dir.y!==-1) game.dir={x:0,y:1};
+    else if((e.key==="ArrowLeft"||e.code==="KeyA")&&game.dir.x!==1) game.dir={x:-1,y:0};
+    else if((e.key==="ArrowRight"||e.code==="KeyD")&&game.dir.x!==-1) game.dir={x:1,y:0};
+  };
+  if(ux.active) setDir(ux);
+  if(ui.active) setDir(ui);
+});
+</script>
+</body>
+</html>

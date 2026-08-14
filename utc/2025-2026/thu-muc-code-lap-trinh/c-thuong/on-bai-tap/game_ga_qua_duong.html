@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gà Qua Đường — Deluxe Edition 🐔✨</title>
+  <style>
+    :root{
+      --bg:#0b0f1d;
+      --panel:#121827;
+      --accent:#ffd447;
+      --accent2:#ff955c;
+      --white:#f0f0f0;
+    }
+    *{box-sizing:border-box;font-family:'Poppins',sans-serif;}
+    body{
+      margin:0;
+      background:radial-gradient(circle at 50% 20%,#182235,#0b0f1d 70%);
+      display:flex;align-items:center;justify-content:center;height:100vh;color:var(--white);
+    }
+    .wrap{
+      width:380px;
+      background:var(--panel);
+      border-radius:18px;
+      padding:18px 16px;
+      box-shadow:0 10px 40px rgba(0,0,0,0.55);
+      border:1px solid rgba(255,255,255,0.05);
+    }
+    header{
+      display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
+    }
+    header h1{
+      font-size:20px;margin:0;color:var(--accent);
+      text-shadow:0 0 6px rgba(255,212,71,0.6);
+    }
+    .hud{display:flex;gap:10px;align-items:center;font-size:14px;}
+    .chip{
+      background:rgba(255,255,255,0.08);
+      padding:4px 8px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);
+    }
+    canvas{
+      display:block;width:100%;height:auto;border-radius:14px;
+      border:2px solid rgba(255,255,255,0.08);
+      background:#4c7c36;
+    }
+    .controls{display:flex;gap:10px;justify-content:space-between;margin-top:10px;}
+    .btn{
+      flex:1;
+      background:var(--accent2);
+      border:none;
+      padding:8px 10px;
+      border-radius:10px;
+      font-weight:600;
+      cursor:pointer;
+      color:#fff;
+      box-shadow:0 3px 10px rgba(255,149,92,0.4);
+      transition:0.2s;
+    }
+    .btn:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(255,149,92,0.55);}
+    .small{text-align:center;margin-top:6px;font-size:12px;opacity:0.75;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Gà Qua Đường 🐔</h1>
+      <div class="hud">
+        <div class="chip">⭐ <span id="score">0</span></div>
+        <div class="chip">❤️ <span id="lives">3</span></div>
+      </div>
+    </header>
+
+    <canvas id="game" width="360" height="600"></canvas>
+
+    <div class="controls">
+      <button class="btn" id="startBtn">Start</button>
+      <button class="btn" id="pauseBtn">Pause</button>
+      <button class="btn" id="resetBtn">Reset</button>
+    </div>
+    <p class="small">Dùng phím ← → ↑ hoặc chạm màn hình để chơi.</p>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+
+  let score = 0, lives = 3, running = false, paused = false;
+  const scoreEl = document.getElementById('score');
+  const livesEl = document.getElementById('lives');
+
+  const lanes = 5;
+  const laneHeight = H / lanes;
+  const roadX = 40;
+  const roadW = W - roadX*2;
+
+  // fancy chicken
+  const chicken = {
+    w:30,h:30,
+    x:W/2-15,
+    y:H-laneHeight/2-15,
+    speed:10,
+  };
+
+  let cars = [];
+  let spawn = 0;
+  let spawnInt = 80;
+  let frame = 0;
+
+  function reset(){
+    score=0; lives=3; cars=[]; spawn=0; spawnInt=80;
+    chicken.x=W/2-15;
+    chicken.y=H-laneHeight/2-15;
+    updateUI();
+  }
+
+  function updateUI(){scoreEl.textContent=score; livesEl.textContent=lives;}
+
+  function spawnCar(){
+    const lane = Math.floor(Math.random()*(lanes-1));
+    const dir = Math.random()<0.5? -1: 1;
+    const h = laneHeight*0.65;
+    const w = 70 + Math.random()*40;
+    const y = H-(lane+1)*laneHeight + (laneHeight-h)/2;
+    const x = dir===1? -w : W+w;
+    const speed = 3 + Math.random()*2 + frame/500;
+    cars.push({x,y,w,h,dir,speed,color:randomColor()});
+  }
+
+  function randomColor(){
+    const colors=["#ff5757","#ffa048","#48a4ff","#7bff6b","#ff70c8"]; return colors[Math.floor(Math.random()*colors.length)];
+  }
+
+  function collide(a,b){
+    return !(a.x+a.w<b.x || a.x>b.x+b.w || a.y+a.h<b.y || a.y>b.y+b.h);
+  }
+
+  function update(){
+    if(!running||paused) return;
+    frame++; spawn++;
+
+    if(spawn>spawnInt){ spawnCar(); spawn=0; if(spawnInt>35) spawnInt--; }
+
+    for(let i=cars.length-1;i>=0;i--){
+      const c=cars[i]; c.x+=c.speed*c.dir;
+      if((c.dir===1 && c.x>W+200) || (c.dir===-1 && c.x<-200)) cars.splice(i,1);
+    }
+
+    const b={x:chicken.x,y:chicken.y,w:chicken.w,h:chicken.h};
+    for(const c of cars){
+      if(collide(b,c)){
+        lives--; updateUI(); cars=[]; spawnInt=80;
+        chicken.y=H-laneHeight/2-15;
+        if(lives<=0){ running=false; paused=false; alert(`Game Over! Điểm: ${score}`);} break;
+      }
+    }
+
+    if(chicken.y<laneHeight*0.3){ score++; updateUI(); chicken.y=H-laneHeight/2-15; }
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    // Animated background grass
+    ctx.fillStyle="#4c7c36";
+    ctx.fillRect(0,0,W,H);
+
+    // road
+    ctx.fillStyle="#1e1e1e";
+    ctx.fillRect(roadX,0,roadW,H);
+
+    // lanes
+    for(let i=0;i<lanes;i++){
+      const y=H-(i+1)*laneHeight;
+      ctx.fillStyle=i%2?"#2a2a2a":"#242424";
+      ctx.fillRect(roadX,y,roadW,laneHeight);
+      ctx.strokeStyle="rgba(255,255,255,0.15)";
+      ctx.lineWidth=2; ctx.setLineDash([10,10]);
+      ctx.beginPath(); ctx.moveTo(roadX,y+laneHeight/2); ctx.lineTo(roadX+roadW,y+laneHeight/2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // cars
+    for(const c of cars){
+      ctx.fillStyle=c.color;
+      ctx.fillRect(c.x,c.y,c.w,c.h);
+      ctx.fillStyle="#111";
+      ctx.fillRect(c.x+8,c.y+c.h-6,14,6);
+      ctx.fillRect(c.x+c.w-22,c.y+c.h-6,14,6);
+    }
+
+    // chicken cute
+    ctx.fillStyle="#ffe26b";
+    ctx.beginPath(); ctx.arc(chicken.x+15,chicken.y+15,15,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#000"; ctx.beginPath(); ctx.arc(chicken.x+10,chicken.y+12,3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#ff7b2f";
+    ctx.beginPath(); ctx.moveTo(chicken.x+24,chicken.y+15); ctx.lineTo(chicken.x+34,chicken.y+18); ctx.lineTo(chicken.x+24,chicken.y+21); ctx.fill();
+
+    requestAnimationFrame(loop);
+  }
+
+  function loop(){ update(); draw(); }
+
+  document.addEventListener('keydown',e=>{
+    if(!running) return;
+    if(e.key=='ArrowLeft') chicken.x=Math.max(roadX,chicken.x-chicken.speed);
+    if(e.key=='ArrowRight') chicken.x=Math.min(roadX+roadW-chicken.w,chicken.x+chicken.speed);
+    if(e.key=='ArrowUp') chicken.y=Math.max(0,chicken.y-laneHeight);
+  });
+
+  canvas.addEventListener('touchstart',e=>{
+    if(!running) return;
+    const t=e.touches[0]; const r=canvas.getBoundingClientRect();
+    const x=t.clientX-r.left;
+    if(x<W/3) chicken.x=Math.max(roadX,chicken.x-chicken.speed);
+    else if(x>W*2/3) chicken.x=Math.min(roadX+roadW-chicken.w,chicken.x+chicken.speed);
+    else chicken.y=Math.max(0,chicken.y-laneHeight);
+  });
+
+  document.getElementById('startBtn').onclick=()=>{running=true; paused=false;};
+  document.getElementById('pauseBtn').onclick=()=>{paused=!paused;};
+  document.getElementById('resetBtn').onclick=()=>{reset(); running=false;};
+
+  reset(); draw();
+})();
+</script>
+</body>
+</html>

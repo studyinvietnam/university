@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Chương 1 – Động học (FULL + Hình)</title>
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#020617;
+    color:#e5e7eb;
+    padding:20px;
+}
+h1{color:#38bdf8;}
+.question{
+    border:1px solid #1e293b;
+    padding:15px;
+    margin-bottom:25px;
+    border-radius:10px;
+}
+.explain{margin-top:8px;font-size:14px}
+.correct{color:#22c55e}
+.wrong{color:#ef4444}
+svg{margin-top:10px;background:#020617}
+button{
+    padding:10px 20px;
+    font-size:16px;
+    background:#38bdf8;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+.result{font-size:18px;font-weight:bold;margin-top:20px}
+</style>
+</head>
+
+<body>
+<h1>🧠 Quiz FULL Chương 1 – ĐỘNG HỌC (15 câu + hình)</h1>
+
+<form id="quiz">
+
+<!-- 1 -->
+<div class="question" id="q1">
+<b>Câu 1.</b> Chất điểm là gì?
+<br><label><input type="radio" name="q1" value="a"> Vật có kích thước rất nhỏ</label>
+<label><input type="radio" name="q1" value="b"> Vật có khối lượng nhỏ</label>
+<label><input type="radio" name="q1" value="c"> Vật có kích thước không đáng kể so với bài toán xét</label>
+<div class="explain"></div>
+</div>
+
+<!-- 2 -->
+<div class="question" id="q2">
+<b>Câu 2.</b> Khi nào KHÔNG được coi vật là chất điểm?
+<br><label><input type="radio" name="q2" value="a"> Khi xét quãng đường dài</label>
+<label><input type="radio" name="q2" value="b"> Khi kích thước vật ảnh hưởng kết quả</label>
+<label><input type="radio" name="q2" value="c"> Khi vật chuyển động nhanh</label>
+<div class="explain"></div>
+</div>
+
+<!-- 3 -->
+<div class="question" id="q3">
+<b>Câu 3.</b> Hệ quy chiếu gồm:
+<br><label><input type="radio" name="q3" value="a"> Vật mốc</label>
+<label><input type="radio" name="q3" value="b"> Vật mốc + hệ tọa độ</label>
+<label><input type="radio" name="q3" value="c"> Vật mốc + hệ tọa độ + đồng hồ</label>
+<div class="explain"></div>
+</div>
+
+<!-- 4 -->
+<div class="question" id="q4">
+<b>Câu 4.</b> Hệ quy chiếu quán tính là:
+<br><label><input type="radio" name="q4" value="a"> Hệ đứng yên</label>
+<label><input type="radio" name="q4" value="b"> Hệ đứng yên hoặc chuyển động thẳng đều</label>
+<label><input type="radio" name="q4" value="c"> Hệ có gia tốc</label>
+<div class="explain"></div>
+</div>
+
+<!-- 5 -->
+<div class="question" id="q5">
+<b>Câu 5.</b> Phương trình chuyển động có dạng:
+<br><label><input type="radio" name="q5" value="a"> v = ds/dt</label>
+<label><input type="radio" name="q5" value="b"> r = r(t)</label>
+<label><input type="radio" name="q5" value="c"> a = dv/dt</label>
+<div class="explain"></div>
+</div>
+
+<!-- 6 -->
+<div class="question" id="q6">
+<b>Câu 6.</b> Quỹ đạo chuyển động là:
+<br><label><input type="radio" name="q6" value="a"> Đường đi của vật trong không gian</label>
+<label><input type="radio" name="q6" value="b"> Phương trình vận tốc</label>
+<label><input type="radio" name="q6" value="c"> Gia tốc của vật</label>
+<div class="explain"></div>
+</div>
+
+<!-- 7 -->
+<div class="question" id="q7">
+<b>Câu 7.</b> Vận tốc trung bình được xác định bởi:
+<br><label><input type="radio" name="q7" value="a"> ds/dt</label>
+<label><input type="radio" name="q7" value="b"> Δs/Δt</label>
+<label><input type="radio" name="q7" value="c"> d²s/dt²</label>
+<div class="explain"></div>
+</div>
+
+<!-- 8 -->
+<div class="question" id="q8">
+<b>Câu 8.</b> Phương của véc tơ vận tốc?
+<svg width="200" height="120">
+<path d="M20 80 Q100 10 180 80" stroke="#38bdf8" fill="none"/>
+<line x1="100" y1="50" x2="140" y2="50" stroke="#22c55e" stroke-width="3"/>
+<polygon points="140,50 130,45 130,55" fill="#22c55e"/>
+</svg>
+<br><label><input type="radio" name="q8" value="a"> Hướng vào tâm</label>
+<label><input type="radio" name="q8" value="b"> Tiếp tuyến quỹ đạo</label>
+<label><input type="radio" name="q8" value="c"> Vuông góc quỹ đạo</label>
+<div class="explain"></div>
+</div>
+
+<!-- 9 -->
+<div class="question" id="q9">
+<b>Câu 9.</b> Gia tốc tiếp tuyến đặc trưng cho:
+<br><label><input type="radio" name="q9" value="a"> Thay đổi hướng vận tốc</label>
+<label><input type="radio" name="q9" value="b"> Thay đổi độ lớn vận tốc</label>
+<label><input type="radio" name="q9" value="c"> Quỹ đạo</label>
+<div class="explain"></div>
+</div>
+
+<!-- 10 -->
+<div class="question" id="q10">
+<b>Câu 10.</b> Gia tốc pháp tuyến có đặc điểm:
+<svg width="200" height="120">
+<circle cx="100" cy="60" r="40" stroke="#38bdf8" fill="none"/>
+<line x1="140" y1="60" x2="100" y2="60" stroke="#ef4444" stroke-width="3"/>
+<polygon points="100,60 110,55 110,65" fill="#ef4444"/>
+</svg>
+<br><label><input type="radio" name="q10" value="a"> a = v/R</label>
+<label><input type="radio" name="q10" value="b"> a = v²/R, hướng vào tâm</label>
+<label><input type="radio" name="q10" value="c"> a = R/v²</label>
+<div class="explain"></div>
+</div>
+
+<!-- 11 -->
+<div class="question" id="q11">
+<b>Câu 11.</b> Trong chuyển động tròn đều:
+<br><label><input type="radio" name="q11" value="a"> at ≠ 0</label>
+<label><input type="radio" name="q11" value="b"> an = 0</label>
+<label><input type="radio" name="q11" value="c"> at = 0</label>
+<div class="explain"></div>
+</div>
+
+<!-- 12 -->
+<div class="question" id="q12">
+<b>Câu 12.</b> Vận tốc góc được xác định bởi:
+<br><label><input type="radio" name="q12" value="a"> dφ/dt</label>
+<label><input type="radio" name="q12" value="b"> dv/dt</label>
+<label><input type="radio" name="q12" value="c"> v/R²</label>
+<div class="explain"></div>
+</div>
+
+<!-- 13 -->
+<div class="question" id="q13">
+<b>Câu 13.</b> Liên hệ giữa v và ω:
+<br><label><input type="radio" name="q13" value="a"> v = Rω</label>
+<label><input type="radio" name="q13" value="b"> v = ω/R</label>
+<label><input type="radio" name="q13" value="c"> v = R²ω</label>
+<div class="explain"></div>
+</div>
+
+<!-- 14 -->
+<div class="question" id="q14">
+<b>Câu 14.</b> Gia tốc góc được xác định bởi:
+<br><label><input type="radio" name="q14" value="a"> dφ/dt</label>
+<label><input type="radio" name="q14" value="b"> dω/dt</label>
+<label><input type="radio" name="q14" value="c"> v²/R</label>
+<div class="explain"></div>
+</div>
+
+<!-- 15 -->
+<div class="question" id="q15">
+<b>Câu 15.</b> Gia tốc tiếp tuyến trong chuyển động tròn:
+<br><label><input type="radio" name="q15" value="a"> at = Rβ</label>
+<label><input type="radio" name="q15" value="b"> at = v²/R</label>
+<label><input type="radio" name="q15" value="c"> at = Rω</label>
+<div class="explain"></div>
+</div>
+
+<button type="button" onclick="check()">Kiểm tra</button>
+<div class="result" id="result"></div>
+</form>
+
+<script>
+const data={
+q1:{a:"c",e:"Chất điểm phụ thuộc bài toán, không phụ thuộc bản thân vật."},
+q2:{a:"b",e:"Khi kích thước ảnh hưởng kết quả thì không coi là chất điểm."},
+q3:{a:"c",e:"Hệ quy chiếu gồm vật mốc, hệ tọa độ và đồng hồ."},
+q4:{a:"b",e:"Hệ quán tính là hệ đứng yên hoặc chuyển động thẳng đều."},
+q5:{a:"b",e:"Phương trình chuyển động mô tả vị trí theo thời gian."},
+q6:{a:"a",e:"Quỹ đạo là đường đi của vật trong không gian."},
+q7:{a:"b",e:"Vận tốc trung bình = quãng đường / thời gian."},
+q8:{a:"b",e:"Véc tơ vận tốc tiếp tuyến với quỹ đạo."},
+q9:{a:"b",e:"Gia tốc tiếp tuyến làm đổi độ lớn vận tốc."},
+q10:{a:"b",e:"Gia tốc pháp tuyến v²/R, luôn hướng vào tâm."},
+q11:{a:"c",e:"Tròn đều ⇒ tốc độ không đổi ⇒ at = 0."},
+q12:{a:"a",e:"Vận tốc góc là đạo hàm góc quay theo thời gian."},
+q13:{a:"a",e:"Liên hệ cơ bản: v = Rω."},
+q14:{a:"b",e:"Gia tốc góc là đạo hàm của ω theo thời gian."},
+q15:{a:"a",e:"Gia tốc tiếp tuyến at = Rβ."}
+};
+
+function check(){
+let score=0;
+for(let q in data){
+let box=document.getElementById(q);
+let sel=document.querySelector(`input[name="${q}"]:checked`);
+let exp=box.querySelector(".explain");
+if(sel && sel.value===data[q].a){
+score++;
+exp.innerHTML="✅ Đúng";
+exp.className="explain correct";
+}else{
+exp.innerHTML=`❌ Sai. ${data[q].e}`;
+exp.className="explain wrong";
+}
+}
+document.getElementById("result").innerHTML=
+`🎯 Kết quả: ${score}/15 câu`;
+}
+</script>
+
+</body>
+</html>

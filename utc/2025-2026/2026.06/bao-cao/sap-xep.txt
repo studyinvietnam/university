@@ -1,0 +1,131 @@
+=============================================================
+| MSSV       | HO TEN                         | GPA   |
+=============================================================
+| 252233344  | VU CONG DUONG                  |  1.78 |
+| 251230817  | LE CONG CUONG                  |  1.91 |
+| 253630654  | DO DANG DUNG                   |  1.97 |
+| 251230868  | NGO XUAN HUAN                  |  1.99 |
+| 251210965  | DO NHU THANH                   |  2.02 |
+| 253630658  | VU DUNG                        |  2.10 |
+| 251230830  | NGUYEN VAN DUY                 |  2.13 |
+| 251210916  | NGUYEN VAN MANH                |  2.14 |
+| 251230799  | LA TUAN ANH                    |  2.15 |
+| 251230837  | HOANG THANH DAT                |  2.21 |
+| 251230997  | LE BAO VIET                    |  2.22 |
+| 251230951  | NGUYEN QUANG QUAN              |  2.24 |
+| 253630565  | NGUYEN HONG AN                 |  2.25 |
+| 253610678  | BUI DUY MANH                   |  2.25 |
+| 253630680  | LE DUC MANH                    |  2.25 |
+| 253610661  | SA XUAN DAI                    |  2.25 |
+| 251210897  | CHU HAI LAM                    |  2.27 |
+| 251230857  | NGUYEN VAN HIEN                |  2.29 |
+| 253610666  | NGHIEM ANH HAO                 |  2.33 |
+| 253610672  | MAC VIET HUNG                  |  2.33 |
+| 253630694  | HO SY THANG                    |  2.33 |
+| 253630657  | PHAN LE DUNG                   |  2.33 |
+| 253630652  | NGUYEN THANH CONG              |  2.36 |
+| 253610690  | DO MINH SON                    |  2.41 |
+| 251230954  | LUU CHI QUYET                  |  2.41 |
+| 253630663  | PHAM CONG DOAN                 |  2.43 |
+| 251230819  | NGUYEN DAI CUONG               |  2.43 |
+| 253630646  | NGUYEN VIET ANH                |  2.43 |
+| 251230931  | TRAN DINH NAM                  |  2.45 |
+| 251211005  | DUONG HOANG VU                 |  2.46 |
+| 253610679  | HOANG DUC MANH                 |  2.49 |
+| 253610685  | NGUYEN THANH MINH              |  2.49 |
+| 251230829  | DOAN CONG DUY                  |  2.50 |
+| 253630692  | PHAN CHINH THANH               |  2.54 |
+| 253610697  | PHAM THANH THUY                |  2.54 |
+| 253630651  | TRUONG THI MINH CHAU           |  2.54 |
+| 253630656  | NGUYEN MANH DUNG               |  2.54 |
+| 253610668  | NGUYEN TRUNG HIEU              |  2.54 |
+| 251230971  | TRAN VAN THANH                 |  2.55 |
+| 251230928  | NGUYEN DUC NAM                 |  2.56 |
+| 251230980  | TRAN BA THUONG                 |  2.56 |
+| 251230946  | HOANG XUAN PHUONG              |  2.57 |
+| 251230877  | NGUYEN DUY HUNG                |  2.58 |
+| 253610684  | NGUYEN NHAT MINH               |  2.58 |
+| 253610660  | TA MINH DUONG                  |  2.58 |
+| 253610676  | VU MANH KIEN                   |  2.58 |
+| 251210842  | LUONG DINH DOAN                |  2.59 |
+| 251230864  | DAO VIET HOANG                 |  2.59 |
+| 251230806  | NGUYEN TUAN ANH                |  2.60 |
+| 253630695  | CAO DANG THIEN                 |  2.61 |
+| 253610699  | CAO VAN TRINH                  |  2.61 |
+| 251210798  | HOANG VIET ANH                 |  2.61 |
+| 253610671  | NGUYEN DUC HUNG                |  2.61 |
+| 253630688  | TRAN DAN PHONG                 |  2.61 |
+| 251210888  | NGUYEN TRONG KHANH             |  2.62 |
+| 251230960  | CONG ANH TAI                   |  2.67 |
+| 251230993  | TRINH QUOC TUAN                |  2.67 |
+| 253610701  | NGUYEN DANG VIET               |  2.69 |
+| 253610691  | DANG THE THANH                 |  2.69 |
+| 251230840  | PHAM TIEN DAT                  |  2.69 |
+| 253610681  | NGUYEN BA MANH                 |  2.69 |
+| 253610667  | DO MINH HIEU                   |  2.71 |
+| 251210839  | NGUYEN TIEN DAT                |  2.71 |
+| 253630655  | LE DINH DUNG                   |  2.71 |
+| 251230999  | PHAN DINH VIET                 |  2.71 |
+| 251210908  | NGUYEN THANH LONG              |  2.72 |
+| 253610642  | NGUYEN DUC AN                  |  2.73 |
+| 251230835  | PHAN TUNG DUONG                |  2.77 |
+| 253630687  | HOANG TUAN PHONG               |  2.77 |
+| 253610647  | TANG XUAN ANH                  |  2.77 |
+| 253610700  | TRUONG ANH TUAN                |  2.77 |
+| 251210860  | DANG TRUNG HIEU                |  2.79 |
+| 251230869  | TRAN DUC HUAN                  |  2.79 |
+| 251230937  | NGUYEN HOANG NHAT              |  2.79 |
+| 251230952  | TONG QUANG QUY                 |  2.79 |
+| 251230968  | NGUYEN QUANG THANH             |  2.80 |
+| 251230930  | NGUYEN PHUONG NAM              |  2.81 |
+| 251210831  | NGUYEN BA DUONG                |  2.81 |
+| 253610644  | MAI NGOC HUNG ANH              |  2.85 |
+| 253630698  | NGUYEN VAN TIEM                |  2.85 |
+| 253610693  | TRAN NHAT THANH                |  2.85 |
+| 253610683  | LE QUANG MINH                  |  2.85 |
+| 253630653  | PHAM PHU CUONG                 |  2.85 |
+| 253610670  | HOANG NGOC HUNG                |  2.85 |
+| 251230892  | NGUYEN ANH KHOA                |  2.89 |
+| 251230984  | NGUYEN DUC TOAN                |  2.90 |
+| 253630650  | NGUYEN LE BAO CHAU             |  2.91 |
+| 251230828  | TRAN QUOC DUNG                 |  2.91 |
+| 253610674  | PHAM GIA KHIEM                 |  2.91 |
+| 251210953  | NGUYEN ANH QUYEN               |  2.93 |
+| 253634785  | DINH VAN PHUC                  |  2.94 |
+| 253630664  | DO TRUONG GIANG                |  2.94 |
+| 251210875  | HOANG TRONG HUNG               |  2.99 |
+| 253610689  | HOANG MINH QUAN                |  2.99 |
+| 253610677  | NGUYEN HOANG LONG              |  2.99 |
+| 253610696  | NGUYEN DUC THINH               |  2.99 |
+| 253630675  | HOANG ANH KHOI                 |  3.05 |
+| 253630662  | NGUYEN XUAN DAT                |  3.05 |
+| 253610665  | LUONG HOANG HAI                |  3.11 |
+| 251230942  | NGUYEN HOANG PHUC              |  3.11 |
+| 253610686  | PHAM NHAT MINH                 |  3.11 |
+| 251210975  | TRUONG NGOC THANG              |  3.11 |
+| 251230844  | DUONG VIET DUC                 |  3.11 |
+| 251230906  | DO PHAM HAI LONG               |  3.11 |
+| 251231006  | HA HUY VU                      |  3.11 |
+| 251230802  | NGUYEN CONG TUAN ANH           |  3.14 |
+| 251230996  | CHUC ANH VIET                  |  3.14 |
+| 251230884  | HOANG KY KHANG                 |  3.20 |
+| 253610682  | HOANG GIA MINH                 |  3.21 |
+| 251210919  | VU DUC MANH                    |  3.21 |
+| 253610643  | CAO HOANG ANH                  |  3.21 |
+| 251230961  | HOANG QUOC THAI                |  3.22 |
+| 253610669  | PHAM KHANH HOA                 |  3.25 |
+| 253610648  | VU MAI ANH                     |  3.27 |
+| 251210838  | LE TRAN TIEN DAT               |  3.27 |
+| 251210862  | NGUYEN MINH HIEU               |  3.27 |
+| 251210934  | NGUYEN KHOI NGUYEN             |  3.29 |
+| 251230978  | NGUYEN TA ANH THINH            |  3.42 |
+| 251210845  | MAI ANH DUC                    |  3.42 |
+| 252333157  | NGUYEN DUC ANH                 |  3.45 |
+| 251210885  | LE HOANG GIA KHANH             |  3.50 |
+| 251231003  | TRAN QUANG VINH                |  3.53 |
+| 251230926  | TRUONG THI LY NA               |  3.57 |
+| 251230945  | HOANG MINH PHUONG              |  3.58 |
+| 251230859  | DINH NGUYEN MINH HIEU          |  3.62 |
+| 251210827  | NGUYEN LAN DUNG                |  3.79 |
+| 251230902  | NGUYEN THI NGOC LE             |  3.85 |
+=============================================================

@@ -1,0 +1,59 @@
+DANH SACH SINH VIEN LOP/NGANH: Khoa hoc may tinh
+253610642|NGUYEN DUC AN|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.73
+253610643|CAO HOANG ANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 3.21
+253610644|MAI NGOC HUNG ANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.85
+253630646|NGUYEN VIET ANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.43
+253610647|TANG XUAN ANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.77
+253630565|NGUYEN HONG AN|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.25
+253610648|VU MAI ANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 3.27
+253630650|NGUYEN LE BAO CHAU|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.91
+253630651|TRUONG THI MINH CHAU|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.54
+253630652|NGUYEN THANH CONG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.36
+253630653|PHAM PHU CUONG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.85
+253610661|SA XUAN DAI|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.25
+253630662|NGUYEN XUAN DAT|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 3.05
+253630663|PHAM CONG DOAN|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.43
+253630654|DO DANG DUNG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 1.97
+253630655|LE DINH DUNG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.71
+253630656|NGUYEN MANH DUNG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.54
+253630657|PHAN LE DUNG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.33
+253630658|VU DUNG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.10
+253610660|TA MINH DUONG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.58
+253630664|DO TRUONG GIANG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.94
+253610665|LUONG HOANG HAI|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 3.11
+253610666|NGHIEM ANH HAO|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.33
+253610667|DO MINH HIEU|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.71
+253610668|NGUYEN TRUNG HIEU|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.54
+253610669|PHAM KHANH HOA|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 3.25
+253610670|HOANG NGOC HUNG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.85
+253610671|NGUYEN DUC HUNG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.61
+253610672|MAC VIET HUNG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.33
+253610674|PHAM GIA KHIEM|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.91
+253630675|HOANG ANH KHOI|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 3.05
+253610676|VU MANH KIEN|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.58
+253610677|NGUYEN HOANG LONG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.99
+253610678|BUI DUY MANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.25
+253610679|HOANG DUC MANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.49
+253630680|LE DUC MANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.25
+253610681|NGUYEN BA MANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.69
+253610682|HOANG GIA MINH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 3.21
+253610683|LE QUANG MINH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.85
+253610684|NGUYEN NHAT MINH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.58
+253610685|NGUYEN THANH MINH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.49
+253610686|PHAM NHAT MINH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 3.11
+253630687|HOANG TUAN PHONG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.77
+253630688|TRAN DAN PHONG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.61
+253634785|DINH VAN PHUC|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.94
+253610689|HOANG MINH QUAN|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.99
+253610690|DO MINH SON|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.41
+253630694|HO SY THANG|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.33
+253610691|DANG THE THANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.69
+253630692|PHAN CHINH THANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.54
+253610693|TRAN NHAT THANH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.85
+253630695|CAO DANG THIEN|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.61
+253610696|NGUYEN DUC THINH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.99
+253610697|PHAM THANH THUY|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.54
+253630698|NGUYEN VAN TIEM|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.85
+253610699|CAO VAN TRINH|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.61
+253610700|TRUONG ANH TUAN|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.77
+253610701|NGUYEN DANG VIET|Khoa hoc may tinh K66|Khoa hoc may tinh|GPA: 2.69

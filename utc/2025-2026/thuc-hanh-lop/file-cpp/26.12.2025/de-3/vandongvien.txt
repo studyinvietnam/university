@@ -1,0 +1,11 @@
+5
+Mai Tai Duc
+7 9 8
+Nguyen Trung Kien
+8 5 9
+Dao Thi Tham
+5 9 4
+Cris Ronaldo
+8 9 9
+Lio Messi
+9 9 9
