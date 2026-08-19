@@ -812,6 +812,81 @@ std::wstring getFileNameFromUrl(
 }
 
 // ============================================================
+// SUA EXTENSION CHO FILE TAI TU URL
+//
+// Link online (raw, paste, gist...) thuong khong co duoi
+// file dung (.cpp/.c/.py/.java) nen buoc kiem tra extension
+// ben duoi se bao loi du da tai thanh cong. Ham nay chi doi
+// lai ten file TAI VE cho khop voi ngon ngu da chon, khong
+// dong gi den luong xu ly file local va khong doi co che
+// luu tam hien tai.
+// ============================================================
+
+std::wstring fixExtensionForChoice(
+    const std::wstring& fileName,
+    const std::wstring& choice)
+{
+    std::wstring ext =
+        fs::path(fileName).extension().wstring();
+
+    std::transform(
+        ext.begin(),
+        ext.end(),
+        ext.begin(),
+        ::towlower
+    );
+
+    std::wstring defaultExt;
+
+    bool valid =
+        false;
+
+    if (choice == L"1")
+    {
+        defaultExt = L".c";
+
+        valid =
+            (ext == L".c");
+    }
+    else if (choice == L"2")
+    {
+        defaultExt = L".cpp";
+
+        valid =
+            (ext == L".cpp") ||
+            (ext == L".cc") ||
+            (ext == L".cxx");
+    }
+    else if (choice == L"3")
+    {
+        defaultExt = L".py";
+
+        valid =
+            (ext == L".py");
+    }
+    else if (choice == L"4")
+    {
+        defaultExt = L".java";
+
+        valid =
+            (ext == L".java");
+    }
+    else
+    {
+        return fileName;
+    }
+
+    if (valid)
+    {
+        return fileName;
+    }
+
+    return
+        fs::path(fileName).stem().wstring() +
+        defaultExt;
+}
+
+// ============================================================
 // CHAY EXE
 // ============================================================
 
@@ -1590,6 +1665,12 @@ int main()
             std::wstring fileName =
                 getFileNameFromUrl(
                     inputPath
+                );
+
+            fileName =
+                fixExtensionForChoice(
+                    fileName,
+                    choice
                 );
 
             source =
