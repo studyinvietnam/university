@@ -7,8 +7,24 @@ int main() {
     int n;
     cin >> n;
     vector<int> a(n);
-    for(int &x : a) cin >> x; // 1 2 3 1 2 (n = 5)
+    for(int &x : a) cin >> x; 
     cout << endl;
+    for(int i = 0; i < n; i++){
+		// a[i]: 0 -> i-1
+		bool check = true;
+			// 1 2 3 4 1 2 3 4 5 (n = 9)
+		for(int j=0; j<i; j++){
+			if(a[i] == a[j]){
+				check = false;
+				break;
+			}
+		}
+		if(check) cout << a[i] << " ";
+	}
+    cout << endl;
+    //
+    cout << endl;
+    	// 1 2 3 1 2 (n = 5)
     int res = INT_MAX;
     cout << INT_MAX << endl;
 	for(int i = 0; i < n; i++){
@@ -24,7 +40,6 @@ int main() {
 //    for (int i = 0; i < n; i++) {
 //        cin >> a[i];
 //    }
-    cout << endl;
 	for(int i = 0; i < n; i++) {
 		// a[i]
 		for(int j = i + 1; j < n; j++){ 
