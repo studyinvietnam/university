@@ -1,0 +1,2260 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IELTS Reading Practice - 4 Đề</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    :root {
+        --ielts-maroon: #9A1B2F;
+        --ielts-maroon-dark: #7A1424;
+        --ielts-navy: #16233d;
+        --ielts-navy-light: #1f3358;
+        --success: #1a7f4b;
+        --success-bg: #e8f7ee;
+        --danger: #c2263a;
+        --danger-bg: #fdecee;
+        --warning: #b8860b;
+        --bg: #eef1f5;
+        --card: #ffffff;
+        --text: #1c2430;
+        --muted: #667085;
+        --border: #dfe3ea;
+        --font: 'Segoe UI', Arial, Helvetica, sans-serif;
+    }
+
+    body {
+        margin: 0;
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+    }
+
+    /* ===== HEADER (IELTS style test bar) ===== */
+
+    header {
+        background: var(--ielts-navy);
+        color: white;
+        padding: 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 2px 10px rgba(0,0,0,.25);
+        border-bottom: 4px solid var(--ielts-maroon);
+    }
+
+    .header-inner {
+        max-width: 1500px;
+        margin: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 12px 30px;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .brand img {
+        height: 42px;
+        width: auto;
+        background: white;
+        padding: 5px 8px;
+        border-radius: 6px;
+        display: block;
+    }
+
+    .brand-text h1 {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 700;
+        letter-spacing: .3px;
+    }
+
+    .brand-text p {
+        margin: 3px 0 0;
+        opacity: .75;
+        font-size: 12.5px;
+        letter-spacing: .2px;
+        text-transform: uppercase;
+    }
+
+    .progress-wrap {
+        width: 300px;
+    }
+
+    .progress-text {
+        text-align: right;
+        font-size: 12.5px;
+        margin-bottom: 6px;
+        letter-spacing: .3px;
+        opacity: .9;
+    }
+
+    .progress-text b {
+        color: #ffd9c2;
+    }
+
+    .progress {
+        height: 7px;
+        background: rgba(255,255,255,.18);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--ielts-maroon), #d84b5e);
+        width: 25%;
+        transition: width .4s ease;
+        border-radius: 20px;
+    }
+
+    main {
+        max-width: 1500px;
+        margin: 22px auto;
+        padding: 0 18px;
+    }
+
+    .slide {
+        display: none;
+        animation: slideIn .45s ease;
+    }
+
+    .slide.active {
+        display: block;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .test-title {
+        background: var(--card);
+        padding: 16px 22px;
+        border-radius: 10px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 4px rgba(16,24,40,.06);
+        border-left: 5px solid var(--ielts-maroon);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .test-title h2 {
+        margin: 0 0 3px;
+        color: var(--ielts-navy);
+        font-size: 19px;
+        letter-spacing: .3px;
+    }
+
+    .test-title p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13.5px;
+    }
+
+    .test-badge {
+        background: var(--ielts-maroon);
+        color: white;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(420px, .9fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .reading-panel,
+    .questions-panel {
+        background: var(--card);
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(16,24,40,.06);
+        border: 1px solid var(--border);
+    }
+
+    .reading-panel {
+        position: sticky;
+        top: 96px;
+        max-height: calc(100vh - 116px);
+        overflow-y: auto;
+        padding: 26px 28px;
+    }
+
+    .reading-panel::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .reading-panel::-webkit-scrollbar-thumb {
+        background: #c7cdd8;
+        border-radius: 20px;
+    }
+
+    .passage {
+        margin-bottom: 32px;
+    }
+
+    .passage:last-child {
+        margin-bottom: 0;
+    }
+
+    .passage h3 {
+        color: var(--ielts-navy);
+        border-bottom: 2px solid var(--ielts-maroon);
+        display: inline-block;
+        padding-bottom: 6px;
+        margin: 0 0 14px;
+        font-size: 15px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+    }
+
+    .passage p {
+        line-height: 1.85;
+        text-align: justify;
+        font-size: 15px;
+        font-family: Georgia, 'Times New Roman', serif;
+        color: #26303f;
+    }
+
+    .questions-panel {
+        padding: 24px;
+    }
+
+    .instruction {
+        background: #fbeeee;
+        border-left: 4px solid var(--ielts-maroon);
+        padding: 12px 14px;
+        border-radius: 6px;
+        margin-bottom: 18px;
+        font-size: 13.5px;
+        color: var(--ielts-navy);
+    }
+
+    .question {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 13px;
+        transition: .2s;
+        background: #fcfcfd;
+    }
+
+    .question:hover {
+        border-color: var(--ielts-maroon);
+    }
+
+    .question.correct {
+        border-color: #86d8ab;
+        background: var(--success-bg);
+    }
+
+    .question.wrong {
+        border-color: #f0a3ac;
+        background: var(--danger-bg);
+    }
+
+    .question-title {
+        font-weight: 700;
+        line-height: 1.5;
+        margin-bottom: 10px;
+        color: var(--ielts-navy);
+        font-size: 14.5px;
+    }
+
+    .options {
+        display: grid;
+        gap: 7px;
+    }
+
+    .option {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        padding: 9px 11px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        cursor: pointer;
+        transition: .2s;
+        background: white;
+        font-size: 14px;
+    }
+
+    .option:hover {
+        background: #fbeeee;
+        border-color: var(--ielts-maroon);
+    }
+
+    .option input {
+        margin-top: 3px;
+        accent-color: var(--ielts-maroon);
+    }
+
+    .text-answer {
+        width: 100%;
+        border: 1px solid #c7cdd8;
+        border-radius: 7px;
+        padding: 10px 12px;
+        font-size: 14.5px;
+        outline: none;
+        font-family: var(--font);
+    }
+
+    .text-answer:focus {
+        border-color: var(--ielts-maroon);
+        box-shadow: 0 0 0 3px rgba(154,27,47,.12);
+    }
+
+    .explanation {
+        display: none;
+        margin-top: 12px;
+        padding: 13px 14px;
+        border-radius: 7px;
+        background: #f6f7f9;
+        border-left: 4px solid var(--ielts-navy);
+        font-size: 13.5px;
+        line-height: 1.65;
+    }
+
+    .question.correct .explanation {
+        border-left-color: var(--success);
+    }
+
+    .question.wrong .explanation {
+        border-left-color: var(--danger);
+    }
+
+    .result {
+        display: none;
+        background: linear-gradient(135deg, var(--ielts-navy), var(--ielts-navy-light));
+        color: white;
+        padding: 22px;
+        border-radius: 12px;
+        margin-bottom: 18px;
+        text-align: center;
+    }
+
+    .result.show {
+        display: block;
+        animation: fadeIn .4s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result > div:first-child {
+        font-size: 12.5px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        opacity: .8;
+    }
+
+    .score {
+        font-size: 38px;
+        font-weight: 800;
+        color: #ffd9c2;
+        margin: 6px 0;
+    }
+
+    .score-message {
+        opacity: .9;
+        font-size: 14px;
+    }
+
+    .actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 20px 0 5px;
+    }
+
+    button {
+        border: none;
+        border-radius: 8px;
+        padding: 13px 20px;
+        font-size: 14.5px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: .2s;
+        letter-spacing: .3px;
+    }
+
+    .submit-btn {
+        background: var(--ielts-maroon);
+        color: white;
+        width: 100%;
+        text-transform: uppercase;
+        font-size: 13.5px;
+    }
+
+    .submit-btn:hover {
+        background: var(--ielts-maroon-dark);
+        transform: translateY(-1px);
+    }
+
+    .next-btn {
+        background: var(--ielts-navy);
+        color: white;
+        min-width: 180px;
+    }
+
+    .next-btn:hover {
+        background: var(--ielts-navy-light);
+    }
+
+    .answer-label {
+        margin-top: 8px;
+        font-weight: 700;
+    }
+
+    .correct-answer {
+        color: var(--success);
+    }
+
+    .user-answer {
+        color: var(--danger);
+    }
+
+    .nav-dots {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin: 20px 0;
+    }
+
+    .dot {
+        width: 11px;
+        height: 11px;
+        background: #c7cdd8;
+        border-radius: 50%;
+        transition: .2s;
+    }
+
+    .dot.active {
+        background: var(--ielts-maroon);
+        transform: scale(1.25);
+    }
+
+    .dot.done {
+        background: var(--success);
+    }
+
+    @media (max-width: 950px) {
+        .header-inner {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .progress-wrap {
+            width: 100%;
+        }
+
+        .layout {
+            grid-template-columns: 1fr;
+        }
+
+        .reading-panel {
+            position: relative;
+            top: 0;
+            max-height: 450px;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .header-inner {
+            padding: 12px 16px;
+        }
+
+        .brand-text h1 {
+            font-size: 16px;
+        }
+
+        main {
+            padding: 0 10px;
+        }
+
+        .reading-panel,
+        .questions-panel {
+            padding: 16px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <img src="./ielts-logo_brandlogos.net_ii6pz.png" alt="IELTS logo">
+            <div class="brand-text">
+                <h1>Reading Practice</h1>
+                <p>4 Đề luyện đọc hiểu • 80 câu hỏi</p>
+            </div>
+        </div>
+
+        <div class="progress-wrap">
+            <div class="progress-text">Đề <b id="progressText">01 / 04</b></div>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main>
+
+    <div class="nav-dots" id="navDots">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+    </div>
+
+    <!-- ===================== ĐỀ 01 ===================== -->
+
+    <section class="slide active" id="slide-0">
+
+        <div class="test-title">
+            <div>
+                <h2>ĐỀ 01</h2>
+                <p>Chủ đề: Nghề nghiệp • Thói quen hằng ngày • Chuyến đi</p>
+            </div>
+            <div class="test-badge">Reading Test 1</div>
+        </div>
+
+        <div class="layout">
+
+            <div class="reading-panel">
+
+                <div class="passage">
+                    <h3>Passage 1</h3>
+
+                    <p>
+                        My uncle is a doctor. He works in a hospital in the city, and his job is very important.
+                        Every day, he helps sick people feel better. He checks their health, gives them medicine,
+                        and sometimes tells them to stay in the hospital for a few days. He usually works from
+                        Monday to Friday, but sometimes he also has to work on the weekend. His job is not easy
+                        because he meets many patients and must always stay calm and careful. He often works long
+                        hours, but he doesn’t complain because he loves his job. He says the best part of being a
+                        doctor is seeing his patients get well and smile again. When he comes home, he is sometimes
+                        very tired, but he still enjoys spending time with his family. I think his job is both hard
+                        and meaningful.
+                    </p>
+                </div>
+
+                <div class="passage">
+                    <h3>Passage 2</h3>
+
+                    <p>
+                        Andrew has a busy day. He usually wakes up at 6:30 in the morning. After that, he washes his
+                        face, brushes his teeth, and eats breakfast with his family. At 7:30, he goes to work by bus.
+                        He starts work at 8 o’clock in the office. In the morning, he answers emails and talks to his
+                        colleagues. At 12:30, Andrew has lunch at a small restaurant near his office. In the afternoon,
+                        he continues working on his projects. He finishes work at 5:30 and goes home. In the evening,
+                        Andrew likes to relax. Sometimes he watches TV, sometimes he reads a book, and sometimes he
+                        goes for a walk. At 7 o’clock, he has dinner with his family. After dinner, he spends time
+                        talking with his parents and younger sister. Before going to bed, Andrew checks his phone for
+                        a while. He usually goes to sleep at 10:30.
+                    </p>
+                </div>
+
+                <div class="passage">
+                    <h3>Passage 3</h3>
+
+                    <p>
+                        Maya went on a trip to the mountains last weekend. She went with her two best friends.
+                        They left their town early in the morning by bus and arrived at the mountains after three
+                        hours. The weather was cool and fresh, and the sky was very clear. Maya enjoyed walking on
+                        the small paths and looking at the tall green trees. She also took many photos of the
+                        beautiful views. At lunchtime, they had sandwiches and fruit that they brought from home.
+                        In the afternoon, Maya and her friends climbed a small hill. It was not easy, but they were
+                        very happy when they reached the top. From there, they could see the whole valley and a
+                        river below. They stayed until the evening and then returned home by bus. Maya was very tired,
+                        but she said it was one of the best trips she had ever had.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="questions-panel">
+
+                <div class="result" id="result-0">
+                    <div>Kết quả Đề 01</div>
+                    <div class="score" id="score-0">0/20</div>
+                    <div class="score-message" id="message-0"></div>
+                </div>
+
+                <div class="instruction">
+                    <b>PASSAGE 1:</b> Complete the following sentences. Write ONE WORD ONLY.
+                </div>
+
+                <div id="questions-0"></div>
+
+                <div class="actions">
+                    <button class="submit-btn" onclick="submitTest(0)">
+                        Nộp bài &amp; xem đáp án
+                    </button>
+                </div>
+
+                <div class="actions">
+                    <button class="next-btn" id="next-0" style="display:none" onclick="nextTest(0)">
+                        Đề tiếp theo →
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ===================== ĐỀ 02 ===================== -->
+
+    <section class="slide" id="slide-1">
+
+        <div class="test-title">
+            <div>
+                <h2>ĐỀ 02</h2>
+                <p>Chủ đề: Cuối tuần • Trường học • Quần áo</p>
+            </div>
+            <div class="test-badge">Reading Test 2</div>
+        </div>
+
+        <div class="layout">
+
+            <div class="reading-panel">
+
+                <div class="passage">
+                    <h3>Passage 1</h3>
+
+                    <p>
+                        Ken had a very nice weekend. On Saturday morning, he woke up early and went to the park near
+                        his house. He enjoyed walking and breathing the fresh air. After that, he met his friend Tom
+                        and they played football together for an hour. At lunchtime, Ken went home and ate noodles
+                        with his family. In the afternoon, he helped his mother clean the house and then watched a
+                        movie on TV.
+                    </p>
+
+                    <p>
+                        On Sunday, Ken stayed at home in the morning. He read a comic book and listened to music.
+                        In the afternoon, his family went shopping at the supermarket. Ken bought some snacks and
+                        drinks. In the evening, they had a big dinner with rice, chicken, and vegetables. After
+                        dinner, Ken spent time talking with his parents. Finally, he went to bed early because he
+                        had school on Monday.
+                    </p>
+
+                    <p>
+                        Ken felt happy and relaxed after the weekend.
+                    </p>
+                </div>
+
+                <div class="passage">
+                    <h3>Passage 2</h3>
+
+                    <p>
+                        Mark is a student at Green Hill School. He usually wakes up at 6:30 in the morning and gets
+                        ready for class. After having breakfast, he walks to school because it is not far from his
+                        house. His first lesson starts at 8 o’clock. Mark enjoys studying English and Math the most
+                        because he likes learning new words and solving problems.
+                    </p>
+
+                    <p>
+                        During the break, Mark often plays games with his classmates in the schoolyard. Sometimes
+                        they play football, and sometimes they just talk and laugh together. At lunchtime, he eats
+                        rice and vegetables in the school canteen.
+                    </p>
+
+                    <p>
+                        In the afternoon, Mark has science or history lessons. He listens to the teacher carefully
+                        and takes notes. After school, he goes home, does his homework, and then helps his mother
+                        with some housework. Mark feels happy at school because he can study and spend time with his
+                        friends every day.
+                    </p>
+                </div>
+
+                <div class="passage">
+                    <h3>Passage 3</h3>
+
+                    <p>
+                        Lily is a young student who loves wearing simple but nice clothes. On school days, she
+                        usually wears a white shirt and a blue skirt, because that is her school uniform. She also
+                        wears black shoes and white socks. Sometimes, she puts on a blue jacket when the weather is cool.
+                    </p>
+
+                    <p>
+                        At home, Lily likes wearing T-shirts and jeans. She has many T-shirts in different colors,
+                        such as red, yellow, and green. Her favorite T-shirt is pink because it looks very cute.
+                        She usually wears her pink T-shirt with light blue jeans and comfortable sandals.
+                    </p>
+
+                    <p>
+                        On weekends, Lily enjoys wearing dresses. She has a long purple dress for parties and a short
+                        yellow dress for summer days. She also has a hat that she wears when she goes out in the sun.
+                        Lily thinks her clothes are not only comfortable but also beautiful.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="questions-panel">
+
+                <div class="result" id="result-1">
+                    <div>Kết quả Đề 02</div>
+                    <div class="score" id="score-1">0/20</div>
+                    <div class="score-message" id="message-1"></div>
+                </div>
+
+                <div class="instruction">
+                    Làm lần lượt 20 câu. Sau khi nộp bài, đáp án và giải thích sẽ xuất hiện ngay dưới từng câu.
+                </div>
+
+                <div id="questions-1"></div>
+
+                <div class="actions">
+                    <button class="submit-btn" onclick="submitTest(1)">
+                        Nộp bài &amp; xem đáp án
+                    </button>
+                </div>
+
+                <div class="actions">
+                    <button class="next-btn" id="next-1" style="display:none" onclick="nextTest(1)">
+                        Đề tiếp theo →
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ===================== ĐỀ 03 ===================== -->
+
+    <section class="slide" id="slide-2">
+
+        <div class="test-title">
+            <div>
+                <h2>ĐỀ 03</h2>
+                <p>Chủ đề: Thể thao • Hiệu sách • Robot</p>
+            </div>
+            <div class="test-badge">Reading Test 3</div>
+        </div>
+
+        <div class="layout">
+
+            <div class="reading-panel">
+
+                <div class="passage">
+                    <h3>Passage 1</h3>
+
+                    <p>
+                        David is a young athlete who trains very hard every day. He loves running and wants to be
+                        one of the fastest runners in his city. Every morning, David wakes up early and goes jogging
+                        in the park. He usually runs for about one hour to improve his speed and health. After that,
+                        he does some stretching and simple exercises to keep his body strong.
+                    </p>
+
+                    <p>
+                        At school, David also plays football with his classmates. He is very quick on the field,
+                        and his friends like having him on their team. On weekends, he joins a sports club where he
+                        learns new skills and practices with other athletes.
+                    </p>
+
+                    <p>
+                        David feels happy and proud when he plays sports.
+                    </p>
+                </div>
+
+                <div class="passage">
+                    <h3>Passage 2</h3>
+
+                    <p>
+                        Uncle Tom has a small bookstore in the town center. The shop is not very big, but it has many
+                        interesting books. There are books for children, students, and adults. On the shelves, you
+                        can see storybooks, comic books, English books, and cookbooks. The bookstore is always clean,
+                        so people like to visit.
+                    </p>
+
+                    <p>
+                        Every morning, Uncle Tom opens the store at 8 o’clock. He welcomes his customers with a smile.
+                        Many children come after school to read comics and fairy tales. Sometimes, Uncle Tom helps
+                        them choose books.
+                    </p>
+
+                    <p>
+                        On weekends, the bookstore is busier. Families come to buy books, and parents often choose
+                        English books for their kids. Uncle Tom feels happy because his bookstore is a place for
+                        reading and learning.
+                    </p>
+                </div>
+
+                <div class="passage">
+                    <h3>Passage 3</h3>
+
+                    <p>
+                        Brian has two robots at his home, and they help his family every day. The first robot is a
+                        cleaning robot. It can sweep the floor, wash the dishes, and clean the windows. Brian’s mother
+                        likes this robot very much because it saves her a lot of time.
+                    </p>
+
+                    <p>
+                        The second robot is a cooking robot. It can cook rice, make soup, and prepare breakfast for
+                        the family. Sometimes, it also makes sandwiches for Brian when he goes to school. The food
+                        is always fresh and tasty.
+                    </p>
+
+                    <p>
+                        Brian’s robots are also smart. They can answer simple questions, tell the time, and play music.
+                        At night, the cooking robot can even tell a bedtime story to Brian and his little sister.
+                    </p>
+
+                    <p>
+                        Brian thinks they make life easier, more comfortable, and more fun for the whole family.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="questions-panel">
+
+                <div class="result" id="result-2">
+                    <div>Kết quả Đề 03</div>
+                    <div class="score" id="score-2">0/20</div>
+                    <div class="score-message" id="message-2"></div>
+                </div>
+
+                <div class="instruction">
+                    Đọc kỹ Passage 1–3 ở bên trái rồi trả lời 20 câu hỏi.
+                </div>
+
+                <div id="questions-2"></div>
+
+                <div class="actions">
+                    <button class="submit-btn" onclick="submitTest(2)">
+                        Nộp bài &amp; xem đáp án
+                    </button>
+                </div>
+
+                <div class="actions">
+                    <button class="next-btn" id="next-2" style="display:none" onclick="nextTest(2)">
+                        Đề tiếp theo →
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ===================== ĐỀ 04 ===================== -->
+
+    <section class="slide" id="slide-3">
+
+        <div class="test-title">
+            <div>
+                <h2>ĐỀ 04</h2>
+                <p>Chủ đề: Thời tiết • Ca sĩ • Phong cách Nhật Bản</p>
+            </div>
+            <div class="test-badge">Reading Test 4</div>
+        </div>
+
+        <div class="layout">
+
+            <div class="reading-panel">
+
+                <div class="passage">
+                    <h3>Passage 1</h3>
+
+                    <p>
+                        Last summer, Lina went on holiday with her family. They traveled to a small beach town by
+                        the sea. The weather during her holiday was very nice. In the morning, the sky was blue,
+                        and the sun was bright. It was warm, so Lina and her brother played on the beach and swam
+                        in the sea.
+                    </p>
+
+                    <p>
+                        In the afternoon, the weather was sometimes hot, so Lina wore a hat and sunglasses. She also
+                        drank a lot of water to stay cool. One day, there were some white clouds, but it did not rain.
+                        The wind was gentle, and it felt fresh near the sea.
+                    </p>
+
+                    <p>
+                        In the evening, the weather became cooler. Lina and her family walked along the beach and
+                        enjoyed the sunset. She liked the cool air after a hot day. Lina thinks the weather on her
+                        holiday was perfect for relaxing and having fun.
+                    </p>
+                </div>
+
+                <div class="passage">
+                    <h3>Passage 2</h3>
+
+                    <p>
+                        Sơn Tùng M-TP is a very popular singer in Vietnam. He was born on July 5, 1994, in Thái Bình
+                        province. When he was a child, he loved music and enjoyed singing. Later, he studied at the
+                        Conservatory of Music in Ho Chi Minh City to improve his talent.
+                    </p>
+
+                    <p>
+                        Sơn Tùng became famous in 2012 with his first songs. His music is modern, with catchy rhythms
+                        and meaningful lyrics. Some of his most famous songs are <i>Em của ngày hôm qua</i>,
+                        <i>Chúng ta không thuộc về nhau</i>, and <i>Lạc trôi</i>. Young people in Vietnam like his
+                        songs because they are easy to remember and fun to sing.
+                    </p>
+
+                    <p>
+                        He is handsome, with short black hair and a bright smile. He often wears stylish clothes on
+                        stage, which makes him look confident and cool. Besides singing, Sơn Tùng also writes songs
+                        and performs in big concerts. He works very hard and always tries new styles in his music.
+                        Today, he is one of the most successful singers in Vietnam and a role model for many fans.
+                    </p>
+                </div>
+
+                <div class="passage">
+                    <h3>Passage 3</h3>
+
+                    <p>
+                        People in Japan often have a neat and clean appearance. Many men and women have straight black
+                        or dark brown hair. They usually take care of their skin and dress carefully. Japanese people
+                        like simple and comfortable clothes, but they also follow fashion trends.
+                    </p>
+
+                    <p>
+                        In cities like Tokyo, young people wear modern and colorful outfits. Some like casual clothes
+                        such as jeans, T-shirts, and sneakers. Others enjoy stylish dresses or suits for special
+                        occasions. People often pay attention to shoes, bags, and accessories to look good.
+                    </p>
+
+                    <p>
+                        Japanese people also value manners and neatness in their appearance. They often look tidy and
+                        polite in public. Their style shows respect for others and confidence. Many visitors admire
+                        Japanese people because of their clean, fashionable, and smart appearance.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="questions-panel">
+
+                <div class="result" id="result-3">
+                    <div>Kết quả Đề 04</div>
+                    <div class="score" id="score-3">0/20</div>
+                    <div class="score-message" id="message-3"></div>
+                </div>
+
+                <div class="instruction">
+                    Đọc Passage 1–3 và chọn/điền đáp án phù hợp nhất.
+                </div>
+
+                <div id="questions-3"></div>
+
+                <div class="actions">
+                    <button class="submit-btn" onclick="submitTest(3)">
+                        Nộp bài &amp; xem đáp án
+                    </button>
+                </div>
+
+                <div class="actions">
+                    <button class="next-btn" id="next-3" style="display:none" onclick="nextTest(3)">
+                        Hoàn thành ✓
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+</main>
+
+
+<script>
+
+/*
+===========================================================
+DỮ LIỆU CÂU HỎI
+type:
+- text       : điền từ
+- tf         : True / False
+- mc         : multiple choice
+===========================================================
+*/
+
+const tests = [
+
+{
+    title: "ĐỀ 01",
+    questions: [
+
+        {
+            type: "text",
+            q: "The writer’s uncle works in a ______ in the city.",
+            answer: "hospital",
+            explanation:
+            "Đáp án là <b>hospital</b>. Ngay câu đầu bài đọc nói: “He works in a hospital in the city.” " +
+            "Câu hỏi hỏi nơi người chú làm việc, vì vậy từ cần điền chính xác là “hospital” (bệnh viện)."
+        },
+
+        {
+            type: "text",
+            q: "Each day, he helps ______ people get well.",
+            answer: "sick",
+            explanation:
+            "Đáp án là <b>sick</b>. Bài đọc viết: “Every day, he helps sick people feel better.” " +
+            "Cụm “sick people” có nghĩa là những người bệnh, phù hợp trực tiếp với nội dung câu hỏi."
+        },
+
+        {
+            type: "text",
+            q: "He usually goes to work from ______ to Friday.",
+            answer: "Monday",
+            explanation:
+            "Đáp án là <b>Monday</b>. Bài đọc nói: “He usually works from Monday to Friday.” " +
+            "Vì câu hỏi đã cho sẵn “to Friday”, từ còn thiếu là ngày bắt đầu “Monday”."
+        },
+
+        {
+            type: "text",
+            q: "He sometimes also works on the ______.",
+            answer: "weekend",
+            explanation:
+            "Đáp án là <b>weekend</b>. Bài đọc nói rằng ông ấy thường làm việc từ Monday đến Friday nhưng “sometimes he also has to work on the weekend”."
+        },
+
+        {
+            type: "text",
+            q: "He meets a lot of ______.",
+            answer: "patients",
+            explanation:
+            "Đáp án là <b>patients</b>. Câu trong bài: “His job is not easy because he meets many patients.” " +
+            "“Patients” nghĩa là bệnh nhân, những người mà bác sĩ gặp và chăm sóc."
+        },
+
+        {
+            type: "text",
+            q: "He sometimes feels tired, but he still spends time with his ______.",
+            answer: "family",
+            explanation:
+            "Đáp án là <b>family</b>. Cuối bài viết: “he is sometimes very tired, but he still enjoys spending time with his family.”"
+        },
+
+        {
+            type: "tf",
+            q: "Andrew wakes up at 6:30 a.m.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Bài đọc nói rõ: “He usually wakes up at 6:30 in the morning.” " +
+            "6:30 in the morning chính là 6:30 a.m."
+        },
+
+        {
+            type: "tf",
+            q: "After waking up, Andrew goes to work immediately.",
+            answer: "F",
+            explanation:
+            "Sai (False). Sau khi thức dậy, Andrew còn rửa mặt, đánh răng và ăn sáng với gia đình. " +
+            "Sau đó lúc 7:30 anh mới đi làm bằng xe buýt."
+        },
+
+        {
+            type: "tf",
+            q: "Andrew walks to work at 7:30.",
+            answer: "F",
+            explanation:
+            "Sai (False). Bài đọc nói “he goes to work by bus”, nghĩa là Andrew đi làm bằng xe buýt, không phải đi bộ."
+        },
+
+        {
+            type: "tf",
+            q: "At lunchtime, Andrew eats at a small restaurant near his office.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Bài đọc ghi: “At 12:30, Andrew has lunch at a small restaurant near his office.”"
+        },
+
+        {
+            type: "tf",
+            q: "Andrew finishes work at 5:30 and comes back home.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Bài đọc nói: “He finishes work at 5:30 and goes home.”"
+        },
+
+        {
+            type: "tf",
+            q: "In the evening, Andrew still has to work.",
+            answer: "F",
+            explanation:
+            "Sai (False). Buổi tối Andrew thích thư giãn. Anh có thể xem TV, đọc sách hoặc đi bộ. " +
+            "Đoạn văn không nói anh tiếp tục làm việc."
+        },
+
+        {
+            type: "tf",
+            q: "Andrew usually goes to sleep at 10:30.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Câu cuối cùng của Passage 2 viết: “He usually goes to sleep at 10:30.”"
+        },
+
+        {
+            type: "mc",
+            q: "Where did Maya go last weekend?",
+            options: [
+                "A. To the park",
+                "B. To the mountains",
+                "C. To the zoo",
+                "D. To the beach"
+            ],
+            answer: "B",
+            explanation:
+            "Đáp án B đúng. Ngay câu đầu tiên nói: “Maya went on a trip to the mountains last weekend.” " +
+            "Do đó địa điểm là the mountains."
+        },
+
+        {
+            type: "mc",
+            q: "Who went with Maya?",
+            options: [
+                "A. Her best friends",
+                "B. Her parents",
+                "C. Her boyfriend",
+                "D. Her classmates"
+            ],
+            answer: "A",
+            explanation:
+            "Đáp án A đúng. Bài đọc nói Maya đi cùng “her two best friends”, tức hai người bạn thân nhất của cô ấy."
+        },
+
+        {
+            type: "mc",
+            q: "How did they travel to the mountains?",
+            options: [
+                "A. By car",
+                "B. By bus",
+                "C. By train",
+                "D. By bike"
+            ],
+            answer: "B",
+            explanation:
+            "Đáp án B đúng. Đoạn văn nói họ “left their town early in the morning by bus” và sau đó cũng trở về bằng xe buýt."
+        },
+
+        {
+            type: "mc",
+            q: "What was the weather like?",
+            options: [
+                "A. Hot and sunny",
+                "B. Cool and rainy",
+                "C. Fresh and cool",
+                "D. Windy and cloudy"
+            ],
+            answer: "C",
+            explanation:
+            "Đáp án C đúng. Bài đọc mô tả: “The weather was cool and fresh, and the sky was very clear.”"
+        },
+
+        {
+            type: "mc",
+            q: "What did they eat at lunchtime?",
+            options: [
+                "A. Sandwiches and chicken",
+                "B. Sandwiches and fruit",
+                "C. Pizza and fruit",
+                "D. Noodles and fruit"
+            ],
+            answer: "B",
+            explanation:
+            "Đáp án B đúng. Bài đọc nói: “At lunchtime, they had sandwiches and fruit that they brought from home.”"
+        },
+
+        {
+            type: "mc",
+            q: "What did Maya and her friends climb in the afternoon?",
+            options: [
+                "A. A big mountain",
+                "B. A tower",
+                "C. A small hill",
+                "D. A bridge"
+            ],
+            answer: "C",
+            explanation:
+            "Đáp án C đúng. Câu trong bài: “Maya and her friends climbed a small hill.”"
+        },
+
+        {
+            type: "mc",
+            q: "How did Maya feel at the end of the trip?",
+            options: [
+                "A. Angry and tired",
+                "B. Bored",
+                "C. Sick but happy",
+                "D. Tired but happy"
+            ],
+            answer: "D",
+            explanation:
+            "Đáp án D đúng. Cuối bài nói: “Maya was very tired, but she said it was one of the best trips she had ever had.” " +
+            "Vì vậy cô ấy mệt nhưng vẫn rất vui và đánh giá chuyến đi rất tích cực."
+        }
+    ]
+},
+
+{
+    title: "ĐỀ 02",
+    questions: [
+
+        {
+            type: "text",
+            q: "On Saturday morning, Ken went to the ______ close to his house.",
+            answer: "park",
+            explanation:
+            "Đáp án là <b>park</b>. Bài đọc nói: “he woke up early and went to the park near his house.”"
+        },
+
+        {
+            type: "text",
+            q: "Ken played ______ with his friend Tom for an hour.",
+            answer: "football",
+            explanation:
+            "Đáp án là <b>football</b>. Sau khi gặp Tom, Ken và Tom “played football together for an hour”."
+        },
+
+        {
+            type: "text",
+            q: "At lunchtime on Saturday, Ken ate ______.",
+            answer: "noodles",
+            explanation:
+            "Đáp án là <b>noodles</b>. Bài đọc viết: “At lunchtime, Ken went home and ate noodles with his family.”"
+        },
+
+        {
+            type: "text",
+            q: "On Sunday morning, Ken read a ______ book.",
+            answer: "comic",
+            explanation:
+            "Đáp án là <b>comic</b>. Bài đọc nói: “He read a comic book and listened to music.”"
+        },
+
+        {
+            type: "text",
+            q: "In the afternoon, Ken’s family went to the ______.",
+            answer: "supermarket",
+            explanation:
+            "Đáp án là <b>supermarket</b>. Gia đình Ken “went shopping at the supermarket” vào chiều Chủ nhật."
+        },
+
+        {
+            type: "text",
+            q: "For dinner on Sunday, they ate rice, chicken, and ______.",
+            answer: "vegetables",
+            explanation:
+            "Đáp án là <b>vegetables</b>. Bữa tối gồm “rice, chicken, and vegetables”."
+        },
+
+        {
+            type: "tf",
+            q: "Mark studies at Green Hill School.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Câu đầu tiên của Passage 2: “Mark is a student at Green Hill School.”"
+        },
+
+        {
+            type: "tf",
+            q: "He wakes up at 7:30 in the morning.",
+            answer: "F",
+            explanation:
+            "Sai (False). Mark wakes up at <b>6:30</b>, không phải 7:30."
+        },
+
+        {
+            type: "tf",
+            q: "Mark walks to school because it is near his house.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Bài đọc nói Mark đi bộ đến trường “because it is not far from his house”."
+        },
+
+        {
+            type: "tf",
+            q: "Mark does not like English or Math.",
+            answer: "F",
+            explanation:
+            "Sai (False). Mark thực tế thích English và Math nhất. Bài đọc nói: “Mark enjoys studying English and Math the most.”"
+        },
+
+        {
+            type: "tf",
+            q: "During the break, Mark plays games with his friends at school.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Trong giờ nghỉ, Mark thường chơi với các bạn cùng lớp ở sân trường."
+        },
+
+        {
+            type: "tf",
+            q: "At lunchtime, he eats pizza in the school canteen.",
+            answer: "F",
+            explanation:
+            "Sai (False). Mark ăn <b>rice and vegetables</b> trong căng tin, không phải pizza."
+        },
+
+        {
+            type: "tf",
+            q: "After school, Mark helps his mother with some housework.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Sau khi làm bài tập về nhà, Mark “helps his mother with some housework”."
+        },
+
+        {
+            type: "mc",
+            q: "What does Lily usually wear to school?",
+            options: [
+                "A. A blue shirt and a white skirt",
+                "B. A white shirt and a blue skirt",
+                "C. A white T-shirt and blue jeans",
+                "D. A blue jacket and T-shirt"
+            ],
+            answer: "B",
+            explanation:
+            "Đáp án B đúng. Đồng phục của Lily là “a white shirt and a blue skirt”."
+        },
+
+        {
+            type: "mc",
+            q: "What color are Lily’s shoes for school?",
+            options: [
+                "A. White",
+                "B. Blue",
+                "C. Black",
+                "D. Yellow"
+            ],
+            answer: "C",
+            explanation:
+            "Đáp án C đúng. Bài đọc nói cô ấy “wears black shoes and white socks”."
+        },
+
+        {
+            type: "mc",
+            q: "What does Lily wear when the weather is cool?",
+            options: [
+                "A. A blue jacket",
+                "B. A yellow dress",
+                "C. A scarf",
+                "D. A blue sweater"
+            ],
+            answer: "A",
+            explanation:
+            "Đáp án A đúng. Khi trời mát/lạnh, Lily mặc “a blue jacket”."
+        },
+
+        {
+            type: "mc",
+            q: "What clothes does Lily like to wear at home?",
+            options: [
+                "A. Dresses and skirts",
+                "B. T-shirts and jeans",
+                "C. Shirts and trousers",
+                "D. Pajamas and slippers"
+            ],
+            answer: "B",
+            explanation:
+            "Đáp án B đúng. Bài đọc nói rõ: “At home, Lily likes wearing T-shirts and jeans.”"
+        },
+
+        {
+            type: "mc",
+            q: "Which color is Lily’s favorite T-shirt?",
+            options: [
+                "A. Green",
+                "B. Red",
+                "C. Pink",
+                "D. Yellow"
+            ],
+            answer: "C",
+            explanation:
+            "Đáp án C đúng. “Her favorite T-shirt is pink because it looks very cute.”"
+        },
+
+        {
+            type: "mc",
+            q: "What dress does Lily wear to parties?",
+            options: [
+                "A. A short yellow dress",
+                "B. A long purple dress",
+                "C. A pink dress",
+                "D. A white dress"
+            ],
+            answer: "B",
+            explanation:
+            "Đáp án B đúng. Lily có “a long purple dress for parties”, còn chiếc váy vàng ngắn dành cho những ngày hè."
+        },
+
+        {
+            type: "mc",
+            q: "What does Lily wear when she goes out in the sun?",
+            options: [
+                "A. A sunscreen",
+                "B. A pair of sunglasses",
+                "C. A scarf",
+                "D. A hat"
+            ],
+            answer: "D",
+            explanation:
+            "Đáp án D đúng. Cuối bài nói Lily có “a hat that she wears when she goes out in the sun”."
+        }
+    ]
+},
+
+{
+    title: "ĐỀ 03",
+    questions: [
+
+        {
+            type: "text",
+            q: "David is an ______ who trains every day.",
+            answer: "athlete",
+            explanation:
+            "Đáp án là <b>athlete</b>. Câu đầu tiên giới thiệu: “David is a young athlete who trains very hard every day.”"
+        },
+
+        {
+            type: "text",
+            q: "He likes ______ and hopes to be one of the fastest runners in his city.",
+            answer: "running",
+            explanation:
+            "Đáp án là <b>running</b>. Bài đọc nói: “He loves running and wants to be one of the fastest runners in his city.”"
+        },
+
+        {
+            type: "text",
+            q: "Every morning, he goes jogging in the ______.",
+            answer: "park",
+            explanation:
+            "Đáp án là <b>park</b>. David “goes jogging in the park” mỗi buổi sáng."
+        },
+
+        {
+            type: "text",
+            q: "He usually runs for about ______ hour.",
+            answer: "one",
+            explanation:
+            "Đáp án là <b>one</b>. Bài đọc nói: “He usually runs for about one hour.”"
+        },
+
+        {
+            type: "text",
+            q: "David also plays football with his ______ at school.",
+            answer: "classmates",
+            explanation:
+            "Đáp án là <b>classmates</b>. Bài đọc viết: “At school, David also plays football with his classmates.”"
+        },
+
+        {
+            type: "text",
+            q: "On weekends, he joins a sports ______ to practice with other athletes.",
+            answer: "club",
+            explanation:
+            "Đáp án là <b>club</b>. David tham gia “a sports club” vào cuối tuần để học kỹ năng mới và luyện tập."
+        },
+
+        {
+            type: "tf",
+            q: "Uncle Tom has a big bookstore in the countryside.",
+            answer: "F",
+            explanation:
+            "Sai (False). Uncle Tom có một <b>small bookstore</b> ở <b>town center</b>, không phải hiệu sách lớn ở nông thôn."
+        },
+
+        {
+            type: "tf",
+            q: "The bookstore has only comic books and English books.",
+            answer: "F",
+            explanation:
+            "Sai (False). Hiệu sách có rất nhiều loại sách: storybooks, comic books, English books và cookbooks."
+        },
+
+        {
+            type: "tf",
+            q: "The shop is always clean.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Bài đọc nói trực tiếp: “The bookstore is always clean.”"
+        },
+
+        {
+            type: "tf",
+            q: "Uncle Tom opens his store at 9 o’clock in the morning.",
+            answer: "F",
+            explanation:
+            "Sai (False). Ông Tom mở cửa lúc <b>8 o’clock</b>, không phải 9 giờ."
+        },
+
+        {
+            type: "tf",
+            q: "On weekends, the bookstore is quieter than on weekdays.",
+            answer: "F",
+            explanation:
+            "Sai (False). Bài đọc nói “On weekends, the bookstore is busier”, nghĩa là cuối tuần đông khách hơn."
+        },
+
+        {
+            type: "tf",
+            q: "Parents often buy English books for their children.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Bài đọc nói: “parents often choose English books for their kids.”"
+        },
+
+        {
+            type: "tf",
+            q: "Uncle Tom feels happy because people can read and learn in his bookstore.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Câu cuối Passage 2 nói ông Tom vui vì hiệu sách là nơi để đọc và học."
+        },
+
+        {
+            type: "mc",
+            q: "How many robots does Brian have?",
+            options: [
+                "A. One",
+                "B. Two",
+                "C. Three",
+                "D. Four"
+            ],
+            answer: "B",
+            explanation:
+            "Đáp án B đúng. Câu đầu tiên nói: “Brian has two robots at his home.”"
+        },
+
+        {
+            type: "mc",
+            q: "What CANNOT the cleaning robot do?",
+            options: [
+                "A. Wash the dishes",
+                "B. Sweep the floor",
+                "C. Clean the windows",
+                "D. Clean the yard"
+            ],
+            answer: "D",
+            explanation:
+            "Đáp án D đúng. Robot dọn dẹp có thể quét sàn, rửa bát và lau cửa sổ. Bài đọc không nói nó có thể dọn sân."
+        },
+
+        {
+            type: "mc",
+            q: "Why does Brian’s mother like the cleaning robot?",
+            options: [
+                "A. It saves time.",
+                "B. It makes soup.",
+                "C. It plays music.",
+                "D. It reads books."
+            ],
+            answer: "A",
+            explanation:
+            "Đáp án A đúng. Mẹ Brian thích robot vì “it saves her a lot of time”, tức nó giúp bà tiết kiệm rất nhiều thời gian."
+        },
+
+        {
+            type: "mc",
+            q: "What can the second robot cook?",
+            options: [
+                "A. Pizza and rice",
+                "B. Rice and soup",
+                "C. Soup and coffee",
+                "D. Rice and meat"
+            ],
+            answer: "B",
+            explanation:
+            "Đáp án B đúng. Robot nấu ăn có thể “cook rice” và “make soup”."
+        },
+
+        {
+            type: "mc",
+            q: "What food does the cooking robot make for Brian when he goes to school?",
+            options: [
+                "A. Rice",
+                "B. Sandwiches",
+                "C. Soup",
+                "D. Hamburgers"
+            ],
+            answer: "B",
+            explanation:
+            "Đáp án B đúng. Bài đọc nói robot “also makes sandwiches for Brian when he goes to school.”"
+        },
+
+        {
+            type: "mc",
+            q: "What can Brian’s robots do at night?",
+            options: [
+                "A. Wash clothes",
+                "B. Water the plants",
+                "C. Do homework",
+                "D. Tell a bedtime story"
+            ],
+            answer: "D",
+            explanation:
+            "Đáp án D đúng. Vào ban đêm, robot nấu ăn “can even tell a bedtime story to Brian and his little sister.”"
+        },
+
+        {
+            type: "mc",
+            q: "What does Brian think about his robots?",
+            options: [
+                "A. They make life easier and more fun.",
+                "B. They make life harder.",
+                "C. They are not useful for the family.",
+                "D. They only play music."
+            ],
+            answer: "A",
+            explanation:
+            "Đáp án A đúng. Câu cuối nói Brian nghĩ các robot làm cuộc sống “easier, more comfortable, and more fun”."
+        }
+    ]
+},
+
+{
+    title: "ĐỀ 04",
+    questions: [
+
+        {
+            type: "text",
+            q: "Last summer, Lina traveled to a small ______ town by the sea.",
+            answer: "beach",
+            explanation:
+            "Đáp án là <b>beach</b>. Bài đọc nói: “They traveled to a small beach town by the sea.”"
+        },
+
+        {
+            type: "text",
+            q: "In the morning, the sun was bright and the sky was ______.",
+            answer: "blue",
+            explanation:
+            "Đáp án là <b>blue</b>. Bài đọc mô tả: “the sky was blue, and the sun was bright.”"
+        },
+
+        {
+            type: "text",
+            q: "Lina and her brother were on the beach and swam in the ______.",
+            answer: "sea",
+            explanation:
+            "Đáp án là <b>sea</b>. Câu trong bài: “Lina and her brother played on the beach and swam in the sea.”"
+        },
+
+        {
+            type: "text",
+            q: "In the afternoon, Lina wore a hat and ______ to stay cool.",
+            answer: "sunglasses",
+            explanation:
+            "Đáp án là <b>sunglasses</b>. Bài đọc nói: “Lina wore a hat and sunglasses.”"
+        },
+
+        {
+            type: "text",
+            q: "One day, there were several white ______, but it didn’t rain.",
+            answer: "clouds",
+            explanation:
+            "Đáp án là <b>clouds</b>. Bài đọc nói: “there were some white clouds, but it did not rain.”"
+        },
+
+        {
+            type: "text",
+            q: "In the evening, Lina and her family enjoyed the ______ on the beach.",
+            answer: "sunset",
+            explanation:
+            "Đáp án là <b>sunset</b>. Buổi tối, gia đình Lina đi bộ dọc bãi biển và “enjoyed the sunset”."
+        },
+
+        {
+            type: "tf",
+            q: "Sơn Tùng M-TP was born in 1994.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Bài đọc ghi ngày sinh của Sơn Tùng là July 5, 1994."
+        },
+
+        {
+            type: "tf",
+            q: "He is from Ho Chi Minh City.",
+            answer: "F",
+            explanation:
+            "Sai (False). Anh ấy sinh tại <b>Thái Bình province</b>. Ho Chi Minh City là nơi anh từng học tại Conservatory of Music."
+        },
+
+        {
+            type: "tf",
+            q: "He loved music when he was a child.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Bài đọc nói: “When he was a child, he loved music and enjoyed singing.”"
+        },
+
+        {
+            type: "tf",
+            q: "His first famous song was released in 2015.",
+            answer: "F",
+            explanation:
+            "Sai (False). Bài đọc nói Sơn Tùng became famous in <b>2012</b> with his first songs."
+        },
+
+        {
+            type: "tf",
+            q: "Young people like his songs because they are easy to sing.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Bài đọc nói các bài hát được giới trẻ yêu thích vì chúng “are easy to remember and fun to sing”."
+        },
+
+        {
+            type: "tf",
+            q: "He has black hair and a bright smile.",
+            answer: "T",
+            explanation:
+            "Đúng (True). Bài đọc mô tả: “He is handsome, with short black hair and a bright smile.”"
+        },
+
+        {
+            type: "tf",
+            q: "He does not write songs; he only sings.",
+            answer: "F",
+            explanation:
+            "Sai (False). Bài đọc nói rõ: “Besides singing, Sơn Tùng also writes songs.” Vì vậy anh không chỉ hát mà còn sáng tác."
+        },
+
+        {
+            type: "mc",
+            q: "What kind of hair do many Japanese people have?",
+            options: [
+                "A. Black hair and curly",
+                "B. Black or dark brown and straight",
+                "C. Blonde and wavy",
+                "D. Brown and short"
+            ],
+            answer: "B",
+            explanation:
+            "Đáp án B đúng. Bài đọc nói nhiều người Nhật có “straight black or dark brown hair”."
+        },
+
+        {
+            type: "mc",
+            q: "What type of clothes do Japanese people like?",
+            options: [
+                "A. Simple and comfortable",
+                "B. Very long clothes",
+                "C. Only black clothes",
+                "D. Old-fashioned clothes"
+            ],
+            answer: "A",
+            explanation:
+            "Đáp án A đúng. Bài đọc nói: “Japanese people like simple and comfortable clothes, but they also follow fashion trends.”"
+        },
+
+        {
+            type: "mc",
+            q: "What do young people in Tokyo often wear?",
+            options: [
+                "A. Casual and modern outfits",
+                "B. Only traditional clothes",
+                "C. Pajamas",
+                "D. Uniforms"
+            ],
+            answer: "A",
+            explanation:
+            "Đáp án A đúng. Bài đọc nói giới trẻ ở Tokyo mặc “modern and colorful outfits”, trong đó có quần jeans, áo T-shirt và giày sneakers."
+        },
+
+        {
+            type: "mc",
+            q: "Which items do Japanese people pay attention to?",
+            options: [
+                "A. Hats, accessories, bags",
+                "B. Shoes, accessories, bags",
+                "C. Socks, shoes, accessories",
+                "D. Watches, socks, bags"
+            ],
+            answer: "B",
+            explanation:
+            "Đáp án B đúng. Bài đọc nói: “People often pay attention to shoes, bags, and accessories to look good.”"
+        },
+
+        {
+            type: "mc",
+            q: "How do Japanese people often look in public?",
+            options: [
+                "A. Untidy and careless",
+                "B. Dirty and messy",
+                "C. Angry and rude",
+                "D. Polite and tidy"
+            ],
+            answer: "D",
+            explanation:
+            "Đáp án D đúng. Bài đọc mô tả họ “often look tidy and polite in public”."
+        },
+
+        {
+            type: "mc",
+            q: "What does their style show?",
+            options: [
+                "A. Laziness",
+                "B. Anger",
+                "C. Respect",
+                "D. Carelessness"
+            ],
+            answer: "C",
+            explanation:
+            "Đáp án C đúng. Bài đọc nói: “Their style shows respect for others and confidence.”"
+        },
+
+        {
+            type: "mc",
+            q: "Why do many visitors admire Japanese people?",
+            options: [
+                "A. Because they are very tall.",
+                "B. Because they like sports.",
+                "C. Because they speak many languages.",
+                "D. Because they are clean and fashionable."
+            ],
+            answer: "D",
+            explanation:
+            "Đáp án D đúng. Câu cuối bài nói nhiều du khách ngưỡng mộ người Nhật vì vẻ ngoài “clean, fashionable, and smart”."
+        }
+    ]
+}
+
+];
+
+
+/* =========================================================
+   RENDER CÂU HỎI
+========================================================= */
+
+function renderQuestions() {
+
+    tests.forEach((test, testIndex) => {
+
+        const container = document.getElementById(`questions-${testIndex}`);
+
+        if (!container) return;
+
+        container.innerHTML = "";
+
+        test.questions.forEach((question, qIndex) => {
+
+            const questionNumber = qIndex + 1;
+
+            const div = document.createElement("div");
+            div.className = "question";
+            div.id = `q-${testIndex}-${qIndex}`;
+
+            let html = `
+                <div class="question-title">
+                    ${questionNumber}. ${question.q}
+                </div>
+            `;
+
+            if (question.type === "text") {
+
+                html += `
+                    <input
+                        class="text-answer"
+                        id="answer-${testIndex}-${qIndex}"
+                        type="text"
+                        placeholder="Nhập đáp án..."
+                        autocomplete="off"
+                    >
+                `;
+
+            } else if (question.type === "tf") {
+
+                html += `
+                    <div class="options">
+                        <label class="option">
+                            <input
+                                type="radio"
+                                name="answer-${testIndex}-${qIndex}"
+                                value="T"
+                            >
+                            <span><b>T</b> – True (Đúng)</span>
+                        </label>
+
+                        <label class="option">
+                            <input
+                                type="radio"
+                                name="answer-${testIndex}-${qIndex}"
+                                value="F"
+                            >
+                            <span><b>F</b> – False (Sai)</span>
+                        </label>
+                    </div>
+                `;
+
+            } else if (question.type === "mc") {
+
+                html += `<div class="options">`;
+
+                question.options.forEach(option => {
+
+                    const letter = option.substring(0, 1);
+
+                    html += `
+                        <label class="option">
+                            <input
+                                type="radio"
+                                name="answer-${testIndex}-${qIndex}"
+                                value="${letter}"
+                            >
+                            <span>${option}</span>
+                        </label>
+                    `;
+                });
+
+                html += `</div>`;
+            }
+
+            html += `
+                <div class="explanation" id="explanation-${testIndex}-${qIndex}">
+                </div>
+            `;
+
+            div.innerHTML = html;
+
+            container.appendChild(div);
+        });
+    });
+}
+
+
+/* =========================================================
+   LẤY ĐÁP ÁN NGƯỜI DÙNG
+========================================================= */
+
+function getUserAnswer(testIndex, qIndex, question) {
+
+    if (question.type === "text") {
+
+        const input = document.getElementById(
+            `answer-${testIndex}-${qIndex}`
+        );
+
+        return input ? input.value.trim() : "";
+
+    }
+
+    const selected = document.querySelector(
+        `input[name="answer-${testIndex}-${qIndex}"]:checked`
+    );
+
+    return selected ? selected.value : "";
+}
+
+
+/* =========================================================
+   CHUẨN HÓA ĐÁP ÁN ĐIỀN TỪ
+========================================================= */
+
+function normalizeText(text) {
+
+    return text
+        .trim()
+        .toLowerCase()
+        .replace(/[.,!?;:"'’]/g, "")
+        .replace(/\s+/g, " ");
+}
+
+
+/* =========================================================
+   CHẤM BÀI
+========================================================= */
+
+function submitTest(testIndex) {
+
+    const test = tests[testIndex];
+
+    let score = 0;
+
+    test.questions.forEach((question, qIndex) => {
+
+        const questionBox = document.getElementById(
+            `q-${testIndex}-${qIndex}`
+        );
+
+        const explanationBox = document.getElementById(
+            `explanation-${testIndex}-${qIndex}`
+        );
+
+        let userAnswer = getUserAnswer(
+            testIndex,
+            qIndex,
+            question
+        );
+
+        let isCorrect = false;
+
+        if (question.type === "text") {
+
+            isCorrect =
+                normalizeText(userAnswer) ===
+                normalizeText(question.answer);
+
+        } else {
+
+            isCorrect = userAnswer === question.answer;
+        }
+
+        if (isCorrect) {
+            score++;
+            questionBox.classList.remove("wrong");
+            questionBox.classList.add("correct");
+        } else {
+            questionBox.classList.remove("correct");
+            questionBox.classList.add("wrong");
+        }
+
+        let displayUserAnswer = userAnswer || "Chưa trả lời";
+
+        if (question.type === "text" && !userAnswer) {
+            displayUserAnswer = "Chưa trả lời";
+        }
+
+        explanationBox.innerHTML = `
+            <div class="answer-label correct-answer">
+                ✓ Đáp án đúng: ${question.answer}
+            </div>
+
+            <div class="answer-label ${
+                isCorrect ? "correct-answer" : "user-answer"
+            }">
+                ${isCorrect ? "✓" : "✗"}
+                Đáp án của bạn: ${escapeHTML(displayUserAnswer)}
+            </div>
+
+            <div style="margin-top:8px;">
+                <b>Giải thích:</b><br>
+                ${question.explanation}
+            </div>
+        `;
+
+        explanationBox.style.display = "block";
+    });
+
+
+    const result = document.getElementById(`result-${testIndex}`);
+    const scoreElement = document.getElementById(`score-${testIndex}`);
+    const messageElement = document.getElementById(`message-${testIndex}`);
+
+    scoreElement.textContent = `${score}/20`;
+
+    let percentage = score * 5;
+
+    let message = "";
+
+    if (score >= 18) {
+        message = `Xuất sắc! Bạn đạt ${percentage}%. Khả năng đọc hiểu rất tốt.`;
+    } else if (score >= 15) {
+        message = `Rất tốt! Bạn đạt ${percentage}%. Chỉ cần chú ý thêm một vài chi tiết.`;
+    } else if (score >= 10) {
+        message = `Khá tốt! Bạn đạt ${percentage}%. Hãy đọc kỹ từ khóa và thông tin chi tiết hơn.`;
+    } else {
+        message = `Bạn đạt ${percentage}%. Hãy xem kỹ phần giải thích và thử lại đề này.`;
+    }
+
+    messageElement.textContent = message;
+
+    result.classList.add("show");
+
+    document.getElementById(`next-${testIndex}`).style.display =
+        "block";
+
+    /*
+       Khóa các đáp án sau khi nộp để tránh thay đổi
+       kết quả sau khi xem đáp án.
+    */
+
+    const slide = document.getElementById(`slide-${testIndex}`);
+
+    slide.querySelectorAll("input").forEach(input => {
+        input.disabled = true;
+    });
+
+    /*
+       Cuộn về đầu phần câu hỏi để người học thấy điểm
+    */
+
+    document.querySelector(`#slide-${testIndex} .questions-panel`)
+        .scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+}
+
+
+/* =========================================================
+   CHUYỂN ĐỀ / SLIDE
+========================================================= */
+
+let currentTest = 0;
+
+function nextTest(currentIndex) {
+
+    if (currentIndex < tests.length - 1) {
+
+        document.getElementById(`slide-${currentIndex}`)
+            .classList.remove("active");
+
+        currentTest = currentIndex + 1;
+
+        document.getElementById(`slide-${currentTest}`)
+            .classList.add("active");
+
+        updateProgress();
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+
+        /*
+           Hiệu ứng chuyển slide
+        */
+
+        const nextSlide = document.getElementById(
+            `slide-${currentTest}`
+        );
+
+        nextSlide.style.animation = "none";
+
+        requestAnimationFrame(() => {
+            nextSlide.style.animation =
+                "slideIn .45s ease";
+        });
+
+    } else {
+
+        /*
+           Hoàn thành toàn bộ 4 đề
+        */
+
+        showFinalResult();
+    }
+}
+
+
+/* =========================================================
+   THANH TIẾN TRÌNH
+========================================================= */
+
+function updateProgress() {
+
+    document.getElementById("progressText").textContent =
+        `${String(currentTest + 1).padStart(2, "0")} / 04`;
+
+    document.getElementById("progressBar").style.width =
+        `${((currentTest + 1) / tests.length) * 100}%`;
+
+    document.querySelectorAll(".dot").forEach((dot, index) => {
+
+        dot.classList.toggle(
+            "active",
+            index === currentTest
+        );
+
+        dot.classList.toggle(
+            "done",
+            index < currentTest
+        );
+    });
+}
+
+
+/* =========================================================
+   KẾT QUẢ CUỐI
+========================================================= */
+
+function showFinalResult() {
+
+    let totalScore = 0;
+
+    tests.forEach((test, testIndex) => {
+
+        const scoreElement =
+            document.getElementById(`score-${testIndex}`);
+
+        if (scoreElement) {
+
+            const scoreText =
+                scoreElement.textContent;
+
+            const score =
+                parseInt(scoreText.split("/")[0]);
+
+            if (!isNaN(score)) {
+                totalScore += score;
+            }
+        }
+    });
+
+    const finalPercent =
+        Math.round((totalScore / 80) * 100);
+
+    alert(
+        `🎉 Chúc mừng bạn đã hoàn thành 4 đề!\n\n` +
+        `Tổng điểm: ${totalScore}/80\n` +
+        `Tỷ lệ đúng: ${finalPercent}%`
+    );
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHTML(text) {
+
+    const div = document.createElement("div");
+
+    div.textContent = text;
+
+    return div.innerHTML;
+}
+
+
+/* =========================================================
+   KHỞI TẠO
+========================================================= */
+
+renderQuestions();
+updateProgress();
+
+</script>
+
+</body>
+</html>

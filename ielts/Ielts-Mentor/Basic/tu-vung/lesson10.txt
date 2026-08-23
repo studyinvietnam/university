@@ -1,0 +1,69 @@
+1. Loại nhà & Nơi chốn (Types of buildings & Places)
+House: Nhà ở / Nhà nguyên căn
+
+Apartment building: Tòa nhà chung cư
+
+Office building: Tòa nhà văn phòng
+
+Apartment: Căn hộ chung cư
+
+Museum: Bảo tàng
+
+Airport: Sân bay
+
+Hospital: Bệnh viện
+
+Park: Công viên
+
+2. Các khu vực & Số tầng (Parts of a building & Floors)
+Stairway: Cầu thang bộ
+
+Elevator: Thang máy
+
+Garage: Nhà để xe / Ga-ra
+
+Garden: Khu vườn
+
+Balcony: Ban công
+
+Tầng lầu:
+
+First floor: Tầng một (Tầng trệt)
+
+Second floor: Tầng hai (Lầu 1)
+
+Third floor: Tầng ba (Lầu 2)
+
+Số tầng của ngôi nhà:
+
+1-storey house/building: Nhà/Tòa nhà 1 tầng
+
+2-storey house/building: Nhà/Tòa nhà 2 tầng
+
+3-storey house/building: Nhà/Tòa nhà 3 tầng
+
+3. Các phòng trong nhà (Rooms in a house)
+Living room: Phòng khách
+
+Dining room: Phòng ăn
+
+Kitchen: Nhà bếp
+
+Bathroom: Phòng tắm / Nhà vệ sinh
+
+Upstairs: Tầng trên / Lên lầu
+
+Downstairs: Tầng dưới / Xuống lầu
+
+4. Đồ nội thất & Từ vựng khác (Furniture & Others)
+Pitch / Field: Sân cỏ / Sân bóng đá (thể thao)
+
+Dresser: Tủ có gương / Bàn trang điểm có hộc tủ
+
+Closet: Tủ quần áo (thường là tủ âm tường hoặc tủ lớn)
+
+Drawer: Tủ ngăn kéo / Hộc kéo
+
+Cabinet: Tủ có cánh cửa đóng mở (tủ bếp, tủ tài liệu)
+
+Oversea (Overseas): Nước ngoài / Ở nước ngoài
