@@ -16,7 +16,11 @@ const path = require("path");
 
 const app = express();
 
-const PORT = 3001;
+
+// Render sẽ tự cấp PORT.
+// Khi chạy local nếu không có PORT thì dùng 3001.
+const PORT =
+    process.env.PORT || 3001;
 
 
 // ============================================================
@@ -51,8 +55,11 @@ console.log(
 );
 
 console.log(
-    "📄 File .env:",
-    path.join(__dirname, ".env")
+    "📄 File .env local:",
+    path.resolve(
+        __dirname,
+        "../../../../../../.env"
+    )
 );
 
 console.log(
@@ -73,7 +80,9 @@ console.log(
 );
 
 console.log(
-    "========================================");
+    "========================================"
+);
+
 console.log("");
 
 
@@ -113,15 +122,18 @@ if (!GEMINI_API_KEY) {
     );
 
     console.error(
-        "Hãy kiểm tra file .env:"
+        "Local có thể sử dụng:"
     );
 
     console.error(
-        path.join(__dirname, ".env")
+        path.resolve(
+            __dirname,
+            "../../../../../../.env"
+        )
     );
 
     console.error(
-        "Ví dụ:"
+        "Trên Render hãy thêm Environment Variable:"
     );
 
     console.error(
@@ -129,7 +141,9 @@ if (!GEMINI_API_KEY) {
     );
 
     console.error(
-        "========================================");
+        "========================================"
+    );
+
     console.error("");
 
 }
@@ -169,7 +183,8 @@ async function callGemini(prompt) {
     );
 
     console.log(
-        "========================================");
+        "========================================"
+    );
 
 
     // --------------------------------------------------------
@@ -183,7 +198,7 @@ async function callGemini(prompt) {
         );
 
         throw new Error(
-            "GEMINI_API_KEY chưa được cấu hình trong .env"
+            "GEMINI_API_KEY chưa được cấu hình trong .env hoặc Render Environment Variables."
         );
 
     }
@@ -260,7 +275,8 @@ async function callGemini(prompt) {
         );
 
         console.error(
-            "========================================");
+            "========================================"
+        );
 
         throw new Error(
             "Không thể kết nối tới Gemini API."
@@ -359,12 +375,23 @@ async function callGemini(prompt) {
         );
 
         console.error(
-            "========================================");
+            "========================================"
+        );
 
 
         // ----------------------------------------------------
         // Các lỗi thường gặp
         // ----------------------------------------------------
+
+        if (response.status === 400) {
+
+            throw new Error(
+                data?.error?.message ||
+                "Gemini API nhận request không hợp lệ."
+            );
+
+        }
+
 
         if (response.status === 401) {
 
@@ -455,7 +482,8 @@ async function callGemini(prompt) {
         );
 
         console.error(
-            "========================================");
+            "========================================"
+        );
 
 
         throw new Error(
@@ -480,7 +508,8 @@ async function callGemini(prompt) {
     );
 
     console.log(
-        "========================================");
+        "========================================"
+    );
 
 
     return text;
@@ -593,7 +622,8 @@ function parseGeminiJSON(text) {
         );
 
         console.error(
-            "========================================");
+            "========================================"
+        );
 
 
         throw new Error(
@@ -1260,7 +1290,8 @@ CHỈ TRẢ JSON.
             );
 
             console.error(
-                "========================================");
+                "========================================"
+            );
 
 
             res.status(500).json({
@@ -1381,7 +1412,8 @@ app.use(
         );
 
         console.error(
-            "========================================");
+            "========================================"
+        );
 
 
         if (res.headersSent) {
@@ -1418,7 +1450,7 @@ app.listen(
         console.log("========================================");
 
         console.log(
-            `🌐 http://localhost:${PORT}`
+            `🌐 Server đang chạy tại PORT ${PORT}`
         );
 
         console.log(
@@ -1429,7 +1461,7 @@ app.listen(
         console.log(
             "🔑 Gemini API:",
             GEMINI_API_KEY
-                ? "✅ Đã kết nối .env"
+                ? "✅ Đã kết nối"
                 : "❌ Chưa có API KEY"
         );
 
@@ -1439,7 +1471,9 @@ app.listen(
         );
 
         console.log(
-            "========================================");
+            "========================================"
+        );
+
         console.log("");
 
     }
