@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chương 1 - Tổng quan về hệ điều hành</title>
+    <link rel="stylesheet" href="css.css">
+</head>
+
+<body>
+
+<div class="exam-page">
+
+    <!-- =========================================================
+         EXAM INFO BAR
+    ========================================================== -->
+    <section class="exam-bar">
+        <div class="student-info">
+            <strong>THÍ SINH</strong>
+            <span>Môn: NGUYÊN LÝ HỆ ĐIỀU HÀNH</span>
+            <span>Chương: 01</span>
+        </div>
+
+        <div class="exam-status">
+            <div class="timer-wrap">
+                <span class="timer-icon">◷</span>
+                <span id="timer">45:00</span>
+            </div>
+
+            <span id="connectionDot" class="connection-dot"></span>
+            <span class="connection-text">Đang làm bài</span>
+
+            <button class="submit-top" id="submitTop">NỘP BÀI</button>
+            <button class="fullscreen-btn" id="fullscreenBtn" title="Toàn màn hình">⛶</button>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         TOOLBAR
+    ========================================================== -->
+    <div class="toolbar">
+        <button class="tool-btn" id="prevBtn">← Câu trước</button>
+        <button class="tool-btn primary" id="nextBtn">Câu tiếp theo →</button>
+
+        <div class="progress-info">
+            <span>Số câu đã trả lời:</span>
+            <strong id="answeredCount">0</strong>
+            <span>/ 50</span>
+        </div>
+
+        <button class="tool-btn save" id="saveBtn">Lưu bài</button>
+    </div>
+
+    <!-- =========================================================
+         MAIN EXAM
+    ========================================================== -->
+    <main class="exam-content">
+
+        <!-- LEFT PANEL -->
+        <aside class="chapter-panel">
+
+            <div class="panel-heading">
+                <span>CHƯƠNG 1</span>
+                <small>TỔNG QUAN VỀ HỆ ĐIỀU HÀNH</small>
+            </div>
+
+            <div class="chapter-summary">
+                <h3>Nội dung trọng tâm</h3>
+
+                <div class="summary-item">
+                    <span>01</span>
+                    <p>Khái niệm và vai trò của hệ điều hành</p>
+                </div>
+
+                <div class="summary-item">
+                    <span>02</span>
+                    <p>Batch, Multiprogramming và Time Sharing</p>
+                </div>
+
+                <div class="summary-item">
+                    <span>03</span>
+                    <p>Desktop OS và hệ đa xử lý</p>
+                </div>
+
+                <div class="summary-item">
+                    <span>04</span>
+                    <p>Hệ phân tán và hệ thống cụm</p>
+                </div>
+
+                <div class="summary-item">
+                    <span>05</span>
+                    <p>Hệ thống thời gian thực</p>
+                </div>
+            </div>
+
+            <div class="exam-note">
+                <h3>Hướng dẫn</h3>
+                <ul>
+                    <li>Chọn <b>một</b> đáp án đúng cho mỗi câu.</li>
+                    <li>Có thể chuyển câu bằng nút hoặc số câu phía dưới.</li>
+                    <li>Sau khi nộp bài, hệ thống sẽ hiện đáp án và giải thích.</li>
+                    <li>Điểm được quy đổi theo thang <b>10</b>.</li>
+                </ul>
+            </div>
+
+            <div class="left-progress">
+                <div class="progress-title">
+                    <span>TIẾN ĐỘ</span>
+                    <b id="progressPercent">0%</b>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- RIGHT PANEL -->
+        <section class="question-panel">
+
+            <div class="question-top">
+                <div>
+                    <span class="question-label">CÂU HỎI</span>
+                    <strong id="questionNumber">1 / 50</strong>
+                </div>
+
+                <button class="flag-btn" id="flagBtn">⚑ Đánh dấu</button>
+            </div>
+
+            <div id="questionContainer"></div>
+
+        </section>
+
+    </main>
+
+    <!-- =========================================================
+         QUESTION NAVIGATION
+    ========================================================== -->
+    <section class="question-nav">
+        <div class="nav-title">
+            <strong>DANH SÁCH CÂU HỎI</strong>
+            <span>● Đã chọn &nbsp;&nbsp; ○ Chưa chọn &nbsp;&nbsp; ⚑ Đánh dấu</span>
+        </div>
+
+        <div class="question-numbers" id="questionNumbers"></div>
+    </section>
+
+    <!-- =========================================================
+         SUBMIT AREA
+    ========================================================== -->
+    <section class="submit-area">
+        <div>
+            <h3>Đã hoàn thành bài?</h3>
+            <p>Kiểm tra lại các câu chưa trả lời trước khi nộp.</p>
+        </div>
+
+        <button class="submit-main" id="submitMain">NỘP BÀI & XEM KẾT QUẢ</button>
+    </section>
+
+    <!-- =========================================================
+         RESULT
+    ========================================================== -->
+    <section class="result-section hidden" id="resultSection">
+
+        <div class="result-header">
+            <div>
+                <span class="result-kicker">KẾT QUẢ BÀI LÀM</span>
+                <h2>Chương 1: Tổng quan về hệ điều hành</h2>
+            </div>
+
+            <div class="score-box">
+                <span>ĐIỂM</span>
+                <strong id="score10">0.0</strong>
+                <small>/ 10</small>
+            </div>
+        </div>
+
+        <div class="result-stats">
+            <div class="stat correct">
+                <span>Đúng</span>
+                <strong id="correctCount">0</strong>
+            </div>
+
+            <div class="stat wrong">
+                <span>Sai</span>
+                <strong id="wrongCount">0</strong>
+            </div>
+
+            <div class="stat unanswered">
+                <span>Chưa trả lời</span>
+                <strong id="unansweredCount">0</strong>
+            </div>
+
+            <div class="stat percent">
+                <span>Tỷ lệ đúng</span>
+                <strong id="resultPercent">0%</strong>
+            </div>
+        </div>
+
+        <div class="result-message" id="resultMessage"></div>
+
+        <div class="review-heading">
+            <h3>ĐÁP ÁN & GIẢI THÍCH</h3>
+            <p>Đáp án đúng được tô xanh; đáp án bạn chọn sai được tô đỏ.</p>
+        </div>
+
+        <div class="review-list" id="reviewList"></div>
+
+        <button class="retry-btn" id="retryBtn">LÀM LẠI BÀI</button>
+    </section>
+
+    <footer class="footer">
+        <span>NGUYÊN LÝ HỆ ĐIỀU HÀNH</span>
+        <span>•</span>
+        <span>CHƯƠNG 1 - TỔNG QUAN VỀ HỆ ĐIỀU HÀNH</span>
+    </footer>
+
+</div>
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================== -->
+<script>
+const questions = [
+    {
+        q: "Hệ điều hành là gì?",
+        options: [
+            "Chương trình ứng dụng chạy trên máy tính",
+            "Lớp phần mềm trung gian giữa người dùng/ứng dụng và phần cứng",
+            "Phần cứng máy tính",
+            "Chỉ là giao diện đồ họa"
+        ],
+        answer: 1,
+        explanation: "Hệ điều hành là lớp phần mềm trung gian giữa người dùng, chương trình ứng dụng và phần cứng, giúp cung cấp môi trường thực thi và quản lý tài nguyên."
+    },
+    {
+        q: "Vai trò chính của hệ điều hành là:",
+        options: [
+            "Chỉ chạy game",
+            "Che giấu chi tiết phần cứng phức tạp, cung cấp môi trường thực thi và điều phối tài nguyên",
+            "Chỉ quản lý bộ nhớ",
+            "Chỉ bảo mật mạng"
+        ],
+        answer: 1,
+        explanation: "Hệ điều hành vừa trừu tượng hóa phần cứng, vừa cung cấp môi trường thực thi và điều phối các tài nguyên như CPU, bộ nhớ, thiết bị và tệp."
+    },
+    {
+        q: "Kernel là:",
+        options: [
+            "Chương trình ứng dụng",
+            "Phần lõi luôn thường trú khi hệ thống hoạt động",
+            "Giao diện người dùng",
+            "Bộ nhớ ảo"
+        ],
+        answer: 1,
+        explanation: "Kernel là phần lõi của hệ điều hành, chịu trách nhiệm thực hiện các chức năng cốt lõi và thường xuyên được duy trì trong bộ nhớ khi hệ thống hoạt động."
+    },
+    {
+        q: "Hai vai trò cốt lõi của hệ điều hành là:",
+        options: [
+            "Giả lập máy tính ảo và Quản lý tài nguyên",
+            "Chỉ quản lý file và in ấn",
+            "Chỉ bảo mật và mạng",
+            "Chỉ đa nhiệm và đồ họa"
+        ],
+        answer: 0,
+        explanation: "Hai góc nhìn cốt lõi là cung cấp một máy tính/máy ảo thuận tiện cho người dùng và quản lý, phân phối tài nguyên phần cứng."
+    },
+    {
+        q: "Trong kiến trúc hệ thống máy tính, các thành phần truy cập bộ nhớ qua:",
+        options: [
+            "CPU riêng",
+            "Bus hệ thống",
+            "Ổ đĩa",
+            "Màn hình"
+        ],
+        answer: 1,
+        explanation: "Bus hệ thống là đường giao tiếp cho phép các thành phần như CPU và bộ nhớ trao đổi dữ liệu, địa chỉ và tín hiệu điều khiển."
+    },
+    {
+        q: "Bốn thành phần cơ bản của hệ thống máy tính là:",
+        options: [
+            "CPU, RAM, Ổ cứng, Màn hình",
+            "Người dùng – Ứng dụng – Hệ điều hành – Phần cứng",
+            "Kernel – Shell – File – Process",
+            "Batch – Multiprogramming – Time sharing – Protection"
+        ],
+        answer: 1,
+        explanation: "Hệ thống máy tính được nhìn theo bốn thành phần: người dùng, chương trình ứng dụng, hệ điều hành và phần cứng."
+    },
+    {
+        q: "Mục tiêu chính của hệ điều hành KHÔNG bao gồm:",
+        options: [
+            "Dễ sử dụng",
+            "Hiệu quả",
+            "Đáng tin cậy",
+            "Làm chậm hệ thống để tiết kiệm điện"
+        ],
+        answer: 3,
+        explanation: "Hệ điều hành hướng tới sự tiện dụng, hiệu quả và độ tin cậy; cố tình làm chậm hệ thống không phải mục tiêu chính."
+    },
+    {
+        q: "Theo góc nhìn người sử dụng, hệ điều hành là:",
+        options: [
+            "Hệ chương trình quản lý chặt chẽ tài nguyên",
+            "Hệ chương trình giúp khai thác máy tính thuận lợi",
+            "Máy tính logic mới",
+            "Mô phỏng hoạt động máy tính"
+        ],
+        answer: 1,
+        explanation: "Theo góc nhìn người dùng, hệ điều hành cung cấp các dịch vụ và giao diện giúp việc sử dụng, khai thác máy tính thuận tiện hơn."
+    },
+    {
+        q: "Hệ thống mainframe ban đầu ra đời trong bối cảnh:",
+        options: [
+            "Phần cứng rẻ, người dùng tương tác nhiều",
+            "Phần cứng đắt, cần tối ưu hóa thời gian sử dụng máy",
+            "Chỉ phục vụ cá nhân",
+            "Không có I/O"
+        ],
+        answer: 1,
+        explanation: "Máy mainframe ban đầu rất đắt, vì vậy mục tiêu quan trọng là tận dụng tối đa thời gian xử lý và giảm thời gian máy nhàn rỗi."
+    },
+    {
+        q: "Trong xử lý theo lô đơn giản (Simple Batch), ưu điểm chính là:",
+        options: [
+            "CPU không bao giờ chờ I/O",
+            "Giảm thời gian chuẩn bị giữa các job",
+            "Tương tác trực tiếp với người dùng",
+            "Đa nhiệm hoàn hảo"
+        ],
+        answer: 1,
+        explanation: "Simple Batch gom các job và xử lý liên tiếp, nhờ đó giảm thời gian chuẩn bị và chuyển đổi thủ công giữa các công việc."
+    },
+    {
+        q: "Nhược điểm của Simple Batch là:",
+        options: [
+            "CPU vẫn phải chờ khi job thực hiện thao tác vào/ra",
+            "Quá nhanh",
+            "Không cần thao tác viên",
+            "Hỗ trợ GUI"
+        ],
+        answer: 0,
+        explanation: "Trong Simple Batch, khi job đang chờ I/O, CPU có thể bị nhàn rỗi vì chưa có cơ chế đủ hiệu quả để chuyển sang job khác."
+    },
+    {
+        q: "Ý tưởng chính của xử lý theo lô đa chương trình (Multiprogramming) là:",
+        options: [
+            "Chỉ chạy một job",
+            "Giữ CPU luôn bận rộn bằng cách chồng lấp tính toán và vào/ra",
+            "Tắt máy khi chờ I/O",
+            "Chỉ dùng cho desktop"
+        ],
+        answer: 1,
+        explanation: "Multiprogramming giữ nhiều job trong bộ nhớ và chuyển CPU sang job khác khi một job phải chờ I/O, từ đó tăng mức sử dụng CPU."
+    },
+    {
+        q: "Trong multiprogramming, khi một job chờ I/O, hệ điều hành sẽ:",
+        options: [
+            "Dừng toàn bộ hệ thống",
+            "Chọn job khác sử dụng CPU",
+            "Xóa job đang chạy",
+            "Chỉ in kết quả"
+        ],
+        answer: 1,
+        explanation: "Khi một job bị chặn vì I/O, bộ lập lịch có thể cấp CPU cho một job sẵn sàng khác."
+    },
+    {
+        q: "Hệ phân chia thời gian (Time Sharing) có đặc điểm:",
+        options: [
+            "Chỉ một người dùng",
+            "Chuyển đổi CPU nhanh giữa các tiến trình, tạo cảm giác nhiều người dùng cùng làm việc",
+            "Không cần bảo vệ",
+            "Chỉ dùng batch"
+        ],
+        answer: 1,
+        explanation: "Time Sharing sử dụng các lát thời gian nhỏ và chuyển đổi CPU nhanh giữa các tiến trình để tạo cảm giác tương tác đồng thời."
+    },
+    {
+        q: "Trình tự phát triển từ mainframe đến HĐH hiện đại là:",
+        options: [
+            "Protection → Time sharing → Multiprogramming → Batch",
+            "Batch → Multiprogramming → Time sharing → Protection",
+            "Time sharing → Batch → Protection",
+            "Multiprogramming → Batch → Time sharing"
+        ],
+        answer: 1,
+        explanation: "Một trình tự phát triển điển hình là xử lý theo lô, đa chương trình, phân chia thời gian rồi ngày càng hoàn thiện các cơ chế bảo vệ."
+    },
+    {
+        q: "Hệ để bàn (Desktop OS) ưu tiên:",
+        options: [
+            "Tối đa hóa thời gian sử dụng máy đắt tiền",
+            "Tính tiện dụng, giao diện và trải nghiệm cá nhân",
+            "Chỉ batch processing",
+            "Không cần đa nhiệm"
+        ],
+        answer: 1,
+        explanation: "Desktop OS tập trung mạnh vào khả năng tương tác, tính tiện dụng, giao diện và trải nghiệm của người dùng cá nhân."
+    },
+    {
+        q: "Đặc trưng của hệ để bàn bao gồm:",
+        options: [
+            "Tương tác cao, đa nhiệm, bảo mật cá nhân",
+            "Chỉ batch và không GUI",
+            "Không cần bảo vệ bộ nhớ",
+            "Chỉ một tiến trình"
+        ],
+        answer: 0,
+        explanation: "Hệ để bàn hiện đại thường hỗ trợ tương tác cao, đa nhiệm, bảo vệ bộ nhớ và các cơ chế bảo mật cho người dùng."
+    },
+    {
+        q: "Hệ đa xử lý (Multiprocessor) là hệ thống có:",
+        options: [
+            "Một CPU duy nhất",
+            "Nhiều bộ xử lý giao tiếp gần, thường chia sẻ bus, bộ nhớ",
+            "Chỉ máy tính đơn",
+            "Không chia sẻ tài nguyên"
+        ],
+        answer: 1,
+        explanation: "Hệ đa xử lý có nhiều bộ xử lý làm việc phối hợp, thường chia sẻ bộ nhớ và các đường giao tiếp chung."
+    },
+    {
+        q: "Lợi ích của hệ đa xử lý KHÔNG bao gồm:",
+        options: [
+            "Tăng thông lượng",
+            "Hiệu quả kinh tế",
+            "Tăng độ tin cậy",
+            "Làm hệ điều hành đơn giản hơn"
+        ],
+        answer: 3,
+        explanation: "Multiprocessor có thể tăng thông lượng, hiệu quả kinh tế và độ tin cậy, nhưng việc quản lý đồng thời thường khiến hệ điều hành phức tạp hơn."
+    },
+    {
+        q: "SMP (Symmetric Multiprocessing) nghĩa là:",
+        options: [
+            "Các CPU bình đẳng, cùng chạy nhân HĐH",
+            "Mỗi CPU được gán nhiệm vụ riêng, có CPU chủ",
+            "Chỉ một CPU chạy kernel",
+            "Không chia sẻ bộ nhớ"
+        ],
+        answer: 0,
+        explanation: "Trong SMP, các CPU có vai trò tương đương và có thể thực thi mã hệ điều hành, đồng thời thường dùng chung bộ nhớ."
+    },
+    {
+        q: "AMP (Asymmetric Multiprocessing) nghĩa là:",
+        options: [
+            "Các CPU bình đẳng",
+            "Mỗi CPU được gán nhiệm vụ riêng, CPU chủ điều phối CPU phụ",
+            "Phổ biến trong đa lõi hiện đại",
+            "Không có CPU chủ"
+        ],
+        answer: 1,
+        explanation: "AMP phân công vai trò không đối xứng: một CPU có thể đóng vai trò chủ và điều phối các CPU còn lại."
+    },
+    {
+        q: "Điểm phân biệt chính giữa SMP và AMP là:",
+        options: [
+            "Số lượng CPU",
+            "Quyền điều phối thuộc về mọi CPU hay chỉ một CPU chủ",
+            "Tốc độ clock",
+            "Loại bộ nhớ"
+        ],
+        answer: 1,
+        explanation: "Điểm khác biệt cốt lõi nằm ở cách phân quyền: SMP đối xứng, còn AMP có sự phân công vai trò và có thể có CPU chủ."
+    },
+    {
+        q: "Hệ phân tán (Distributed Systems) là:",
+        options: [
+            "Nhiều máy tính độc lập kết nối qua mạng, chia sẻ tài nguyên",
+            "Một máy tính duy nhất",
+            "Chỉ cluster",
+            "Không dùng mạng"
+        ],
+        answer: 0,
+        explanation: "Hệ phân tán gồm nhiều máy tính độc lập phối hợp thông qua mạng để cung cấp dịch vụ hoặc chia sẻ tài nguyên."
+    },
+    {
+        q: "Ví dụ của hệ phân tán là:",
+        options: [
+            "Máy tính để bàn đơn",
+            "Hệ thống web, cơ sở dữ liệu phân tán, lưu trữ đám mây, peer-to-peer",
+            "Chỉ mainframe",
+            "Chỉ real-time"
+        ],
+        answer: 1,
+        explanation: "Web phân tán, cơ sở dữ liệu phân tán, cloud storage và mạng peer-to-peer đều là những ví dụ điển hình của hệ phân tán."
+    },
+    {
+        q: "Mô hình Client-Server trong hệ phân tán có đặc điểm:",
+        options: [
+            "Các nút vừa là client vừa là server",
+            "Server cung cấp dịch vụ, client gửi yêu cầu; dễ quản lý nhưng server có thể là điểm nghẽn",
+            "Khả năng mở rộng tốt nhất",
+            "Không cần server"
+        ],
+        answer: 1,
+        explanation: "Client gửi yêu cầu đến server cung cấp dịch vụ. Mô hình này dễ quản lý nhưng server có thể trở thành nút thắt cổ chai hoặc điểm lỗi."
+    },
+    {
+        q: "Mô hình Peer-to-Peer có đặc điểm:",
+        options: [
+            "Dễ quản lý tập trung",
+            "Các nút vừa là client vừa là server, khả năng mở rộng tốt nhưng khó kiểm soát đồng nhất và bảo mật",
+            "Server là điểm nghẽn",
+            "Chỉ một nút"
+        ],
+        answer: 1,
+        explanation: "Trong P2P, các nút có thể vừa cung cấp vừa sử dụng dịch vụ. Mô hình phân tán hơn nhưng khó quản lý đồng nhất và bảo mật."
+    },
+    {
+        q: "Thách thức của hệ phân tán bao gồm:",
+        options: [
+            "Độ trễ, độ tin cậy, tính nhất quán, bảo mật",
+            "Chỉ tốc độ CPU",
+            "Không có thách thức",
+            "Chỉ GUI"
+        ],
+        answer: 0,
+        explanation: "Hệ phân tán phải xử lý độ trễ mạng, lỗi nút, tính nhất quán dữ liệu, đồng bộ và các vấn đề bảo mật."
+    },
+    {
+        q: "Hệ thống cụm (Clustered Systems) nhằm mục tiêu:",
+        options: [
+            "Chỉ chạy một máy",
+            "Tăng độ sẵn sàng, khả năng chịu lỗi và/hoặc cân bằng tải",
+            "Giảm hiệu năng",
+            "Không chia sẻ lưu trữ"
+        ],
+        answer: 1,
+        explanation: "Cluster kết hợp nhiều máy/nút để tăng tính sẵn sàng, khả năng chịu lỗi và có thể phân phối tải."
+    },
+    {
+        q: "Cluster khác hệ phân tán ở chỗ:",
+        options: [
+            "Liên kết lỏng lẻo hơn",
+            "Thường hướng tới một dịch vụ thống nhất, sẵn sàng cao",
+            "Không chia sẻ gì",
+            "Chỉ dùng cho desktop"
+        ],
+        answer: 1,
+        explanation: "Cluster thường được thiết kế như một hệ thống phối hợp chặt chẽ để cung cấp một dịch vụ thống nhất với độ sẵn sàng cao."
+    },
+    {
+        q: "Cụm bất đối xứng là:",
+        options: [
+            "Nhiều nút cùng chạy dịch vụ",
+            "Một nút chạy dịch vụ, nút còn lại dự phòng và tiếp quản khi có lỗi",
+            "Chỉ cân bằng tải",
+            "Không chịu lỗi"
+        ],
+        answer: 1,
+        explanation: "Trong cụm bất đối xứng, một nút chủ động cung cấp dịch vụ trong khi nút khác có thể ở trạng thái dự phòng để tiếp quản khi xảy ra lỗi."
+    },
+    {
+        q: "Cụm đối xứng là:",
+        options: [
+            "Một nút chạy, một nút dự phòng",
+            "Nhiều nút cùng chạy dịch vụ, cùng theo dõi trạng thái và chia tải",
+            "Không chia sẻ",
+            "Chỉ một CPU"
+        ],
+        answer: 1,
+        explanation: "Cụm đối xứng cho phép nhiều nút cùng hoạt động, theo dõi nhau và cùng chia sẻ tải công việc."
+    },
+    {
+        q: "Hệ thời gian thực (Real-Time Systems) đặc trưng bởi:",
+        options: [
+            "Chỉ quan tâm tốc độ trung bình",
+            "Đúng kết quả chưa đủ, còn phải đúng hạn (có ràng buộc thời gian nghiêm ngặt)",
+            "Không có deadline",
+            "Chỉ dùng cho game"
+        ],
+        answer: 1,
+        explanation: "Real-Time Systems yêu cầu kết quả không chỉ đúng về nội dung mà còn phải được tạo ra trong khoảng thời gian quy định."
+    },
+    {
+        q: "Nếu xử lý trễ hạn trong hệ thời gian thực:",
+        options: [
+            "Không sao cả",
+            "Kết quả có thể mất ý nghĩa hoặc gây nguy hiểm",
+            "Chỉ làm chậm một chút",
+            "Tăng hiệu năng"
+        ],
+        answer: 1,
+        explanation: "Trong hệ thời gian thực, trễ deadline có thể khiến kết quả mất giá trị hoặc thậm chí gây hậu quả nghiêm trọng tùy ứng dụng."
+    },
+    {
+        q: "Ứng dụng điển hình của hệ thời gian thực là:",
+        options: [
+            "Soạn thảo văn bản",
+            "Điều khiển công nghiệp, robot, ô tô, y tế, hàng không",
+            "Chỉ trình duyệt web",
+            "Chỉ batch job"
+        ],
+        answer: 1,
+        explanation: "Các hệ thống điều khiển công nghiệp, robot, ô tô, thiết bị y tế và hàng không thường có các yêu cầu thời gian thực."
+    },
+    {
+        q: "Hard real-time là:",
+        options: [
+            "Trễ hạn làm giảm chất lượng dịch vụ, chấp nhận tỷ lệ trễ nhỏ",
+            "Trễ hạn có thể gây hậu quả nghiêm trọng, ưu tiên tính dự đoán được",
+            "Chỉ dùng cho video",
+            "Không cần deadline"
+        ],
+        answer: 1,
+        explanation: "Hard real-time có deadline nghiêm ngặt; vi phạm deadline có thể gây hậu quả nghiêm trọng nên hệ thống phải ưu tiên tính dự đoán được."
+    },
+    {
+        q: "Soft real-time là:",
+        options: [
+            "Trễ hạn gây nguy hiểm nghiêm trọng",
+            "Trễ hạn làm giảm chất lượng dịch vụ, có thể chấp nhận tỷ lệ trễ nhỏ",
+            "Ví dụ: túi khí ô tô",
+            "Không chấp nhận trễ"
+        ],
+        answer: 1,
+        explanation: "Soft real-time vẫn có yêu cầu về thời gian nhưng một tỷ lệ trễ nhỏ có thể chấp nhận được, thường làm giảm chất lượng dịch vụ."
+    },
+    {
+        q: "Ví dụ của Hard real-time:",
+        options: [
+            "Phát video, trò chơi trực tuyến",
+            "Túi khí ô tô, điều khiển máy bay",
+            "Trình duyệt web",
+            "Soạn thảo văn bản"
+        ],
+        answer: 1,
+        explanation: "Túi khí và một số hệ thống điều khiển máy bay có deadline rất nghiêm ngặt, nên là ví dụ điển hình của hard real-time."
+    },
+    {
+        q: "Ví dụ của Soft real-time:",
+        options: [
+            "Điều khiển máy bay",
+            "Phát video, trò chơi trực tuyến",
+            "Túi khí ô tô",
+            "Robot phẫu thuật nghiêm ngặt"
+        ],
+        answer: 1,
+        explanation: "Phát video và game trực tuyến có thể chấp nhận một mức trễ nhất định dù trễ nhiều sẽ làm giảm chất lượng trải nghiệm."
+    },
+    {
+        q: "HĐH thời gian thực cần:",
+        options: [
+            "Lập lịch có thể dự đoán và độ trễ ngắt thấp",
+            "Chỉ thông lượng cao",
+            "Không cần bảo vệ",
+            "Chỉ GUI đẹp"
+        ],
+        answer: 0,
+        explanation: "Real-time OS cần khả năng dự đoán thời gian xử lý, lập lịch phù hợp và độ trễ ngắt thấp để đáp ứng deadline."
+    },
+    {
+        q: "Hệ điều hành làm cho phần cứng trở nên dễ dùng, an toàn và hiệu quả bằng cách:",
+        options: [
+            "Chỉ tăng tốc độ CPU",
+            "Trừu tượng hóa phần cứng và điều phối tài nguyên",
+            "Xóa tất cả chương trình",
+            "Không quản lý gì"
+        ],
+        answer: 1,
+        explanation: "Hệ điều hành tạo ra các lớp trừu tượng dễ sử dụng và quản lý việc phân phối tài nguyên, đồng thời áp dụng các cơ chế bảo vệ."
+    },
+    {
+        q: "Trong multiprogramming, HĐH cần quản lý:",
+        options: [
+            "Chỉ file",
+            "Bộ nhớ, lập lịch CPU và bảo vệ giữa các chương trình",
+            "Chỉ mạng",
+            "Chỉ GUI"
+        ],
+        answer: 1,
+        explanation: "Multiprogramming yêu cầu quản lý nhiều chương trình cùng tồn tại, vì vậy cần quản lý bộ nhớ, CPU và bảo vệ không gian thực thi."
+    },
+    {
+        q: "Mục tiêu chính của batch processing là:",
+        options: [
+            "Tương tác người dùng",
+            "Giảm thời gian CPU nhàn rỗi giữa các công việc",
+            "Đồ họa đẹp",
+            "Bảo mật mạng"
+        ],
+        answer: 1,
+        explanation: "Batch processing hướng tới việc xử lý các công việc liên tiếp và giảm thời gian máy phải chờ hoặc chuẩn bị giữa các job."
+    },
+    {
+        q: "Desktop OS kế thừa từ mainframe các kỹ thuật:",
+        options: [
+            "Chỉ batch",
+            "Bảo vệ bộ nhớ, file system, lập lịch",
+            "Không kế thừa gì",
+            "Chỉ AMP"
+        ],
+        answer: 1,
+        explanation: "Nhiều kỹ thuật nền tảng phát triển từ hệ thống lớn như bảo vệ bộ nhớ, hệ thống tệp và lập lịch đã trở thành thành phần quan trọng của desktop OS."
+    },
+    {
+        q: "Trong hệ đa xử lý, một lỗi ở một bộ xử lý:",
+        options: [
+            "Luôn làm sụp đổ toàn hệ thống",
+            "Không nhất thiết làm toàn hệ thống dừng nếu thiết kế đúng",
+            "Không ảnh hưởng gì",
+            "Chỉ ảnh hưởng GUI"
+        ],
+        answer: 1,
+        explanation: "Một số hệ đa xử lý có thể tiếp tục hoạt động khi một bộ xử lý gặp lỗi, tùy thiết kế và cơ chế chịu lỗi của hệ thống."
+    },
+    {
+        q: "HĐH/middleware trong hệ phân tán phải xử lý:",
+        options: [
+            "Chỉ GUI",
+            "Truyền thông, đặt tên, đồng bộ, lỗi mạng và bảo mật",
+            "Chỉ batch",
+            "Không xử lý gì"
+        ],
+        answer: 1,
+        explanation: "Hệ phân tán cần các cơ chế truyền thông, đặt tên, đồng bộ, phát hiện/xử lý lỗi và bảo mật giữa các máy."
+    },
+    {
+        q: "Cân bằng tải trong cluster nhằm:",
+        options: [
+            "Chỉ dự phòng",
+            "Phân phối yêu cầu đến nhiều nút để tăng thông lượng và giảm thời gian đáp ứng",
+            "Tắt một số nút",
+            "Chỉ chịu lỗi"
+        ],
+        answer: 1,
+        explanation: "Load balancing phân phối công việc giữa nhiều nút để tránh một nút quá tải, từ đó cải thiện thông lượng và thời gian đáp ứng."
+    },
+    {
+        q: "Chịu lỗi trong cluster nghĩa là:",
+        options: [
+            "Khi một nút hỏng, hệ thống chuyển dịch vụ sang nút còn hoạt động",
+            "Dừng toàn bộ khi lỗi",
+            "Không cần dự phòng",
+            "Chỉ cân bằng tải"
+        ],
+        answer: 0,
+        explanation: "Fault tolerance cho phép hệ thống duy trì dịch vụ khi một thành phần hỏng, thường bằng cách chuyển dịch vụ sang nút dự phòng hoặc còn hoạt động."
+    },
+    {
+        q: "Theo góc nhìn kỹ thuật, hệ điều hành tạo ra:",
+        options: [
+            "Máy tính vật lý mới",
+            "Một “máy tính logic” mới với tài nguyên và khả năng mới",
+            "Chỉ phần cứng",
+            "Không tạo gì"
+        ],
+        answer: 1,
+        explanation: "Hệ điều hành trừu tượng hóa phần cứng để cung cấp cho chương trình một môi trường logic với các tài nguyên và dịch vụ dễ sử dụng hơn."
+    },
+    {
+        q: "Chương trình ứng dụng không trực tiếp điều khiển phần cứng mà:",
+        options: [
+            "Đi qua kernel",
+            "Bỏ qua HĐH",
+            "Chỉ dùng RAM",
+            "Chỉ dùng CPU"
+        ],
+        answer: 0,
+        explanation: "Chương trình ứng dụng thường yêu cầu các dịch vụ hệ thống thông qua system call và kernel, thay vì trực tiếp quản lý phần cứng."
+    },
+    {
+        q: "Tóm tắt Chương 1: Hệ điều hành là lớp trung gian cung cấp máy ảo và quản lý tài nguyên; các hệ thống mainframe, desktop, multiprocessor, distributed, cluster, real-time tạo ra các yêu cầu thiết kế khác nhau. Câu nào sau đây đúng nhất?",
+        options: [
+            "HĐH chỉ quản lý file",
+            "Các kỹ thuật từ mainframe là nền tảng cho đa nhiệm, quản lý bộ nhớ, lập lịch và bảo vệ trong HĐH ngày nay",
+            "Real-time không cần deadline",
+            "Cluster giống hệt distributed"
+        ],
+        answer: 1,
+        explanation: "Các kỹ thuật phát triển từ hệ thống máy tính lớn đã trở thành nền tảng cho nhiều cơ chế hiện đại như đa nhiệm, quản lý bộ nhớ, lập lịch và bảo vệ."
+    }
+];
+
+const state = {
+    current: 0,
+    answers: Array(questions.length).fill(null),
+    flagged: Array(questions.length).fill(false),
+    submitted: false,
+    remainingSeconds: 75 * 60 + 5,
+    timerId: null
+};
+
+const letters = ["A", "B", "C", "D"];
+
+const questionContainer = document.getElementById("questionContainer");
+const questionNumber = document.getElementById("questionNumber");
+const questionNumbers = document.getElementById("questionNumbers");
+const answeredCount = document.getElementById("answeredCount");
+const progressPercent = document.getElementById("progressPercent");
+const progressFill = document.getElementById("progressFill");
+const timerElement = document.getElementById("timer");
+const flagBtn = document.getElementById("flagBtn");
+
+function renderQuestion() {
+    const item = questions[state.current];
+    const selected = state.answers[state.current];
+
+    questionNumber.textContent = `${state.current + 1} / ${questions.length}`;
+
+    questionContainer.innerHTML = `
+        <article class="question-card">
+            <div class="question-title">
+                <span class="q-number">${state.current + 1}</span>
+                <h2>${escapeHtml(item.q)}</h2>
+            </div>
+
+            <div class="options">
+                ${item.options.map((option, index) => `
+                    <label class="option ${selected === index ? "selected" : ""}">
+                        <input
+                            type="radio"
+                            name="question-${state.current}"
+                            value="${index}"
+                            ${selected === index ? "checked" : ""}
+                        >
+                        <span class="option-letter">${letters[index]}</span>
+                        <span class="option-text">${escapeHtml(option)}</span>
+                    </label>
+                `).join("")}
+            </div>
+        </article>
+    `;
+
+    questionContainer.querySelectorAll('input[type="radio"]').forEach(input => {
+        input.addEventListener("change", () => {
+            state.answers[state.current] = Number(input.value);
+            renderQuestion();
+            updateProgress();
+            renderQuestionNumbers();
+        });
+    });
+
+    updateFlagButton();
+}
+
+function renderQuestionNumbers() {
+    questionNumbers.innerHTML = questions.map((_, index) => {
+        const answered = state.answers[index] !== null;
+        const flagged = state.flagged[index];
+
+        return `
+            <button
+                class="question-number ${index === state.current ? "active" : ""} ${answered ? "answered" : ""} ${flagged ? "flagged" : ""}"
+                data-index="${index}"
+                title="Câu ${index + 1}"
+            >
+                ${index + 1}
+                ${flagged ? '<span class="flag-mini">⚑</span>' : ""}
+            </button>
+        `;
+    }).join("");
+
+    questionNumbers.querySelectorAll(".question-number").forEach(button => {
+        button.addEventListener("click", () => {
+            state.current = Number(button.dataset.index);
+            renderQuestion();
+            renderQuestionNumbers();
+        });
+    });
+}
+
+function updateProgress() {
+    const count = state.answers.filter(answer => answer !== null).length;
+    const percent = Math.round((count / questions.length) * 100);
+
+    answeredCount.textContent = count;
+    progressPercent.textContent = `${percent}%`;
+    progressFill.style.width = `${percent}%`;
+}
+
+function updateFlagButton() {
+    if (state.flagged[state.current]) {
+        flagBtn.classList.add("active");
+        flagBtn.innerHTML = "⚑ Đã đánh dấu";
+    } else {
+        flagBtn.classList.remove("active");
+        flagBtn.innerHTML = "⚑ Đánh dấu";
+    }
+}
+
+function goNext() {
+    if (state.current < questions.length - 1) {
+        state.current++;
+        renderQuestion();
+        renderQuestionNumbers();
+    }
+}
+
+function goPrevious() {
+    if (state.current > 0) {
+        state.current--;
+        renderQuestion();
+        renderQuestionNumbers();
+    }
+}
+
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+
+    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function startTimer() {
+    state.timerId = setInterval(() => {
+        if (state.submitted) {
+            clearInterval(state.timerId);
+            return;
+        }
+
+        state.remainingSeconds--;
+
+        if (state.remainingSeconds <= 0) {
+            state.remainingSeconds = 0;
+            timerElement.textContent = "00:00";
+            clearInterval(state.timerId);
+            submitExam(true);
+            return;
+        }
+
+        timerElement.textContent = formatTime(state.remainingSeconds);
+
+        if (state.remainingSeconds <= 300) {
+            timerElement.classList.add("danger");
+        } else if (state.remainingSeconds <= 900) {
+            timerElement.classList.add("warning");
+        }
+    }, 1000);
+}
+
+function submitExam(autoSubmit = false) {
+    if (state.submitted) return;
+
+    const unanswered = state.answers.filter(answer => answer === null).length;
+
+    if (!autoSubmit && unanswered > 0) {
+        const confirmed = confirm(
+            `Bạn còn ${unanswered} câu chưa trả lời.\n\nBạn có chắc muốn nộp bài không?`
+        );
+
+        if (!confirmed) return;
+    } else if (!autoSubmit) {
+        const confirmed = confirm("Bạn có chắc muốn nộp bài và xem kết quả không?");
+        if (!confirmed) return;
+    }
+
+    state.submitted = true;
+
+    if (state.timerId) {
+        clearInterval(state.timerId);
+    }
+
+    calculateAndShowResult();
+
+    document.querySelector(".exam-content").classList.add("submitted-view");
+    document.querySelector(".question-nav").classList.add("hidden");
+    document.querySelector(".submit-area").classList.add("hidden");
+    document.querySelector(".toolbar").classList.add("hidden");
+
+    document.getElementById("submitTop").disabled = true;
+    document.getElementById("submitTop").textContent = "ĐÃ NỘP";
+    document.querySelector(".connection-text").textContent = "Đã nộp bài";
+    document.getElementById("connectionDot").classList.add("offline");
+}
+
+function calculateAndShowResult() {
+    let correct = 0;
+
+    state.answers.forEach((answer, index) => {
+        if (answer === questions[index].answer) {
+            correct++;
+        }
+    });
+
+    const unanswered = state.answers.filter(answer => answer === null).length;
+    const wrong = questions.length - correct - unanswered;
+    const score = (correct / questions.length) * 10;
+    const percent = Math.round((correct / questions.length) * 100);
+
+    document.getElementById("correctCount").textContent = correct;
+    document.getElementById("wrongCount").textContent = wrong;
+    document.getElementById("unansweredCount").textContent = unanswered;
+    document.getElementById("resultPercent").textContent = `${percent}%`;
+    document.getElementById("score10").textContent = score.toFixed(1);
+
+    let message = "";
+
+    if (score >= 9) {
+        message = "🔥 Xuất sắc! Kiến thức Chương 1 của bạn đang rất chắc.";
+    } else if (score >= 8) {
+        message = "👏 Rất tốt! Chỉ cần rà lại một vài phần là gần như full điểm.";
+    } else if (score >= 6.5) {
+        message = "💪 Khá ổn! Hãy xem kỹ phần giải thích các câu sai để củng cố kiến thức.";
+    } else if (score >= 5) {
+        message = "📚 Đã có nền tảng. Nên ôn lại các phần Multiprogramming, Distributed, Cluster và Real-Time.";
+    } else {
+        message = "🧠 Không sao! Xem phần giải thích bên dưới rồi làm lại, lần sau chiến đẹp hơn.";
+    }
+
+    if (unanswered > 0) {
+        message += ` Bạn còn bỏ trống ${unanswered} câu.`;
+    }
+
+    document.getElementById("resultMessage").textContent = message;
+
+    renderReview();
+
+    const resultSection = document.getElementById("resultSection");
+    resultSection.classList.remove("hidden");
+
+    setTimeout(() => {
+        resultSection.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }, 100);
+}
+
+function renderReview() {
+    const reviewList = document.getElementById("reviewList");
+
+    reviewList.innerHTML = questions.map((item, index) => {
+        const selected = state.answers[index];
+        const isCorrect = selected === item.answer;
+        const isUnanswered = selected === null;
+
+        return `
+            <article class="review-card ${isCorrect ? "review-correct" : "review-wrong"}">
+                <div class="review-question-head">
+                    <div>
+                        <span class="review-number">Câu ${index + 1}</span>
+                        <h4>${escapeHtml(item.q)}</h4>
+                    </div>
+
+                    <span class="review-status">
+                        ${isCorrect ? "✓ ĐÚNG" : isUnanswered ? "— BỎ TRỐNG" : "✕ SAI"}
+                    </span>
+                </div>
+
+                <div class="review-options">
+                    ${item.options.map((option, optionIndex) => {
+                        const classes = [];
+
+                        if (optionIndex === item.answer) {
+                            classes.push("correct-option");
+                        }
+
+                        if (selected === optionIndex && selected !== item.answer) {
+                            classes.push("wrong-option");
+                        }
+
+                        return `
+                            <div class="review-option ${classes.join(" ")}">
+                                <span class="option-letter">${letters[optionIndex]}</span>
+                                <span>${escapeHtml(option)}</span>
+
+                                ${optionIndex === item.answer
+                                    ? '<strong class="answer-tag">ĐÁP ÁN ĐÚNG</strong>'
+                                    : selected === optionIndex
+                                        ? '<strong class="your-answer-tag">BẠN CHỌN</strong>'
+                                        : ""
+                                }
+                            </div>
+                        `;
+                    }).join("")}
+                </div>
+
+                <div class="explanation">
+                    <strong>💡 Giải thích:</strong>
+                    <span>${escapeHtml(item.explanation)}</span>
+                </div>
+            </article>
+        `;
+    }).join("");
+}
+
+function resetExam() {
+    state.current = 0;
+    state.answers = Array(questions.length).fill(null);
+    state.flagged = Array(questions.length).fill(false);
+    state.submitted = false;
+    state.remainingSeconds = 75 * 60 + 5;
+
+    timerElement.textContent = "75:05";
+    timerElement.classList.remove("warning", "danger");
+
+    document.querySelector(".exam-content").classList.remove("submitted-view");
+    document.querySelector(".question-nav").classList.remove("hidden");
+    document.querySelector(".submit-area").classList.remove("hidden");
+    document.querySelector(".toolbar").classList.remove("hidden");
+    document.getElementById("resultSection").classList.add("hidden");
+
+    document.getElementById("submitTop").disabled = false;
+    document.getElementById("submitTop").textContent = "NỘP BÀI";
+    document.querySelector(".connection-text").textContent = "Đang làm bài";
+    document.getElementById("connectionDot").classList.remove("offline");
+
+    renderQuestion();
+    renderQuestionNumbers();
+    updateProgress();
+    startTimer();
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+function escapeHtml(text) {
+    return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+document.getElementById("prevBtn").addEventListener("click", goPrevious);
+document.getElementById("nextBtn").addEventListener("click", goNext);
+
+flagBtn.addEventListener("click", () => {
+    state.flagged[state.current] = !state.flagged[state.current];
+    updateFlagButton();
+    renderQuestionNumbers();
+});
+
+document.getElementById("submitTop").addEventListener("click", () => submitExam(false));
+document.getElementById("submitMain").addEventListener("click", () => submitExam(false));
+document.getElementById("retryBtn").addEventListener("click", resetExam);
+
+document.getElementById("saveBtn").addEventListener("click", () => {
+    const answered = state.answers.filter(answer => answer !== null).length;
+    alert(`Đã lưu trạng thái bài làm tạm thời.\n\nBạn đã chọn ${answered}/50 câu.`);
+});
+
+document.getElementById("fullscreenBtn").addEventListener("click", async () => {
+    try {
+        if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+        } else {
+            await document.exitFullscreen();
+        }
+    } catch (error) {
+        alert("Trình duyệt không cho phép bật toàn màn hình.");
+    }
+});
+
+document.addEventListener("keydown", event => {
+    if (state.submitted) return;
+
+    if (event.key === "ArrowRight") goNext();
+    if (event.key === "ArrowLeft") goPrevious();
+});
+
+renderQuestion();
+renderQuestionNumbers();
+updateProgress();
+startTimer();
+</script>
+
+</body>
+</html>
