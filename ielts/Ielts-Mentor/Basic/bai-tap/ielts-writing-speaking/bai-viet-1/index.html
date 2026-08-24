@@ -1,0 +1,4964 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>IELTS Writing Practice</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+
+            --ielts-red: #a61c2f;
+            --ielts-dark-red: #861426;
+
+            --text: #252525;
+            --muted: #6f6f6f;
+
+            --border: #e3e3e3;
+
+            --background: #f5f6f8;
+            --white: #ffffff;
+
+            --green: #16834b;
+            --orange: #d97706;
+            --blue: #2563eb;
+            --danger: #dc2626;
+
+            --shadow:
+                0 10px 30px rgba(0, 0, 0, 0.08);
+
+        }
+
+        body {
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: var(--background);
+
+            color: var(--text);
+
+            line-height: 1.65;
+
+            min-height: 100vh;
+
+        }
+
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
+
+        header {
+
+            background: var(--white);
+
+            border-bottom: 1px solid var(--border);
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 1000;
+
+            box-shadow:
+                0 3px 15px rgba(0, 0, 0, 0.05);
+
+        }
+
+        .header-inner {
+
+            width: min(1400px, 94%);
+
+            margin: auto;
+
+            min-height: 88px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 30px;
+
+        }
+
+        .brand {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 16px;
+
+            min-width: 0;
+
+        }
+
+        .brand img {
+
+            width: 68px;
+
+            height: auto;
+
+            display: block;
+
+        }
+
+        .brand-text h1 {
+
+            color: var(--ielts-red);
+
+            font-size: 24px;
+
+            line-height: 1.2;
+
+            font-weight: 800;
+
+        }
+
+        .brand-text p {
+
+            margin-top: 4px;
+
+            color: var(--muted);
+
+            font-size: 14px;
+
+        }
+
+
+        /* =====================================================
+           AI STATUS
+        ===================================================== */
+
+        .ai-status-wrap {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            margin-left: auto;
+
+        }
+
+        .ai-status {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            padding: 8px 12px;
+
+            border-radius: 20px;
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+            border: 1px solid var(--border);
+
+            background: #f8fafc;
+
+            color: #64748b;
+
+            white-space: nowrap;
+
+        }
+
+        .ai-status-dot {
+
+            width: 9px;
+
+            height: 9px;
+
+            border-radius: 50%;
+
+            background: #94a3b8;
+
+        }
+
+        .ai-status.checking {
+
+            background: #eff6ff;
+
+            color: var(--blue);
+
+            border-color: #bfdbfe;
+
+        }
+
+        .ai-status.checking .ai-status-dot {
+
+            background: var(--blue);
+
+            animation: pulse 1s infinite;
+
+        }
+
+        .ai-status.connected {
+
+            background: #f0fdf4;
+
+            color: var(--green);
+
+            border-color: #bbf7d0;
+
+        }
+
+        .ai-status.connected .ai-status-dot {
+
+            background: var(--green);
+
+        }
+
+        .ai-status.error {
+
+            background: #fef2f2;
+
+            color: var(--danger);
+
+            border-color: #fecaca;
+
+        }
+
+        .ai-status.error .ai-status-dot {
+
+            background: var(--danger);
+
+        }
+
+        @keyframes pulse {
+
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .35;
+            }
+
+            100% {
+                opacity: 1;
+            }
+
+        }
+
+        .ai-check-btn {
+
+            border: 1px solid #dbeafe;
+
+            background: #eff6ff;
+
+            color: var(--blue);
+
+            padding: 8px 12px;
+
+            border-radius: 7px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+            font-size: 13px;
+
+        }
+
+        .ai-check-btn:hover {
+
+            background: #dbeafe;
+
+        }
+
+        .ai-check-btn:disabled {
+
+            opacity: .65;
+
+            cursor: not-allowed;
+
+        }
+
+
+        /* =====================================================
+           PROGRESS
+        ===================================================== */
+
+        .progress-wrap {
+
+            width: 280px;
+
+            flex-shrink: 0;
+
+        }
+
+        .progress-text {
+
+            font-size: 14px;
+
+            color: var(--muted);
+
+            margin-bottom: 7px;
+
+            text-align: right;
+
+        }
+
+        .progress-text b {
+
+            color: var(--ielts-red);
+
+            font-size: 15px;
+
+        }
+
+        .progress {
+
+            width: 100%;
+
+            height: 8px;
+
+            background: #ececec;
+
+            border-radius: 20px;
+
+            overflow: hidden;
+
+        }
+
+        .progress-bar {
+
+            height: 100%;
+
+            width: 25%;
+
+            background: var(--ielts-red);
+
+            border-radius: inherit;
+
+            transition: width .3s ease;
+
+        }
+
+
+        /* =====================================================
+           MAIN
+        ===================================================== */
+
+        main {
+
+            width: min(1400px, 94%);
+
+            margin: 28px auto 60px;
+
+        }
+
+
+        /* =====================================================
+           NAV DOTS
+        ===================================================== */
+
+        .nav-dots {
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            gap: 10px;
+
+            margin-bottom: 25px;
+
+        }
+
+        .dot {
+
+            width: 12px;
+
+            height: 12px;
+
+            border-radius: 50%;
+
+            background: #d0d0d0;
+
+            cursor: pointer;
+
+            transition: .25s;
+
+        }
+
+        .dot:hover {
+
+            transform: scale(1.15);
+
+        }
+
+        .dot.active {
+
+            background: var(--ielts-red);
+
+            box-shadow:
+                0 0 0 4px rgba(166, 28, 47, .12);
+
+        }
+
+        .dot.completed {
+
+            background: var(--green);
+
+        }
+
+
+        /* =====================================================
+           SLIDE
+        ===================================================== */
+
+        .slide {
+
+            display: none;
+
+        }
+
+        .slide.active {
+
+            display: block;
+
+            animation: slideIn .3s ease;
+
+        }
+
+        @keyframes slideIn {
+
+            from {
+
+                opacity: 0;
+
+                transform: translateY(8px);
+
+            }
+
+            to {
+
+                opacity: 1;
+
+                transform: translateY(0);
+
+            }
+
+        }
+
+
+        /* =====================================================
+           TEST TITLE
+        ===================================================== */
+
+        .test-title {
+
+            background: var(--white);
+
+            border: 1px solid var(--border);
+
+            border-left: 5px solid var(--ielts-red);
+
+            border-radius: 10px;
+
+            padding: 20px 24px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 20px;
+
+            margin-bottom: 20px;
+
+            box-shadow: var(--shadow);
+
+        }
+
+        .test-title h2 {
+
+            color: var(--ielts-red);
+
+            font-size: 23px;
+
+            font-weight: 800;
+
+            margin-bottom: 4px;
+
+        }
+
+        .test-title p {
+
+            color: var(--muted);
+
+            font-size: 14px;
+
+        }
+
+        .test-badge {
+
+            background: #f8e9ec;
+
+            color: var(--ielts-red);
+
+            padding: 8px 14px;
+
+            border-radius: 20px;
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+            white-space: nowrap;
+
+        }
+
+
+        /* =====================================================
+           WRITING LAYOUT
+        ===================================================== */
+
+        .writing-layout {
+
+            display: grid;
+
+            grid-template-columns:
+                minmax(0, .95fr)
+                minmax(0, 1.25fr);
+
+            gap: 20px;
+
+            align-items: start;
+
+        }
+
+
+        /* =====================================================
+           PANELS
+        ===================================================== */
+
+        .question-panel,
+        .writing-panel {
+
+            background: var(--white);
+
+            border: 1px solid var(--border);
+
+            border-radius: 10px;
+
+            box-shadow: var(--shadow);
+
+            overflow: hidden;
+
+        }
+
+        .panel-header {
+
+            padding: 18px 22px;
+
+            border-bottom: 1px solid var(--border);
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #fff,
+                    #fafafa
+                );
+
+        }
+
+        .panel-header h3 {
+
+            color: var(--ielts-red);
+
+            font-size: 18px;
+
+            margin-bottom: 3px;
+
+        }
+
+        .panel-header span {
+
+            color: var(--muted);
+
+            font-size: 13px;
+
+        }
+
+        .question-content {
+
+            padding: 25px;
+
+        }
+
+        .writing-test-title {
+
+            text-align: center;
+
+            margin-bottom: 18px;
+
+        }
+
+        .writing-test-title strong {
+
+            display: block;
+
+            font-size: 20px;
+
+            color: #222;
+
+        }
+
+        .writing-test-title span {
+
+            font-size: 13px;
+
+            color: var(--muted);
+
+            font-weight: 700;
+
+        }
+
+        .task {
+
+            font-size: 16px;
+
+            line-height: 1.75;
+
+            margin-bottom: 20px;
+
+        }
+
+        .task strong {
+
+            color: var(--ielts-red);
+
+        }
+
+        .suggestions {
+
+            margin-top: 14px;
+
+            padding: 17px 18px;
+
+            background: #fafafa;
+
+            border: 1px solid var(--border);
+
+            border-radius: 8px;
+
+        }
+
+        .suggestions-title {
+
+            color: var(--ielts-red);
+
+            font-weight: 800;
+
+            margin-bottom: 10px;
+
+        }
+
+        .suggestions ul {
+
+            padding-left: 22px;
+
+        }
+
+        .suggestions li {
+
+            margin-bottom: 8px;
+
+            color: #444;
+
+        }
+
+        .requirement {
+
+            margin-top: 18px;
+
+            padding: 13px 15px;
+
+            background: #fff7ed;
+
+            border: 1px solid #fed7aa;
+
+            border-radius: 8px;
+
+            color: #9a3412;
+
+            font-size: 14px;
+
+        }
+
+
+        /* =====================================================
+           OUTLINE
+        ===================================================== */
+
+        .outline {
+
+            margin-top: 20px;
+
+            padding: 18px;
+
+            background: #f8fafc;
+
+            border: 1px solid #e2e8f0;
+
+            border-radius: 8px;
+
+        }
+
+        .outline h4 {
+
+            color: #334155;
+
+            margin-bottom: 10px;
+
+            font-size: 15px;
+
+        }
+
+        .outline-item {
+
+            display: flex;
+
+            gap: 10px;
+
+            margin-bottom: 8px;
+
+            font-size: 14px;
+
+        }
+
+        .outline-item:last-child {
+
+            margin-bottom: 0;
+
+        }
+
+        .outline-number {
+
+            width: 23px;
+
+            height: 23px;
+
+            border-radius: 50%;
+
+            background: var(--ielts-red);
+
+            color: white;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            flex-shrink: 0;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+        }
+
+
+        /* =====================================================
+           WRITING PANEL
+        ===================================================== */
+
+        .writing-panel-header {
+
+            padding: 18px 22px;
+
+            border-bottom: 1px solid var(--border);
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 15px;
+
+        }
+
+        .writing-panel-header h3 {
+
+            font-size: 18px;
+
+            color: var(--ielts-red);
+
+        }
+
+        .timer {
+
+            background: #fff1f2;
+
+            color: var(--ielts-red);
+
+            border: 1px solid #fecdd3;
+
+            padding: 7px 12px;
+
+            border-radius: 7px;
+
+            font-weight: 800;
+
+            font-size: 14px;
+
+            font-variant-numeric: tabular-nums;
+
+            min-width: 67px;
+
+            text-align: center;
+
+        }
+
+        .timer.waiting {
+
+            background: #f8fafc;
+
+            color: #64748b;
+
+            border-color: #cbd5e1;
+
+        }
+
+        .timer.warning {
+
+            background: #fff7ed;
+
+            color: var(--orange);
+
+            border-color: #fed7aa;
+
+        }
+
+        .timer.danger {
+
+            background: #fef2f2;
+
+            color: var(--danger);
+
+            border-color: #fecaca;
+
+        }
+
+        .timer.finished {
+
+            background: #fef2f2;
+
+            color: var(--danger);
+
+            border-color: #fecaca;
+
+        }
+
+        .writing-content {
+
+            padding: 22px;
+
+        }
+
+
+        /* =====================================================
+           TEXTAREA
+        ===================================================== */
+
+        .writing-input {
+
+            width: 100%;
+
+            min-height: 500px;
+
+            resize: vertical;
+
+            border: 1px solid #d7d7d7;
+
+            border-radius: 8px;
+
+            padding: 20px;
+
+            outline: none;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            font-size: 16px;
+
+            line-height: 1.8;
+
+            color: #222;
+
+            background:
+                repeating-linear-gradient(
+                    to bottom,
+                    #fff 0,
+                    #fff 31px,
+                    #eeeeee 32px
+                );
+
+        }
+
+        .writing-input:focus {
+
+            border-color: var(--ielts-red);
+
+            box-shadow:
+                0 0 0 3px
+                rgba(166, 28, 47, .08);
+
+        }
+
+        .writing-input:disabled {
+
+            background-color: #f8fafc;
+
+            cursor: not-allowed;
+
+        }
+
+
+        /* =====================================================
+           INFO
+        ===================================================== */
+
+        .writing-info {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 15px;
+
+            margin-top: 12px;
+
+            color: var(--muted);
+
+            font-size: 13px;
+
+        }
+
+        .word-count {
+
+            font-weight: 700;
+
+        }
+
+        .word-count.good {
+
+            color: var(--green);
+
+        }
+
+        .word-count.low {
+
+            color: var(--orange);
+
+        }
+
+
+        /* =====================================================
+           BUTTONS
+        ===================================================== */
+
+        .actions {
+
+            display: flex;
+
+            gap: 10px;
+
+            margin-top: 18px;
+
+        }
+
+        button {
+
+            border: none;
+
+            cursor: pointer;
+
+            font-family: inherit;
+
+        }
+
+        .submit-btn {
+
+            flex: 1;
+
+            min-height: 48px;
+
+            padding: 12px 20px;
+
+            border-radius: 7px;
+
+            background: var(--ielts-red);
+
+            color: white;
+
+            font-size: 15px;
+
+            font-weight: 800;
+
+        }
+
+        .submit-btn:hover {
+
+            background: var(--ielts-dark-red);
+
+        }
+
+        .submit-btn:disabled {
+
+            background: #999;
+
+            cursor: not-allowed;
+
+        }
+
+        .clear-btn {
+
+            min-height: 48px;
+
+            padding: 12px 18px;
+
+            border-radius: 7px;
+
+            background: #f3f4f6;
+
+            color: #444;
+
+            font-weight: 700;
+
+        }
+
+        .clear-btn:hover {
+
+            background: #e5e7eb;
+
+        }
+
+        .next-btn {
+
+            width: 100%;
+
+            min-height: 46px;
+
+            margin-top: 10px;
+
+            border-radius: 7px;
+
+            background: #1f2937;
+
+            color: white;
+
+            font-weight: 800;
+
+        }
+
+        .next-btn:hover {
+
+            background: #111827;
+
+        }
+
+
+        /* =====================================================
+           RESULT
+        ===================================================== */
+
+        .result {
+
+            display: none;
+
+            margin-top: 20px;
+
+            border: 1px solid var(--border);
+
+            border-radius: 9px;
+
+            overflow: hidden;
+
+            background: white;
+
+        }
+
+        .result.show {
+
+            display: block;
+
+            animation: resultIn .3s ease;
+
+        }
+
+        @keyframes resultIn {
+
+            from {
+
+                opacity: 0;
+
+                transform: translateY(8px);
+
+            }
+
+            to {
+
+                opacity: 1;
+
+                transform: translateY(0);
+
+            }
+
+        }
+
+        .result-header {
+
+            padding: 17px 20px;
+
+            background: #fafafa;
+
+            border-bottom: 1px solid var(--border);
+
+        }
+
+        .result-header h3 {
+
+            color: var(--ielts-red);
+
+            font-size: 17px;
+
+        }
+
+        .result-body {
+
+            padding: 20px;
+
+        }
+
+        .overall-score {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 15px;
+
+            margin-bottom: 20px;
+
+        }
+
+        .score-number {
+
+            width: 70px;
+
+            height: 70px;
+
+            border-radius: 50%;
+
+            background: #f8e9ec;
+
+            color: var(--ielts-red);
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            font-size: 22px;
+
+            font-weight: 900;
+
+        }
+
+        .score-label {
+
+            color: var(--muted);
+
+            font-size: 13px;
+
+        }
+
+        .score-label strong {
+
+            display: block;
+
+            color: #222;
+
+            font-size: 17px;
+
+        }
+
+        .criteria {
+
+            display: grid;
+
+            grid-template-columns: repeat(2, 1fr);
+
+            gap: 10px;
+
+        }
+
+        .criterion {
+
+            padding: 13px;
+
+            background: #fafafa;
+
+            border: 1px solid var(--border);
+
+            border-radius: 7px;
+
+        }
+
+        .criterion-title {
+
+            font-weight: 800;
+
+            font-size: 13px;
+
+            margin-bottom: 4px;
+
+        }
+
+        .criterion-score {
+
+            color: var(--ielts-red);
+
+            font-weight: 900;
+
+            font-size: 18px;
+
+        }
+
+        .criterion-comment {
+
+            color: var(--muted);
+
+            font-size: 12px;
+
+            margin-top: 5px;
+
+        }
+
+        .feedback {
+
+            margin-top: 15px;
+
+            padding: 15px;
+
+            background: #f8fafc;
+
+            border: 1px solid #e2e8f0;
+
+            border-radius: 7px;
+
+            font-size: 14px;
+
+        }
+
+        .feedback h4 {
+
+            margin-bottom: 7px;
+
+            color: #334155;
+
+        }
+
+        .feedback ul {
+
+            padding-left: 20px;
+
+            margin-top: 8px;
+
+        }
+
+        .feedback li {
+
+            margin-bottom: 5px;
+
+        }
+
+        .errors-box {
+
+            margin-top: 15px;
+
+            padding: 15px;
+
+            background: #fff7ed;
+
+            border: 1px solid #fed7aa;
+
+            border-radius: 8px;
+
+        }
+
+        .errors-box h4 {
+
+            color: #9a3412;
+
+            margin-bottom: 10px;
+
+        }
+
+        .error-item {
+
+            padding: 10px;
+
+            margin-bottom: 8px;
+
+            background: white;
+
+            border-radius: 6px;
+
+            border: 1px solid #fed7aa;
+
+            font-size: 13px;
+
+        }
+
+        .error-item:last-child {
+
+            margin-bottom: 0;
+
+        }
+
+        .error-original {
+
+            color: #dc2626;
+
+            text-decoration: line-through;
+
+        }
+
+        .error-corrected {
+
+            color: var(--green);
+
+            font-weight: 700;
+
+        }
+
+        .checklist {
+
+            margin-top: 18px;
+
+            padding: 17px;
+
+            background: #f0fdf4;
+
+            border: 1px solid #bbf7d0;
+
+            border-radius: 8px;
+
+        }
+
+        .checklist h4 {
+
+            color: #166534;
+
+            margin-bottom: 10px;
+
+        }
+
+        .check-item {
+
+            font-size: 14px;
+
+            margin-bottom: 6px;
+
+        }
+
+        .check-item:last-child {
+
+            margin-bottom: 0;
+
+        }
+
+
+        /* =====================================================
+           AI CONNECTION BOX
+        ===================================================== */
+
+        .connection-box {
+
+            margin-bottom: 20px;
+
+            padding: 14px 16px;
+
+            background: white;
+
+            border: 1px solid var(--border);
+
+            border-radius: 9px;
+
+            box-shadow: var(--shadow);
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 15px;
+
+        }
+
+        .connection-info {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            min-width: 0;
+
+        }
+
+        .connection-icon {
+
+            width: 36px;
+
+            height: 36px;
+
+            border-radius: 50%;
+
+            background: #f8e9ec;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            flex-shrink: 0;
+
+        }
+
+        .connection-title {
+
+            font-weight: 800;
+
+            font-size: 14px;
+
+        }
+
+        .connection-description {
+
+            color: var(--muted);
+
+            font-size: 12px;
+
+        }
+
+
+        /* =====================================================
+           LOCK OVERLAY
+        ===================================================== */
+
+        .writing-lock-message {
+
+            display: none;
+
+            margin-bottom: 12px;
+
+            padding: 10px 13px;
+
+            border-radius: 7px;
+
+            background: #eff6ff;
+
+            border: 1px solid #bfdbfe;
+
+            color: #1d4ed8;
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+        }
+
+        .writing-lock-message.show {
+
+            display: block;
+
+        }
+
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+
+        footer {
+
+            text-align: center;
+
+            color: #888;
+
+            font-size: 12px;
+
+            padding: 10px 20px 30px;
+
+        }
+
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 1100px) {
+
+            .ai-status-wrap {
+
+                display: none;
+
+            }
+
+        }
+
+        @media (max-width: 1000px) {
+
+            .writing-layout {
+
+                grid-template-columns: 1fr;
+
+            }
+
+            .writing-panel {
+
+                order: -1;
+
+            }
+
+        }
+
+        @media (max-width: 700px) {
+
+            .header-inner {
+
+                min-height: auto;
+
+                padding: 15px 0;
+
+                flex-direction: column;
+
+                align-items: stretch;
+
+                gap: 15px;
+
+            }
+
+            .progress-wrap {
+
+                width: 100%;
+
+            }
+
+            .progress-text {
+
+                text-align: left;
+
+            }
+
+            .brand-text h1 {
+
+                font-size: 20px;
+
+            }
+
+            .brand img {
+
+                width: 58px;
+
+            }
+
+            .test-title {
+
+                align-items: flex-start;
+
+                flex-direction: column;
+
+            }
+
+            .writing-content,
+            .question-content {
+
+                padding: 17px;
+
+            }
+
+            .writing-input {
+
+                min-height: 420px;
+
+                font-size: 15px;
+
+            }
+
+            .criteria {
+
+                grid-template-columns: 1fr;
+
+            }
+
+            .writing-panel-header {
+
+                align-items: flex-start;
+
+                flex-direction: column;
+
+            }
+
+            .connection-box {
+
+                align-items: flex-start;
+
+                flex-direction: column;
+
+            }
+
+            .connection-box .ai-check-btn {
+
+                width: 100%;
+
+            }
+
+            .actions {
+
+                flex-direction: column;
+
+            }
+
+            .clear-btn {
+
+                width: 100%;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =========================================================
+     HEADER
+========================================================= -->
+
+<header>
+
+    <div class="header-inner">
+
+        <div class="brand">
+
+            <img
+                src="../ielts-logo_brandlogos.net_ii6pz.png"
+                alt="IELTS logo"
+            >
+
+            <div class="brand-text">
+
+                <h1>Writing Practice</h1>
+
+                <p>
+                    4 Đề luyện viết • AI Writing Checker
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="ai-status-wrap">
+
+            <div
+                class="ai-status"
+                id="aiStatus"
+            >
+
+                <span class="ai-status-dot"></span>
+
+                <span id="aiStatusText">
+                    Gemini AI: Chưa kiểm tra
+                </span>
+
+            </div>
+
+
+            <button
+                class="ai-check-btn"
+                id="aiCheckBtn"
+                onclick="checkAIConnection()"
+            >
+                Kiểm tra AI
+            </button>
+
+        </div>
+
+
+        <div class="progress-wrap">
+
+            <div class="progress-text">
+
+                Đề
+
+                <b id="progressText">
+                    01 / 04
+                </b>
+
+            </div>
+
+            <div class="progress">
+
+                <div
+                    class="progress-bar"
+                    id="progressBar"
+                    style="width:25%"
+                ></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =========================================================
+     MAIN
+========================================================= -->
+
+<main>
+
+
+    <div class="connection-box">
+
+        <div class="connection-info">
+
+            <div class="connection-icon">
+                🤖
+            </div>
+
+            <div>
+
+                <div class="connection-title">
+                    Trạng thái hệ thống chấm AI
+                </div>
+
+                <div
+                    class="connection-description"
+                    id="connectionDescription"
+                >
+                    Chưa kiểm tra kết nối với máy chủ.
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <button
+            class="ai-check-btn"
+            id="aiCheckBtnMain"
+            onclick="checkAIConnection()"
+        >
+            🔄 Kiểm tra lại
+        </button>
+
+    </div>
+
+
+    <!-- =====================================================
+         NAVIGATION
+    ====================================================== -->
+
+    <div class="nav-dots">
+
+        <div
+            class="dot active"
+            onclick="goToTest(0)"
+            title="Đề 01"
+        ></div>
+
+        <div
+            class="dot"
+            onclick="goToTest(1)"
+            title="Đề 02"
+        ></div>
+
+        <div
+            class="dot"
+            onclick="goToTest(2)"
+            title="Đề 03"
+        ></div>
+
+        <div
+            class="dot"
+            onclick="goToTest(3)"
+            title="Đề 04"
+        ></div>
+
+    </div>
+
+
+    <!-- =====================================================
+         ĐỀ 01
+    ====================================================== -->
+
+    <section
+        class="slide active"
+        id="slide-0"
+    >
+
+        <div class="test-title">
+
+            <div>
+
+                <h2>ĐỀ 01</h2>
+
+                <p>
+                    Chủ đề: Typical Sunday
+                </p>
+
+            </div>
+
+            <div class="test-badge">
+                Writing Test 1
+            </div>
+
+        </div>
+
+
+        <div class="writing-layout">
+
+
+            <div class="question-panel">
+
+                <div class="panel-header">
+
+                    <h3>Đề bài</h3>
+
+                    <span>
+                        WRITING TEST • 20 minutes
+                    </span>
+
+                </div>
+
+
+                <div class="question-content">
+
+                    <div class="writing-test-title">
+
+                        <strong>
+                            WRITING TEST
+                        </strong>
+
+                        <span>
+                            20 MINUTES
+                        </span>
+
+                    </div>
+
+
+                    <div class="task">
+
+                        Write a short paragraph about
+                        <strong>your typical Sunday.</strong>
+
+                        (At least 80 words).
+
+                        Use the suggestions below to write
+                        your paragraph and extend your ideas
+                        with details.
+
+                    </div>
+
+
+                    <div class="suggestions">
+
+                        <div class="suggestions-title">
+                            Suggestions:
+                        </div>
+
+                        <ul>
+
+                            <li>
+                                What do you do in the morning?
+                            </li>
+
+                            <li>
+                                What do you do in the afternoon?
+                            </li>
+
+                            <li>
+                                What do you do in the evening?
+                            </li>
+
+                            <li>
+                                Do you like your Sunday?
+                                Why or why not?
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+
+                    <div class="requirement">
+
+                        <strong>Yêu cầu:</strong>
+
+                        Viết ít nhất 80 từ.
+                        Nên viết khoảng 80–100 từ,
+                        sử dụng thì hiện tại đơn và
+                        từ nối để đoạn văn mạch lạc.
+
+                    </div>
+
+
+                    <div class="outline">
+
+                        <h4>
+                            📚 Dàn ý GTBS
+                        </h4>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                1
+                            </span>
+
+                            <span>
+                                <strong>Introduction:</strong>
+                                Giới thiệu về ngày Chủ nhật
+                                của bạn.
+                            </span>
+
+                        </div>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                2
+                            </span>
+
+                            <span>
+                                <strong>Body:</strong>
+                                Kể các hoạt động buổi sáng,
+                                chiều và tối.
+                            </span>
+
+                        </div>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                3
+                            </span>
+
+                            <span>
+                                <strong>Conclusion:</strong>
+                                Nêu cảm xúc và lý do bạn
+                                thích hoặc không thích Chủ nhật.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="writing-panel">
+
+                <div class="writing-panel-header">
+
+                    <h3>
+                        ✍️ Bài viết của bạn
+                    </h3>
+
+                    <div
+                        class="timer waiting"
+                        id="timer-0"
+                    >
+                        20:00
+                    </div>
+
+                </div>
+
+
+                <div class="writing-content">
+
+                    <div
+                        class="writing-lock-message show"
+                        id="lockMessage-0"
+                    >
+                        🔒 Hãy kết nối Gemini AI thành công để bắt đầu tính giờ.
+                    </div>
+
+
+                    <textarea
+                        id="writingInput-0"
+                        class="writing-input"
+                        placeholder="Start writing your paragraph here..."
+                    ></textarea>
+
+
+                    <div class="writing-info">
+
+                        <span
+                            class="word-count"
+                            id="wordCount-0"
+                        >
+                            0 words
+                        </span>
+
+                        <span>
+                            Mục tiêu: 80–100 từ
+                        </span>
+
+                    </div>
+
+
+                    <div class="actions">
+
+                        <button
+                            class="clear-btn"
+                            onclick="clearWriting(0)"
+                        >
+                            Xóa bài
+                        </button>
+
+                        <button
+                            class="submit-btn"
+                            id="submitBtn-0"
+                            onclick="checkWriting(0)"
+                        >
+                            Nộp bài & chấm AI
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        class="result"
+                        id="result-0"
+                    >
+
+                        <div class="result-header">
+
+                            <h3>
+                                🤖 Kết quả chấm bài AI
+                            </h3>
+
+                        </div>
+
+                        <div
+                            class="result-body"
+                            id="resultBody-0"
+                        ></div>
+
+                    </div>
+
+
+                    <button
+                        class="next-btn"
+                        id="next-0"
+                        style="display:none"
+                        onclick="nextTest(0)"
+                    >
+                        Đề tiếp theo →
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         ĐỀ 02
+    ====================================================== -->
+
+    <section
+        class="slide"
+        id="slide-1"
+    >
+
+        <div class="test-title">
+
+            <div>
+
+                <h2>ĐỀ 02</h2>
+
+                <p>
+                    Chủ đề: Clothes at school
+                </p>
+
+            </div>
+
+            <div class="test-badge">
+                Writing Test 2
+            </div>
+
+        </div>
+
+
+        <div class="writing-layout">
+
+            <div class="question-panel">
+
+                <div class="panel-header">
+
+                    <h3>Đề bài</h3>
+
+                    <span>
+                        WRITING TEST • 20 minutes
+                    </span>
+
+                </div>
+
+
+                <div class="question-content">
+
+                    <div class="writing-test-title">
+
+                        <strong>
+                            WRITING TEST
+                        </strong>
+
+                        <span>
+                            20 MINUTES
+                        </span>
+
+                    </div>
+
+
+                    <div class="task">
+
+                        Write a short paragraph about
+                        <strong>
+                            the clothes you usually wear
+                            to school.
+                        </strong>
+
+                        (At least 80 words).
+
+                    </div>
+
+
+                    <div class="suggestions">
+
+                        <div class="suggestions-title">
+                            Suggestions:
+                        </div>
+
+                        <ul>
+
+                            <li>
+                                What do you usually wear to school?
+                            </li>
+
+                            <li>
+                                What color are your school clothes?
+                            </li>
+
+                            <li>
+                                Do you like your school uniform?
+                            </li>
+
+                            <li>
+                                How do you feel when you wear
+                                school clothes?
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+
+                    <div class="requirement">
+
+                        <strong>Yêu cầu:</strong>
+
+                        Viết ít nhất 80 từ.
+                        Cố gắng mô tả màu sắc,
+                        trang phục và cảm xúc.
+
+                    </div>
+
+
+                    <div class="outline">
+
+                        <h4>
+                            📚 Dàn ý GTBS
+                        </h4>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                1
+                            </span>
+
+                            <span>
+                                <strong>Introduction:</strong>
+                                Giới thiệu trang phục bạn
+                                thường mặc đến trường.
+                            </span>
+
+                        </div>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                2
+                            </span>
+
+                            <span>
+                                <strong>Body:</strong>
+                                Mô tả quần áo, màu sắc,
+                                giày, áo khoác và cảm giác.
+                            </span>
+
+                        </div>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                3
+                            </span>
+
+                            <span>
+                                <strong>Conclusion:</strong>
+                                Nêu bạn có thích đồng phục
+                                hay không và lý do.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="writing-panel">
+
+                <div class="writing-panel-header">
+
+                    <h3>
+                        ✍️ Bài viết của bạn
+                    </h3>
+
+                    <div
+                        class="timer waiting"
+                        id="timer-1"
+                    >
+                        20:00
+                    </div>
+
+                </div>
+
+
+                <div class="writing-content">
+
+                    <div
+                        class="writing-lock-message show"
+                        id="lockMessage-1"
+                    >
+                        🔒 Đề này sẽ bắt đầu tính giờ sau khi bạn hoàn thành đề trước.
+                    </div>
+
+
+                    <textarea
+                        id="writingInput-1"
+                        class="writing-input"
+                        placeholder="Start writing your paragraph here..."
+                    ></textarea>
+
+
+                    <div class="writing-info">
+
+                        <span
+                            class="word-count"
+                            id="wordCount-1"
+                        >
+                            0 words
+                        </span>
+
+                        <span>
+                            Mục tiêu: 80–100 từ
+                        </span>
+
+                    </div>
+
+
+                    <div class="actions">
+
+                        <button
+                            class="clear-btn"
+                            onclick="clearWriting(1)"
+                        >
+                            Xóa bài
+                        </button>
+
+                        <button
+                            class="submit-btn"
+                            id="submitBtn-1"
+                            onclick="checkWriting(1)"
+                        >
+                            Nộp bài & chấm AI
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        class="result"
+                        id="result-1"
+                    >
+
+                        <div class="result-header">
+
+                            <h3>
+                                🤖 Kết quả chấm bài AI
+                            </h3>
+
+                        </div>
+
+                        <div
+                            class="result-body"
+                            id="resultBody-1"
+                        ></div>
+
+                    </div>
+
+
+                    <button
+                        class="next-btn"
+                        id="next-1"
+                        style="display:none"
+                        onclick="nextTest(1)"
+                    >
+                        Đề tiếp theo →
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         ĐỀ 03
+    ====================================================== -->
+
+    <section
+        class="slide"
+        id="slide-2"
+    >
+
+        <div class="test-title">
+
+            <div>
+
+                <h2>ĐỀ 03</h2>
+
+                <p>
+                    Chủ đề: Favorite room at home
+                </p>
+
+            </div>
+
+            <div class="test-badge">
+                Writing Test 3
+            </div>
+
+        </div>
+
+
+        <div class="writing-layout">
+
+            <div class="question-panel">
+
+                <div class="panel-header">
+
+                    <h3>Đề bài</h3>
+
+                    <span>
+                        WRITING TEST • 20 minutes
+                    </span>
+
+                </div>
+
+
+                <div class="question-content">
+
+                    <div class="writing-test-title">
+
+                        <strong>
+                            WRITING TEST
+                        </strong>
+
+                        <span>
+                            20 MINUTES
+                        </span>
+
+                    </div>
+
+
+                    <div class="task">
+
+                        Write a short paragraph about
+                        <strong>
+                            your favorite room at home.
+                        </strong>
+
+                        (At least 80 words).
+
+                    </div>
+
+
+                    <div class="suggestions">
+
+                        <div class="suggestions-title">
+                            Suggestions:
+                        </div>
+
+                        <ul>
+
+                            <li>
+                                Which room is your favorite?
+                            </li>
+
+                            <li>
+                                What furniture or things are
+                                in that room?
+                            </li>
+
+                            <li>
+                                What do you usually do there?
+                            </li>
+
+                            <li>
+                                Why do you like this room?
+                            </li>
+
+                            <li>
+                                How do you feel there?
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+
+                    <div class="requirement">
+
+                        <strong>Yêu cầu:</strong>
+
+                        Viết ít nhất 80 từ.
+                        Hãy mô tả căn phòng, đồ vật,
+                        hoạt động và cảm xúc.
+
+                    </div>
+
+
+                    <div class="outline">
+
+                        <h4>
+                            📚 Dàn ý GTBS
+                        </h4>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                1
+                            </span>
+
+                            <span>
+                                <strong>Introduction:</strong>
+                                Giới thiệu căn phòng yêu thích.
+                            </span>
+
+                        </div>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                2
+                            </span>
+
+                            <span>
+                                <strong>Body:</strong>
+                                Mô tả đồ nội thất,
+                                đồ vật và hoạt động.
+                            </span>
+
+                        </div>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                3
+                            </span>
+
+                            <span>
+                                <strong>Conclusion:</strong>
+                                Nêu lý do yêu thích và
+                                cảm xúc khi ở đó.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="writing-panel">
+
+                <div class="writing-panel-header">
+
+                    <h3>
+                        ✍️ Bài viết của bạn
+                    </h3>
+
+                    <div
+                        class="timer waiting"
+                        id="timer-2"
+                    >
+                        20:00
+                    </div>
+
+                </div>
+
+
+                <div class="writing-content">
+
+                    <div
+                        class="writing-lock-message show"
+                        id="lockMessage-2"
+                    >
+                        🔒 Đề này sẽ bắt đầu tính giờ sau khi bạn hoàn thành đề trước.
+                    </div>
+
+
+                    <textarea
+                        id="writingInput-2"
+                        class="writing-input"
+                        placeholder="Start writing your paragraph here..."
+                    ></textarea>
+
+
+                    <div class="writing-info">
+
+                        <span
+                            class="word-count"
+                            id="wordCount-2"
+                        >
+                            0 words
+                        </span>
+
+                        <span>
+                            Mục tiêu: 80–100 từ
+                        </span>
+
+                    </div>
+
+
+                    <div class="actions">
+
+                        <button
+                            class="clear-btn"
+                            onclick="clearWriting(2)"
+                        >
+                            Xóa bài
+                        </button>
+
+                        <button
+                            class="submit-btn"
+                            id="submitBtn-2"
+                            onclick="checkWriting(2)"
+                        >
+                            Nộp bài & chấm AI
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        class="result"
+                        id="result-2"
+                    >
+
+                        <div class="result-header">
+
+                            <h3>
+                                🤖 Kết quả chấm bài AI
+                            </h3>
+
+                        </div>
+
+                        <div
+                            class="result-body"
+                            id="resultBody-2"
+                        ></div>
+
+                    </div>
+
+
+                    <button
+                        class="next-btn"
+                        id="next-2"
+                        style="display:none"
+                        onclick="nextTest(2)"
+                    >
+                        Đề tiếp theo →
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         ĐỀ 04
+    ====================================================== -->
+
+    <section
+        class="slide"
+        id="slide-3"
+    >
+
+        <div class="test-title">
+
+            <div>
+
+                <h2>ĐỀ 04</h2>
+
+                <p>
+                    Chủ đề: A food you like
+                </p>
+
+            </div>
+
+            <div class="test-badge">
+                Writing Test 4
+            </div>
+
+        </div>
+
+
+        <div class="writing-layout">
+
+            <div class="question-panel">
+
+                <div class="panel-header">
+
+                    <h3>Đề bài</h3>
+
+                    <span>
+                        WRITING TEST • 20 minutes
+                    </span>
+
+                </div>
+
+
+                <div class="question-content">
+
+                    <div class="writing-test-title">
+
+                        <strong>
+                            WRITING TEST
+                        </strong>
+
+                        <span>
+                            20 MINUTES
+                        </span>
+
+                    </div>
+
+
+                    <div class="task">
+
+                        Write a short paragraph about
+                        <strong>
+                            a food you like.
+                        </strong>
+
+                        (At least 80 words).
+
+                    </div>
+
+
+                    <div class="suggestions">
+
+                        <div class="suggestions-title">
+                            Suggestions:
+                        </div>
+
+                        <ul>
+
+                            <li>
+                                What food do you like?
+                            </li>
+
+                            <li>
+                                When do you usually eat it?
+                            </li>
+
+                            <li>
+                                Who do you often eat it with?
+                            </li>
+
+                            <li>
+                                Why do you like this food?
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+
+                    <div class="requirement">
+
+                        <strong>Yêu cầu:</strong>
+
+                        Viết ít nhất 80 từ.
+                        Hãy mô tả món ăn, thời gian,
+                        người ăn cùng và lý do yêu thích.
+
+                    </div>
+
+
+                    <div class="outline">
+
+                        <h4>
+                            📚 Dàn ý GTBS
+                        </h4>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                1
+                            </span>
+
+                            <span>
+                                <strong>Introduction:</strong>
+                                Giới thiệu món ăn yêu thích.
+                            </span>
+
+                        </div>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                2
+                            </span>
+
+                            <span>
+                                <strong>Body:</strong>
+                                Nói khi nào, ở đâu và
+                                với ai bạn thường ăn món đó.
+                            </span>
+
+                        </div>
+
+                        <div class="outline-item">
+
+                            <span class="outline-number">
+                                3
+                            </span>
+
+                            <span>
+                                <strong>Conclusion:</strong>
+                                Giải thích tại sao bạn
+                                yêu thích món ăn này.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="writing-panel">
+
+                <div class="writing-panel-header">
+
+                    <h3>
+                        ✍️ Bài viết của bạn
+                    </h3>
+
+                    <div
+                        class="timer waiting"
+                        id="timer-3"
+                    >
+                        20:00
+                    </div>
+
+                </div>
+
+
+                <div class="writing-content">
+
+                    <div
+                        class="writing-lock-message show"
+                        id="lockMessage-3"
+                    >
+                        🔒 Đề này sẽ bắt đầu tính giờ sau khi bạn hoàn thành đề trước.
+                    </div>
+
+
+                    <textarea
+                        id="writingInput-3"
+                        class="writing-input"
+                        placeholder="Start writing your paragraph here..."
+                    ></textarea>
+
+
+                    <div class="writing-info">
+
+                        <span
+                            class="word-count"
+                            id="wordCount-3"
+                        >
+                            0 words
+                        </span>
+
+                        <span>
+                            Mục tiêu: 80–100 từ
+                        </span>
+
+                    </div>
+
+
+                    <div class="actions">
+
+                        <button
+                            class="clear-btn"
+                            onclick="clearWriting(3)"
+                        >
+                            Xóa bài
+                        </button>
+
+                        <button
+                            class="submit-btn"
+                            id="submitBtn-3"
+                            onclick="checkWriting(3)"
+                        >
+                            Nộp bài & chấm AI
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        class="result"
+                        id="result-3"
+                    >
+
+                        <div class="result-header">
+
+                            <h3>
+                                🤖 Kết quả chấm bài AI
+                            </h3>
+
+                        </div>
+
+                        <div
+                            class="result-body"
+                            id="resultBody-3"
+                        ></div>
+
+                    </div>
+
+
+                    <button
+                        class="next-btn"
+                        id="next-3"
+                        style="display:none"
+                        onclick="nextTest(3)"
+                    >
+                        Hoàn thành ✓
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer>
+
+    IELTS Writing Practice • AI Writing Checker
+
+</footer>
+
+
+<script>
+
+
+/* =========================================================
+   DỮ LIỆU 4 ĐỀ
+========================================================= */
+
+const tests = [
+
+    {
+        title: "Typical Sunday",
+
+        topic:
+            "Write a short paragraph about your typical Sunday. At least 80 words.",
+
+        outline:
+            "Introduction – Body – Conclusion. Describe morning, afternoon, evening activities and explain why you like or dislike Sunday."
+    },
+
+    {
+        title: "Clothes at school",
+
+        topic:
+            "Write a short paragraph about the clothes you usually wear to school. At least 80 words.",
+
+        outline:
+            "Introduction – Body – Conclusion. Describe school clothes, colors, shoes, jacket, feelings and whether you like the uniform."
+    },
+
+    {
+        title: "Favorite room at home",
+
+        topic:
+            "Write a short paragraph about your favorite room at home. At least 80 words.",
+
+        outline:
+            "Introduction – Body – Conclusion. Describe the room, furniture, activities and explain why you like it."
+    },
+
+    {
+        title: "A food you like",
+
+        topic:
+            "Write a short paragraph about a food you like. At least 80 words.",
+
+        outline:
+            "Introduction – Body – Conclusion. Describe the food, when and where you eat it, who you eat it with and why you like it."
+    }
+
+];
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+let currentTest = 0;
+
+const submitted = [
+    false,
+    false,
+    false,
+    false
+];
+
+const timers = [
+    null,
+    null,
+    null,
+    null
+];
+
+const timeLeft = [
+    20 * 60,
+    20 * 60,
+    20 * 60,
+    20 * 60
+];
+
+let aiConnected = false;
+
+let checkingAI = false;
+
+let submittingWriting = [
+    false,
+    false,
+    false,
+    false
+];
+
+
+/* =========================================================
+   AI STATUS
+========================================================= */
+
+function setAIStatus(
+    type,
+    text,
+    description
+) {
+
+    const status =
+        document.getElementById(
+            "aiStatus"
+        );
+
+    const statusText =
+        document.getElementById(
+            "aiStatusText"
+        );
+
+    const descriptionElement =
+        document.getElementById(
+            "connectionDescription"
+        );
+
+
+    status.classList.remove(
+        "checking",
+        "connected",
+        "error"
+    );
+
+
+    if (type) {
+
+        status.classList.add(type);
+
+    }
+
+
+    statusText.textContent = text;
+
+
+    if (description) {
+
+        descriptionElement.textContent =
+            description;
+
+    }
+
+}
+
+
+/* =========================================================
+   UPDATE LOCK MESSAGE
+========================================================= */
+
+function updateLockMessage(index) {
+
+    const message =
+        document.getElementById(
+            `lockMessage-${index}`
+        );
+
+    if (!message) return;
+
+
+    if (submitted[index]) {
+
+        message.classList.remove("show");
+
+        return;
+
+    }
+
+
+    if (!aiConnected) {
+
+        message.textContent =
+            "🔒 Hãy kết nối Gemini AI thành công để bắt đầu tính giờ.";
+
+        message.classList.add("show");
+
+        return;
+
+    }
+
+
+    if (index > currentTest) {
+
+        message.textContent =
+            "🔒 Hãy hoàn thành đề trước để mở đề này.";
+
+        message.classList.add("show");
+
+        return;
+
+    }
+
+
+    message.classList.remove("show");
+
+}
+
+
+/* =========================================================
+   UPDATE ALL LOCK MESSAGES
+========================================================= */
+
+function updateAllLockMessages() {
+
+    for (
+        let i = 0;
+        i < 4;
+        i++
+    ) {
+
+        updateLockMessage(i);
+
+    }
+
+}
+
+
+/* =========================================================
+   KIỂM TRA KẾT NỐI AI
+========================================================= */
+
+async function checkAIConnection() {
+
+    if (checkingAI) {
+
+        return;
+
+    }
+
+
+    checkingAI = true;
+
+
+    const button =
+        document.getElementById(
+            "aiCheckBtn"
+        );
+
+    const mainButton =
+        document.getElementById(
+            "aiCheckBtnMain"
+        );
+
+
+    if (button) {
+
+        button.disabled = true;
+
+        button.textContent =
+            "Đang kiểm tra...";
+
+    }
+
+
+    if (mainButton) {
+
+        mainButton.disabled = true;
+
+        mainButton.textContent =
+            "Đang kiểm tra...";
+
+    }
+
+
+    setAIStatus(
+        "checking",
+        "Gemini AI: Đang kiểm tra",
+        "Đang kết nối tới backend..."
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/ai-status",
+                {
+                    method: "GET",
+                    cache: "no-store"
+                }
+            );
+
+
+        let data = null;
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch {
+
+            throw new Error(
+                "Backend không trả về JSON."
+            );
+
+        }
+
+
+        if (
+            !response.ok ||
+            !data.success ||
+            data.connected !== true
+        ) {
+
+            throw new Error(
+                data.message ||
+                "Gemini AI chưa kết nối."
+            );
+
+        }
+
+
+        aiConnected = true;
+
+
+        setAIStatus(
+            "connected",
+            "Gemini AI: Đã kết nối",
+            `AI hoạt động bình thường • Model: ${
+                data.model ||
+                "gemini-2.5-flash"
+            }`
+        );
+
+
+        /*
+         * QUAN TRỌNG:
+         *
+         * Chỉ khi backend xác nhận Gemini
+         * connected:true thì timer mới được chạy.
+         */
+
+        if (
+            !submitted[currentTest] &&
+            !timers[currentTest]
+        ) {
+
+            startTimer(currentTest);
+
+        }
+
+
+        updateAllLockMessages();
+
+
+    } catch (error) {
+
+        aiConnected = false;
+
+
+        console.error(
+            "AI STATUS ERROR:",
+            error
+        );
+
+
+        /*
+         * Nếu AI mất kết nối,
+         * dừng timer hiện tại.
+         */
+
+        stopTimer(currentTest);
+
+
+        setAIStatus(
+            "error",
+            "Gemini AI: Chưa kết nối",
+            error.message ||
+            "Không thể kết nối tới AI."
+        );
+
+
+        updateAllLockMessages();
+
+
+    } finally {
+
+        checkingAI = false;
+
+
+        if (button) {
+
+            button.disabled = false;
+
+            button.textContent =
+                "Kiểm tra AI";
+
+        }
+
+
+        if (mainButton) {
+
+            mainButton.disabled = false;
+
+            mainButton.textContent =
+                "🔄 Kiểm tra lại";
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   WORD COUNT
+========================================================= */
+
+function countWords(text) {
+
+    if (!text.trim()) {
+
+        return 0;
+
+    }
+
+
+    return text
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .length;
+
+}
+
+
+function updateWordCount(index) {
+
+    const textarea =
+        document.getElementById(
+            `writingInput-${index}`
+        );
+
+
+    const counter =
+        document.getElementById(
+            `wordCount-${index}`
+        );
+
+
+    const count =
+        countWords(
+            textarea.value
+        );
+
+
+    counter.textContent =
+        `${count} words`;
+
+
+    counter.classList.remove(
+        "good",
+        "low"
+    );
+
+
+    if (count >= 80) {
+
+        counter.classList.add(
+            "good"
+        );
+
+    } else {
+
+        counter.classList.add(
+            "low"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   TIMER
+========================================================= */
+
+function formatTime(seconds) {
+
+    const minutes =
+        Math.floor(
+            seconds / 60
+        );
+
+    const secs =
+        seconds % 60;
+
+
+    return (
+        String(minutes).padStart(2, "0")
+        +
+        ":"
+        +
+        String(secs).padStart(2, "0")
+    );
+
+}
+
+
+function updateTimer(index) {
+
+    const timer =
+        document.getElementById(
+            `timer-${index}`
+        );
+
+
+    if (!timer) return;
+
+
+    timer.textContent =
+        formatTime(
+            timeLeft[index]
+        );
+
+
+    timer.classList.remove(
+        "waiting",
+        "warning",
+        "danger",
+        "finished"
+    );
+
+
+    if (!aiConnected) {
+
+        timer.classList.add(
+            "waiting"
+        );
+
+        return;
+
+    }
+
+
+    if (
+        timeLeft[index] <= 0
+    ) {
+
+        timer.textContent =
+            "00:00";
+
+        timer.classList.add(
+            "finished"
+        );
+
+        return;
+
+    }
+
+
+    if (
+        timeLeft[index] <= 300
+    ) {
+
+        timer.classList.add(
+            "warning"
+        );
+
+    }
+
+
+    if (
+        timeLeft[index] <= 60
+    ) {
+
+        timer.classList.remove(
+            "warning"
+        );
+
+        timer.classList.add(
+            "danger"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   START TIMER
+========================================================= */
+
+function startTimer(index) {
+
+    /*
+     * Không có Gemini -> tuyệt đối không chạy timer.
+     */
+
+    if (!aiConnected) {
+
+        updateTimer(index);
+
+        return;
+
+    }
+
+
+    /*
+     * Đã nộp bài -> không chạy lại.
+     */
+
+    if (submitted[index]) {
+
+        return;
+
+    }
+
+
+    /*
+     * Timer đang chạy -> không tạo thêm interval.
+     */
+
+    if (timers[index]) {
+
+        return;
+
+    }
+
+
+    updateTimer(index);
+
+
+    timers[index] =
+        setInterval(() => {
+
+
+            /*
+             * Nếu AI bị ngắt trong lúc timer chạy,
+             * dừng ngay.
+             */
+
+            if (!aiConnected) {
+
+                stopTimer(index);
+
+                return;
+
+            }
+
+
+            /*
+             * Đã nộp bài thì dừng.
+             */
+
+            if (submitted[index]) {
+
+                stopTimer(index);
+
+                return;
+
+            }
+
+
+            /*
+             * Hết giờ.
+             */
+
+            if (
+                timeLeft[index] <= 0
+            ) {
+
+                stopTimer(index);
+
+                timeExpired(index);
+
+                return;
+
+            }
+
+
+            timeLeft[index]--;
+
+
+            updateTimer(index);
+
+
+            /*
+             * Sau khi giảm xuống 0,
+             * tự động nộp.
+             */
+
+            if (
+                timeLeft[index] <= 0
+            ) {
+
+                stopTimer(index);
+
+                timeExpired(index);
+
+            }
+
+        }, 1000);
+
+}
+
+
+/* =========================================================
+   STOP TIMER
+========================================================= */
+
+function stopTimer(index) {
+
+    if (
+        timers[index]
+    ) {
+
+        clearInterval(
+            timers[index]
+        );
+
+        timers[index] = null;
+
+    }
+
+}
+
+
+/* =========================================================
+   STOP ALL TIMERS
+========================================================= */
+
+function stopAllTimers() {
+
+    for (
+        let i = 0;
+        i < 4;
+        i++
+    ) {
+
+        stopTimer(i);
+
+    }
+
+}
+
+
+/* =========================================================
+   HẾT GIỜ
+========================================================= */
+
+function timeExpired(index) {
+
+    updateTimer(index);
+
+
+    const textarea =
+        document.getElementById(
+            `writingInput-${index}`
+        );
+
+
+    if (
+        !textarea.value.trim()
+    ) {
+
+        alert(
+            "⏰ Đã hết 20 phút.\n\nBạn chưa nhập nội dung nên bài chưa thể được chấm."
+        );
+
+        return;
+
+    }
+
+
+    alert(
+        "⏰ Đã hết 20 phút.\n\nBài viết sẽ được tự động nộp để AI chấm."
+    );
+
+
+    checkWriting(
+        index,
+        true
+    );
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function goToTest(index) {
+
+    if (
+        index === currentTest
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Không cho nhảy vượt đề.
+     */
+
+    if (
+        index > currentTest
+    ) {
+
+        if (
+            !submitted[currentTest]
+        ) {
+
+            alert(
+                "🔒 Bạn cần nộp và chấm xong Đề " +
+                String(currentTest + 1).padStart(2, "0") +
+                " trước khi sang đề tiếp theo."
+            );
+
+            return;
+
+        }
+
+    }
+
+
+    /*
+     * Không cho quay sang đề chưa mở.
+     */
+
+    if (
+        index > 0 &&
+        !submitted[index - 1]
+    ) {
+
+        return;
+
+    }
+
+
+    stopAllTimers();
+
+
+    document
+        .querySelectorAll(".slide")
+        .forEach(
+            slide => {
+
+                slide.classList.remove(
+                    "active"
+                );
+
+            }
+        );
+
+
+    document
+        .getElementById(
+            `slide-${index}`
+        )
+        .classList.add(
+            "active"
+        );
+
+
+    document
+        .querySelectorAll(".dot")
+        .forEach(
+            (dot, i) => {
+
+                dot.classList.toggle(
+                    "active",
+                    i === index
+                );
+
+            }
+        );
+
+
+    currentTest =
+        index;
+
+
+    updateProgress(
+        index
+    );
+
+
+    updateAllLockMessages();
+
+
+    /*
+     * Nếu AI đã kết nối thì đề mới bắt đầu.
+     *
+     * Nếu chưa kết nối:
+     * timer giữ 20:00.
+     */
+
+    if (
+        aiConnected &&
+        !submitted[index]
+    ) {
+
+        startTimer(index);
+
+    } else {
+
+        updateTimer(index);
+
+    }
+
+
+    window.scrollTo({
+
+        top: 0,
+
+        behavior: "smooth"
+
+    });
+
+}
+
+
+/* =========================================================
+   NEXT TEST
+========================================================= */
+
+function nextTest(index) {
+
+    if (
+        !submitted[index]
+    ) {
+
+        alert(
+            "Bạn cần nộp bài và nhận kết quả AI trước."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        index < 3
+    ) {
+
+        goToTest(
+            index + 1
+        );
+
+    } else {
+
+        showFinalResult();
+
+    }
+
+}
+
+
+/* =========================================================
+   PROGRESS
+========================================================= */
+
+function updateProgress(index) {
+
+    const progressText =
+        document.getElementById(
+            "progressText"
+        );
+
+
+    const progressBar =
+        document.getElementById(
+            "progressBar"
+        );
+
+
+    progressText.textContent =
+        `${String(index + 1).padStart(2, "0")} / 04`;
+
+
+    progressBar.style.width =
+        `${((index + 1) / 4) * 100}%`;
+
+}
+
+
+/* =========================================================
+   CLEAR
+========================================================= */
+
+function clearWriting(index) {
+
+    const textarea =
+        document.getElementById(
+            `writingInput-${index}`
+        );
+
+
+    if (
+        !textarea.value.trim()
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        submitted[index]
+    ) {
+
+        alert(
+            "Bài đã được nộp, không thể xóa kết quả."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            "Bạn có chắc muốn xóa toàn bộ bài viết?"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    textarea.value = "";
+
+
+    updateWordCount(
+        index
+    );
+
+
+    document
+        .getElementById(
+            `result-${index}`
+        )
+        .classList.remove(
+            "show"
+        );
+
+
+    document
+        .getElementById(
+            `next-${index}`
+        )
+        .style.display =
+            "none";
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHTML(text) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+
+    div.textContent =
+        String(
+            text ?? ""
+        );
+
+
+    return div.innerHTML;
+
+}
+
+
+/* =========================================================
+   ARRAY HTML
+========================================================= */
+
+function renderList(items) {
+
+    if (
+        !Array.isArray(items) ||
+        items.length === 0
+    ) {
+
+        return "<li>Không có.</li>";
+
+    }
+
+
+    return items
+        .map(
+            item =>
+                `<li>${escapeHTML(item)}</li>`
+        )
+        .join("");
+
+}
+
+
+/* =========================================================
+   CHECKLIST
+========================================================= */
+
+function renderChecklist(
+    data,
+    wordCount
+) {
+
+    const checklist =
+        data.checklist || {};
+
+
+    const hasMinimumWords =
+        wordCount >= 80;
+
+
+    const hasIntroduction =
+        checklist.introduction === true;
+
+
+    const hasBody =
+        checklist.body === true;
+
+
+    const hasConclusion =
+        checklist.conclusion === true;
+
+
+    const suitableTense =
+        checklist.suitable_tense === true;
+
+
+    const connectors =
+        checklist.connectors === true;
+
+
+    const onTopic =
+        checklist.on_topic === true;
+
+
+    function item(
+        checked,
+        text
+    ) {
+
+        return `
+            <div class="check-item">
+                ${checked ? "✓" : "✗"} ${text}
+            </div>
+        `;
+
+    }
+
+
+    return `
+
+        <div class="checklist">
+
+            <h4>
+                ✅ Checklist
+            </h4>
+
+            ${item(
+                hasMinimumWords,
+                "Đủ 80 từ trở lên"
+            )}
+
+            ${item(
+                hasIntroduction,
+                "Có Introduction"
+            )}
+
+            ${item(
+                hasBody,
+                "Có Body"
+            )}
+
+            ${item(
+                hasConclusion,
+                "Có Conclusion"
+            )}
+
+            ${item(
+                suitableTense,
+                "Sử dụng thì phù hợp"
+            )}
+
+            ${item(
+                connectors,
+                "Có từ nối"
+            )}
+
+            ${item(
+                onTopic,
+                "Ý tưởng bám sát đề"
+            )}
+
+        </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   DISPLAY RESULT
+========================================================= */
+
+function displayResult(
+    index,
+    data
+) {
+
+    const result =
+        document.getElementById(
+            `result-${index}`
+        );
+
+
+    const body =
+        document.getElementById(
+            `resultBody-${index}`
+        );
+
+
+    const score =
+        data.score ?? 0;
+
+
+    const wordCount =
+        data.wordCount ??
+        countWords(
+            document.getElementById(
+                `writingInput-${index}`
+            ).value
+        );
+
+
+    const grammarScore =
+        data.grammar?.score ?? 0;
+
+
+    const vocabularyScore =
+        data.vocabulary?.score ?? 0;
+
+
+    const coherenceScore =
+        data.coherence?.score ?? 0;
+
+
+    const contentScore =
+        data.content?.score ?? 0;
+
+
+    const errors =
+        Array.isArray(
+            data.grammar?.errors
+        )
+            ? data.grammar.errors
+            : [];
+
+
+    let errorsHTML = "";
+
+
+    if (
+        errors.length > 0
+    ) {
+
+        errorsHTML = `
+
+            <div class="errors-box">
+
+                <h4>
+                    🔎 Lỗi cần sửa
+                </h4>
+
+                ${errors
+                    .map(
+                        error => `
+
+                        <div class="error-item">
+
+                            <div>
+
+                                <strong>
+                                    Lỗi:
+                                </strong>
+
+                                <span class="error-original">
+                                    ${escapeHTML(
+                                        error.original || ""
+                                    )}
+                                </span>
+
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Sửa:
+                                </strong>
+
+                                <span class="error-corrected">
+                                    ${escapeHTML(
+                                        error.corrected || ""
+                                    )}
+                                </span>
+
+                            </div>
+
+                            <div>
+                                ${escapeHTML(
+                                    error.explanation || ""
+                                )}
+                            </div>
+
+                        </div>
+
+                    `
+                    )
+                    .join("")}
+
+            </div>
+
+        `;
+
+    } else {
+
+        errorsHTML = `
+
+            <div class="feedback">
+
+                <h4>
+                    ✅ Ngữ pháp
+                </h4>
+
+                <div>
+                    AI không phát hiện lỗi ngữ pháp
+                    đáng chú ý.
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+
+    body.innerHTML = `
+
+        <div class="overall-score">
+
+            <div class="score-number">
+                ${escapeHTML(score)}
+            </div>
+
+            <div class="score-label">
+
+                <span>
+                    Overall Score
+                </span>
+
+                <strong>
+                    ${escapeHTML(wordCount)} từ
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="criteria">
+
+            <div class="criterion">
+
+                <div class="criterion-title">
+                    Grammar
+                </div>
+
+                <div class="criterion-score">
+                    ${escapeHTML(grammarScore)}/10
+                </div>
+
+                <div class="criterion-comment">
+                    ${escapeHTML(
+                        data.grammar?.comment || ""
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="criterion">
+
+                <div class="criterion-title">
+                    Vocabulary
+                </div>
+
+                <div class="criterion-score">
+                    ${escapeHTML(vocabularyScore)}/10
+                </div>
+
+                <div class="criterion-comment">
+                    ${escapeHTML(
+                        data.vocabulary?.comment || ""
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="criterion">
+
+                <div class="criterion-title">
+                    Coherence & Cohesion
+                </div>
+
+                <div class="criterion-score">
+                    ${escapeHTML(coherenceScore)}/10
+                </div>
+
+                <div class="criterion-comment">
+                    ${escapeHTML(
+                        data.coherence?.comment || ""
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="criterion">
+
+                <div class="criterion-title">
+                    Content
+                </div>
+
+                <div class="criterion-score">
+                    ${escapeHTML(contentScore)}/10
+                </div>
+
+                <div class="criterion-comment">
+                    ${escapeHTML(
+                        data.content?.comment || ""
+                    )}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        ${errorsHTML}
+
+
+        <div class="feedback">
+
+            <h4>
+                💪 Điểm mạnh
+            </h4>
+
+            <ul>
+                ${renderList(
+                    data.strengths
+                )}
+            </ul>
+
+        </div>
+
+
+        <div class="feedback">
+
+            <h4>
+                ⚠️ Điểm cần cải thiện
+            </h4>
+
+            <ul>
+                ${renderList(
+                    data.weaknesses
+                )}
+            </ul>
+
+        </div>
+
+
+        <div class="feedback">
+
+            <h4>
+                🚀 Gợi ý cải thiện
+            </h4>
+
+            <ul>
+                ${renderList(
+                    data.improvements
+                )}
+            </ul>
+
+        </div>
+
+
+        <div class="feedback">
+
+            <h4>
+                📝 Nhận xét tổng quan
+            </h4>
+
+            <div>
+                ${escapeHTML(
+                    data.overall_comment || ""
+                )}
+            </div>
+
+        </div>
+
+
+        ${renderChecklist(
+            data,
+            wordCount
+        )}
+
+    `;
+
+
+    result.classList.add(
+        "show"
+    );
+
+
+    document
+        .getElementById(
+            `next-${index}`
+        )
+        .style.display =
+            "block";
+
+}
+
+
+/* =========================================================
+   CHECK WRITING
+========================================================= */
+
+async function checkWriting(
+    index,
+    automatic = false
+) {
+
+    if (
+        submittingWriting[index]
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Không được chấm nếu AI chưa kết nối.
+     */
+
+    if (
+        !aiConnected
+    ) {
+
+        if (!automatic) {
+
+            alert(
+                "❌ Gemini AI chưa kết nối.\n\n" +
+                "Hãy bấm 'Kiểm tra AI' trước."
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    const textarea =
+        document.getElementById(
+            `writingInput-${index}`
+        );
+
+
+    const button =
+        document.getElementById(
+            `submitBtn-${index}`
+        );
+
+
+    const writing =
+        textarea.value.trim();
+
+
+    const words =
+        countWords(
+            writing
+        );
+
+
+    if (!writing) {
+
+        alert(
+            "Bạn chưa viết bài."
+        );
+
+        textarea.focus();
+
+        return;
+
+    }
+
+
+    if (
+        words < 80 &&
+        !automatic
+    ) {
+
+        const confirmSubmit =
+            confirm(
+                `Bài viết hiện có ${words} từ.\n\n` +
+                `Đề yêu cầu ít nhất 80 từ.\n\n` +
+                `Bạn vẫn muốn nộp bài không?`
+            );
+
+
+        if (
+            !confirmSubmit
+        ) {
+
+            return;
+
+        }
+
+    }
+
+
+    submittingWriting[index] =
+        true;
+
+
+    /*
+     * Dừng timer ngay khi gửi bài.
+     * Không để thời gian tiếp tục chạy
+     * trong lúc AI đang chấm.
+     */
+
+    stopTimer(index);
+
+
+    button.disabled = true;
+
+    button.textContent =
+        "🤖 AI đang chấm...";
+
+
+    setAIStatus(
+        "checking",
+        "Gemini AI: Đang chấm",
+        "AI đang phân tích bài viết..."
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/check-writing",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            topic:
+                                tests[index].topic,
+
+                            title:
+                                tests[index].title,
+
+                            outline:
+                                tests[index].outline,
+
+                            writing:
+                                writing
+
+                        })
+
+                }
+            );
+
+
+        let result;
+
+
+        try {
+
+            result =
+                await response.json();
+
+        } catch {
+
+            throw new Error(
+                "Server không trả JSON. Hãy kiểm tra backend."
+            );
+
+        }
+
+
+        if (
+            !response.ok ||
+            !result.success
+        ) {
+
+            throw new Error(
+                result.message ||
+                "AI không thể chấm bài."
+            );
+
+        }
+
+
+        /*
+         * Thành công.
+         */
+
+        submitted[index] =
+            true;
+
+
+        aiConnected =
+            true;
+
+
+        setAIStatus(
+            "connected",
+            "Gemini AI: Đã kết nối",
+            "AI đã chấm bài thành công."
+        );
+
+
+        displayResult(
+            index,
+            {
+
+                ...result.data,
+
+                wordCount:
+                    words
+
+            }
+        );
+
+
+        const dot =
+            document.querySelectorAll(
+                ".dot"
+            )[index];
+
+
+        if (dot) {
+
+            dot.classList.add(
+                "completed"
+            );
+
+        }
+
+
+        /*
+         * Mở đề tiếp theo.
+         */
+
+        if (
+            index < 3
+        ) {
+
+            const nextLock =
+                document.getElementById(
+                    `lockMessage-${index + 1}`
+                );
+
+
+            if (nextLock) {
+
+                nextLock.textContent =
+                    "🔓 Đề đã mở. Bạn có thể bắt đầu làm bài.";
+
+                nextLock.classList.remove(
+                    "show"
+                );
+
+            }
+
+        }
+
+
+        updateAllLockMessages();
+
+
+    } catch (error) {
+
+        console.error(
+            "CHECK WRITING ERROR:",
+            error
+        );
+
+
+        /*
+         * Bài chưa được submit.
+         * AI lỗi -> không mất bài.
+         */
+
+        submitted[index] =
+            false;
+
+
+        aiConnected =
+            false;
+
+
+        setAIStatus(
+            "error",
+            "Gemini AI: Lỗi kết nối",
+            error.message ||
+            "Không thể kết nối AI."
+        );
+
+
+        updateAllLockMessages();
+
+
+        /*
+         * Nếu chưa hết giờ,
+         * giữ nguyên số giây còn lại.
+         */
+
+        updateTimer(index);
+
+
+        alert(
+            "❌ Không thể chấm AI.\n\n" +
+            error.message +
+            "\n\n" +
+            "Bài viết vẫn được giữ nguyên.\n" +
+            "Hãy kết nối lại AI rồi nộp lại."
+        );
+
+
+    } finally {
+
+        submittingWriting[index] =
+            false;
+
+
+        button.disabled = false;
+
+        button.textContent =
+            "Nộp bài & chấm AI";
+
+    }
+
+}
+
+
+/* =========================================================
+   FINAL RESULT
+========================================================= */
+
+function showFinalResult() {
+
+    const completed =
+        submitted.filter(
+            Boolean
+        ).length;
+
+
+    if (
+        completed < 4
+    ) {
+
+        alert(
+            `Bạn mới hoàn thành ${completed}/4 đề.\n\n` +
+            "Hãy hoàn thành tất cả các đề trước."
+        );
+
+        return;
+
+    }
+
+
+    alert(
+        "🎉 HOÀN THÀNH!\n\n" +
+        "Bạn đã nộp đủ 4/4 đề Writing.\n\n" +
+        "Chúc mừng! 🔥"
+    );
+
+}
+
+
+/* =========================================================
+   INPUT EVENTS
+========================================================= */
+
+document
+    .querySelectorAll(
+        ".writing-input"
+    )
+    .forEach(
+        (textarea, index) => {
+
+            textarea.addEventListener(
+                "input",
+                () => {
+
+                    updateWordCount(
+                        index
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+updateProgress(
+    0
+);
+
+
+for (
+    let i = 0;
+    i < 4;
+    i++
+) {
+
+    updateWordCount(
+        i
+    );
+
+    updateTimer(
+        i
+    );
+
+}
+
+
+/*
+ * =========================================================
+ *
+ * CỰC KỲ QUAN TRỌNG:
+ *
+ * KHÔNG:
+ *
+ *     startTimer(0);
+ *
+ * ở đây.
+ *
+ * Timer chỉ được start bên trong:
+ *
+ *     checkAIConnection()
+ *
+ * sau khi backend trả:
+ *
+ *     connected: true
+ *
+ * =========================================================
+ */
+
+
+/*
+ * Tự động kiểm tra backend khi mở trang.
+ *
+ * Nếu Gemini OK:
+ *      -> aiConnected = true
+ *      -> timer đề 01 bắt đầu 20:00
+ *
+ * Nếu Gemini lỗi 503:
+ *      -> aiConnected = false
+ *      -> timer đứng ở 20:00
+ */
+
+checkAIConnection();
+
+</script>
+
+
+</body>
+
+</html>

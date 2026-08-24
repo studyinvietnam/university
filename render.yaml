@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: ielts-writing-speaking
+    runtime: node
+    rootDir: ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking
+    buildCommand: npm install
+    startCommand: node server.js
