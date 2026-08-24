@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "node server.js"
+    "start": "node bai-viet-1.backend.js"
   },
   "dependencies": {
     "cors": "^2.8.6",

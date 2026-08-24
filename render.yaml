@@ -2,6 +2,5 @@ services:
   - type: web
     name: university
     runtime: node
-    rootDir: ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1
-    buildCommand: yarn
-    startCommand: yarn start
+    buildCommand: cd ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1 && yarn
+    startCommand: cd ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1 && yarn start
