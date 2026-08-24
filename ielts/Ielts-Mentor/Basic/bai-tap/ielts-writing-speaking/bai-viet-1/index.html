@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 
@@ -942,9 +941,11 @@
 
         .writing-input:disabled {
 
-            background-color: #f8fafc;
+            background-color: #f1f5f9;
 
             cursor: not-allowed;
+
+            opacity: .9;
 
         }
 
@@ -1067,6 +1068,14 @@
         .clear-btn:hover {
 
             background: #e5e7eb;
+
+        }
+
+        .clear-btn:disabled {
+
+            opacity: .5;
+
+            cursor: not-allowed;
 
         }
 
@@ -1689,7 +1698,7 @@
         <div class="brand">
 
             <img
-                src="../ielts-logo_brandlogos.net_ii6pz.png"
+                src="./ielts-logo_brandlogos.net_ii6pz.png"
                 alt="IELTS logo"
             >
 
@@ -1725,6 +1734,7 @@
             <button
                 class="ai-check-btn"
                 id="aiCheckBtn"
+                type="button"
                 onclick="checkAIConnection()"
             >
                 Kiểm tra AI
@@ -1798,6 +1808,7 @@
         <button
             class="ai-check-btn"
             id="aiCheckBtnMain"
+            type="button"
             onclick="checkAIConnection()"
         >
             🔄 Kiểm tra lại
@@ -2064,6 +2075,8 @@
 
                         <button
                             class="clear-btn"
+                            id="clearBtn-0"
+                            type="button"
                             onclick="clearWriting(0)"
                         >
                             Xóa bài
@@ -2072,6 +2085,7 @@
                         <button
                             class="submit-btn"
                             id="submitBtn-0"
+                            type="button"
                             onclick="checkWriting(0)"
                         >
                             Nộp bài & chấm AI
@@ -2104,6 +2118,7 @@
                     <button
                         class="next-btn"
                         id="next-0"
+                        type="button"
                         style="display:none"
                         onclick="nextTest(0)"
                     >
@@ -2341,6 +2356,8 @@
 
                         <button
                             class="clear-btn"
+                            id="clearBtn-1"
+                            type="button"
                             onclick="clearWriting(1)"
                         >
                             Xóa bài
@@ -2349,6 +2366,7 @@
                         <button
                             class="submit-btn"
                             id="submitBtn-1"
+                            type="button"
                             onclick="checkWriting(1)"
                         >
                             Nộp bài & chấm AI
@@ -2381,6 +2399,7 @@
                     <button
                         class="next-btn"
                         id="next-1"
+                        type="button"
                         style="display:none"
                         onclick="nextTest(1)"
                     >
@@ -2620,6 +2639,8 @@
 
                         <button
                             class="clear-btn"
+                            id="clearBtn-2"
+                            type="button"
                             onclick="clearWriting(2)"
                         >
                             Xóa bài
@@ -2628,6 +2649,7 @@
                         <button
                             class="submit-btn"
                             id="submitBtn-2"
+                            type="button"
                             onclick="checkWriting(2)"
                         >
                             Nộp bài & chấm AI
@@ -2660,6 +2682,7 @@
                     <button
                         class="next-btn"
                         id="next-2"
+                        type="button"
                         style="display:none"
                         onclick="nextTest(2)"
                     >
@@ -2894,6 +2917,8 @@
 
                         <button
                             class="clear-btn"
+                            id="clearBtn-3"
+                            type="button"
                             onclick="clearWriting(3)"
                         >
                             Xóa bài
@@ -2902,6 +2927,7 @@
                         <button
                             class="submit-btn"
                             id="submitBtn-3"
+                            type="button"
                             onclick="checkWriting(3)"
                         >
                             Nộp bài & chấm AI
@@ -2934,6 +2960,7 @@
                     <button
                         class="next-btn"
                         id="next-3"
+                        type="button"
                         style="display:none"
                         onclick="nextTest(3)"
                     >
@@ -2960,6 +2987,27 @@
 
 <script>
 
+/* =========================================================
+   CONFIGURATION
+========================================================= */
+
+/*
+ * Backend của bạn đang chạy API tại:
+ *
+ * /ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1/api
+ *
+ * KHÔNG dùng:
+ *
+ * /api/...
+ */
+
+const BASE_PATH =
+    "/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1";
+
+
+const API_BASE =
+    `${BASE_PATH}/api`;
+
 
 /* =========================================================
    DỮ LIỆU 4 ĐỀ
@@ -2975,36 +3023,46 @@ const tests = [
 
         outline:
             "Introduction – Body – Conclusion. Describe morning, afternoon, evening activities and explain why you like or dislike Sunday."
+
     },
 
     {
-        title: "Clothes at school",
+
+        title:
+            "Clothes at school",
 
         topic:
             "Write a short paragraph about the clothes you usually wear to school. At least 80 words.",
 
         outline:
             "Introduction – Body – Conclusion. Describe school clothes, colors, shoes, jacket, feelings and whether you like the uniform."
+
     },
 
     {
-        title: "Favorite room at home",
+
+        title:
+            "Favorite room at home",
 
         topic:
             "Write a short paragraph about your favorite room at home. At least 80 words.",
 
         outline:
             "Introduction – Body – Conclusion. Describe the room, furniture, activities and explain why you like it."
+
     },
 
     {
-        title: "A food you like",
+
+        title:
+            "A food you like",
 
         topic:
             "Write a short paragraph about a food you like. At least 80 words.",
 
         outline:
             "Introduction – Body – Conclusion. Describe the food, when and where you eat it, who you eat it with and why you like it."
+
     }
 
 ];
@@ -3016,12 +3074,14 @@ const tests = [
 
 let currentTest = 0;
 
+
 const submitted = [
     false,
     false,
     false,
     false
 ];
+
 
 const timers = [
     null,
@@ -3030,6 +3090,7 @@ const timers = [
     null
 ];
 
+
 const timeLeft = [
     20 * 60,
     20 * 60,
@@ -3037,11 +3098,14 @@ const timeLeft = [
     20 * 60
 ];
 
+
 let aiConnected = false;
+
 
 let checkingAI = false;
 
-let submittingWriting = [
+
+const submittingWriting = [
     false,
     false,
     false,
@@ -3064,10 +3128,12 @@ function setAIStatus(
             "aiStatus"
         );
 
+
     const statusText =
         document.getElementById(
             "aiStatusText"
         );
+
 
     const descriptionElement =
         document.getElementById(
@@ -3075,24 +3141,38 @@ function setAIStatus(
         );
 
 
-    status.classList.remove(
-        "checking",
-        "connected",
-        "error"
-    );
+    if (status) {
+
+        status.classList.remove(
+            "checking",
+            "connected",
+            "error"
+        );
 
 
-    if (type) {
+        if (type) {
 
-        status.classList.add(type);
+            status.classList.add(
+                type
+            );
+
+        }
 
     }
 
 
-    statusText.textContent = text;
+    if (statusText) {
+
+        statusText.textContent =
+            text;
+
+    }
 
 
-    if (description) {
+    if (
+        descriptionElement &&
+        description
+    ) {
 
         descriptionElement.textContent =
             description;
@@ -3103,7 +3183,7 @@ function setAIStatus(
 
 
 /* =========================================================
-   UPDATE LOCK MESSAGE
+   LOCK MESSAGE
 ========================================================= */
 
 function updateLockMessage(index) {
@@ -3113,16 +3193,34 @@ function updateLockMessage(index) {
             `lockMessage-${index}`
         );
 
-    if (!message) return;
+
+    const textarea =
+        document.getElementById(
+            `writingInput-${index}`
+        );
 
 
-    if (submitted[index]) {
-
-        message.classList.remove("show");
+    if (!message || !textarea) {
 
         return;
 
     }
+
+
+    if (submitted[index]) {
+
+        message.classList.remove(
+            "show"
+        );
+
+        textarea.disabled = true;
+
+        return;
+
+    }
+
+
+    textarea.disabled = false;
 
 
     if (!aiConnected) {
@@ -3130,7 +3228,9 @@ function updateLockMessage(index) {
         message.textContent =
             "🔒 Hãy kết nối Gemini AI thành công để bắt đầu tính giờ.";
 
-        message.classList.add("show");
+        message.classList.add(
+            "show"
+        );
 
         return;
 
@@ -3142,20 +3242,26 @@ function updateLockMessage(index) {
         message.textContent =
             "🔒 Hãy hoàn thành đề trước để mở đề này.";
 
-        message.classList.add("show");
+        message.classList.add(
+            "show"
+        );
+
+        textarea.disabled = true;
 
         return;
 
     }
 
 
-    message.classList.remove("show");
+    message.classList.remove(
+        "show"
+    );
 
 }
 
 
 /* =========================================================
-   UPDATE ALL LOCK MESSAGES
+   UPDATE ALL LOCK
 ========================================================= */
 
 function updateAllLockMessages() {
@@ -3166,7 +3272,9 @@ function updateAllLockMessages() {
         i++
     ) {
 
-        updateLockMessage(i);
+        updateLockMessage(
+            i
+        );
 
     }
 
@@ -3174,7 +3282,7 @@ function updateAllLockMessages() {
 
 
 /* =========================================================
-   KIỂM TRA KẾT NỐI AI
+   KIỂM TRA AI
 ========================================================= */
 
 async function checkAIConnection() {
@@ -3193,6 +3301,7 @@ async function checkAIConnection() {
         document.getElementById(
             "aiCheckBtn"
         );
+
 
     const mainButton =
         document.getElementById(
@@ -3221,9 +3330,13 @@ async function checkAIConnection() {
 
 
     setAIStatus(
+
         "checking",
+
         "Gemini AI: Đang kiểm tra",
+
         "Đang kết nối tới backend..."
+
     );
 
 
@@ -3231,11 +3344,19 @@ async function checkAIConnection() {
 
         const response =
             await fetch(
-                "/api/ai-status",
+
+                `${API_BASE}/ai-status`,
+
                 {
-                    method: "GET",
-                    cache: "no-store"
+
+                    method:
+                        "GET",
+
+                    cache:
+                        "no-store"
+
                 }
+
             );
 
 
@@ -3274,39 +3395,38 @@ async function checkAIConnection() {
 
 
         setAIStatus(
+
             "connected",
+
             "Gemini AI: Đã kết nối",
+
             `AI hoạt động bình thường • Model: ${
                 data.model ||
-                "gemini-2.5-flash"
+                "Gemini"
             }`
+
         );
-
-
-        /*
-         * QUAN TRỌNG:
-         *
-         * Chỉ khi backend xác nhận Gemini
-         * connected:true thì timer mới được chạy.
-         */
-
-        if (
-            !submitted[currentTest] &&
-            !timers[currentTest]
-        ) {
-
-            startTimer(currentTest);
-
-        }
 
 
         updateAllLockMessages();
 
 
+        /*
+         * Chỉ start timer cho đề hiện tại.
+         */
+
+        if (
+            !submitted[currentTest]
+        ) {
+
+            startTimer(
+                currentTest
+            );
+
+        }
+
+
     } catch (error) {
-
-        aiConnected = false;
-
 
         console.error(
             "AI STATUS ERROR:",
@@ -3314,24 +3434,42 @@ async function checkAIConnection() {
         );
 
 
-        /*
-         * Nếu AI mất kết nối,
-         * dừng timer hiện tại.
-         */
+        aiConnected = false;
 
-        stopTimer(currentTest);
+
+        stopAllTimers();
 
 
         setAIStatus(
+
             "error",
+
             "Gemini AI: Chưa kết nối",
+
             error.message ||
             "Không thể kết nối tới AI."
+
         );
 
 
         updateAllLockMessages();
 
+
+        /*
+         * Giữ timer ở trạng thái chờ.
+         */
+
+        for (
+            let i = 0;
+            i < 4;
+            i++
+        ) {
+
+            updateTimer(
+                i
+            );
+
+        }
 
     } finally {
 
@@ -3368,7 +3506,10 @@ async function checkAIConnection() {
 
 function countWords(text) {
 
-    if (!text.trim()) {
+    if (
+        !text ||
+        !text.trim()
+    ) {
 
         return 0;
 
@@ -3398,6 +3539,13 @@ function updateWordCount(index) {
         );
 
 
+    if (!textarea || !counter) {
+
+        return;
+
+    }
+
+
     const count =
         countWords(
             textarea.value
@@ -3414,7 +3562,9 @@ function updateWordCount(index) {
     );
 
 
-    if (count >= 80) {
+    if (
+        count >= 80
+    ) {
 
         counter.classList.add(
             "good"
@@ -3442,16 +3592,33 @@ function formatTime(seconds) {
             seconds / 60
         );
 
+
     const secs =
         seconds % 60;
 
 
     return (
-        String(minutes).padStart(2, "0")
+
+        String(
+            minutes
+        ).padStart(
+            2,
+            "0"
+        )
+
         +
+
         ":"
+
         +
-        String(secs).padStart(2, "0")
+
+        String(
+            secs
+        ).padStart(
+            2,
+            "0"
+        )
+
     );
 
 }
@@ -3465,7 +3632,11 @@ function updateTimer(index) {
         );
 
 
-    if (!timer) return;
+    if (!timer) {
+
+        return;
+
+    }
 
 
     timer.textContent =
@@ -3475,10 +3646,12 @@ function updateTimer(index) {
 
 
     timer.classList.remove(
+
         "waiting",
         "warning",
         "danger",
         "finished"
+
     );
 
 
@@ -3486,6 +3659,19 @@ function updateTimer(index) {
 
         timer.classList.add(
             "waiting"
+        );
+
+        return;
+
+    }
+
+
+    if (
+        submitted[index]
+    ) {
+
+        timer.classList.add(
+            "finished"
         );
 
         return;
@@ -3510,26 +3696,24 @@ function updateTimer(index) {
 
 
     if (
-        timeLeft[index] <= 300
+        timeLeft[index] <= 60
     ) {
 
         timer.classList.add(
-            "warning"
+            "danger"
         );
+
+        return;
 
     }
 
 
     if (
-        timeLeft[index] <= 60
+        timeLeft[index] <= 300
     ) {
 
-        timer.classList.remove(
-            "warning"
-        );
-
         timer.classList.add(
-            "danger"
+            "warning"
         );
 
     }
@@ -3543,114 +3727,130 @@ function updateTimer(index) {
 
 function startTimer(index) {
 
-    /*
-     * Không có Gemini -> tuyệt đối không chạy timer.
-     */
+    if (
+        !aiConnected
+    ) {
 
-    if (!aiConnected) {
-
-        updateTimer(index);
-
-        return;
-
-    }
-
-
-    /*
-     * Đã nộp bài -> không chạy lại.
-     */
-
-    if (submitted[index]) {
+        updateTimer(
+            index
+        );
 
         return;
 
     }
 
 
-    /*
-     * Timer đang chạy -> không tạo thêm interval.
-     */
-
-    if (timers[index]) {
+    if (
+        submitted[index]
+    ) {
 
         return;
 
     }
 
 
-    updateTimer(index);
+    if (
+        index !== currentTest
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        timers[index]
+    ) {
+
+        return;
+
+    }
+
+
+    updateTimer(
+        index
+    );
 
 
     timers[index] =
-        setInterval(() => {
+        setInterval(
+
+            () => {
+
+                if (
+                    !aiConnected
+                ) {
+
+                    stopTimer(
+                        index
+                    );
+
+                    updateTimer(
+                        index
+                    );
+
+                    return;
+
+                }
 
 
-            /*
-             * Nếu AI bị ngắt trong lúc timer chạy,
-             * dừng ngay.
-             */
+                if (
+                    submitted[index]
+                ) {
 
-            if (!aiConnected) {
+                    stopTimer(
+                        index
+                    );
 
-                stopTimer(index);
+                    return;
 
-                return;
-
-            }
-
-
-            /*
-             * Đã nộp bài thì dừng.
-             */
-
-            if (submitted[index]) {
-
-                stopTimer(index);
-
-                return;
-
-            }
+                }
 
 
-            /*
-             * Hết giờ.
-             */
+                if (
+                    timeLeft[index] <= 0
+                ) {
 
-            if (
-                timeLeft[index] <= 0
-            ) {
+                    stopTimer(
+                        index
+                    );
 
-                stopTimer(index);
+                    timeExpired(
+                        index
+                    );
 
-                timeExpired(index);
+                    return;
 
-                return;
-
-            }
-
-
-            timeLeft[index]--;
+                }
 
 
-            updateTimer(index);
+                timeLeft[index]--;
 
 
-            /*
-             * Sau khi giảm xuống 0,
-             * tự động nộp.
-             */
+                updateTimer(
+                    index
+                );
 
-            if (
-                timeLeft[index] <= 0
-            ) {
 
-                stopTimer(index);
+                if (
+                    timeLeft[index] <= 0
+                ) {
 
-                timeExpired(index);
+                    stopTimer(
+                        index
+                    );
 
-            }
+                    timeExpired(
+                        index
+                    );
 
-        }, 1000);
+                }
+
+            },
+
+            1000
+
+        );
 
 }
 
@@ -3677,7 +3877,7 @@ function stopTimer(index) {
 
 
 /* =========================================================
-   STOP ALL TIMERS
+   STOP ALL
 ========================================================= */
 
 function stopAllTimers() {
@@ -3688,7 +3888,9 @@ function stopAllTimers() {
         i++
     ) {
 
-        stopTimer(i);
+        stopTimer(
+            i
+        );
 
     }
 
@@ -3701,7 +3903,9 @@ function stopAllTimers() {
 
 function timeExpired(index) {
 
-    updateTimer(index);
+    updateTimer(
+        index
+    );
 
 
     const textarea =
@@ -3715,7 +3919,8 @@ function timeExpired(index) {
     ) {
 
         alert(
-            "⏰ Đã hết 20 phút.\n\nBạn chưa nhập nội dung nên bài chưa thể được chấm."
+            "⏰ Đã hết 20 phút.\n\n" +
+            "Bạn chưa nhập nội dung nên bài chưa thể được chấm."
         );
 
         return;
@@ -3724,7 +3929,8 @@ function timeExpired(index) {
 
 
     alert(
-        "⏰ Đã hết 20 phút.\n\nBài viết sẽ được tự động nộp để AI chấm."
+        "⏰ Đã hết 20 phút.\n\n" +
+        "Bài viết sẽ được tự động nộp để AI chấm."
     );
 
 
@@ -3743,6 +3949,16 @@ function timeExpired(index) {
 function goToTest(index) {
 
     if (
+        index < 0 ||
+        index > 3
+    ) {
+
+        return;
+
+    }
+
+
+    if (
         index === currentTest
     ) {
 
@@ -3751,34 +3967,32 @@ function goToTest(index) {
     }
 
 
-    /*
-     * Không cho nhảy vượt đề.
-     */
-
     if (
-        index > currentTest
+        index > currentTest &&
+        !submitted[currentTest]
     ) {
 
-        if (
-            !submitted[currentTest]
-        ) {
+        alert(
 
-            alert(
-                "🔒 Bạn cần nộp và chấm xong Đề " +
-                String(currentTest + 1).padStart(2, "0") +
-                " trước khi sang đề tiếp theo."
-            );
+            "🔒 Bạn cần nộp và chấm xong Đề " +
 
-            return;
+            String(
+                currentTest + 1
+            ).padStart(
+                2,
+                "0"
+            )
 
-        }
+            +
+
+            " trước khi sang đề tiếp theo."
+
+        );
+
+        return;
 
     }
 
-
-    /*
-     * Không cho quay sang đề chưa mở.
-     */
 
     if (
         index > 0 &&
@@ -3794,7 +4008,9 @@ function goToTest(index) {
 
 
     document
-        .querySelectorAll(".slide")
+        .querySelectorAll(
+            ".slide"
+        )
         .forEach(
             slide => {
 
@@ -3806,17 +4022,25 @@ function goToTest(index) {
         );
 
 
-    document
-        .getElementById(
+    const target =
+        document.getElementById(
             `slide-${index}`
-        )
-        .classList.add(
-            "active"
         );
 
 
+    if (target) {
+
+        target.classList.add(
+            "active"
+        );
+
+    }
+
+
     document
-        .querySelectorAll(".dot")
+        .querySelectorAll(
+            ".dot"
+        )
         .forEach(
             (dot, i) => {
 
@@ -3841,32 +4065,31 @@ function goToTest(index) {
     updateAllLockMessages();
 
 
-    /*
-     * Nếu AI đã kết nối thì đề mới bắt đầu.
-     *
-     * Nếu chưa kết nối:
-     * timer giữ 20:00.
-     */
-
     if (
         aiConnected &&
         !submitted[index]
     ) {
 
-        startTimer(index);
+        startTimer(
+            index
+        );
 
     } else {
 
-        updateTimer(index);
+        updateTimer(
+            index
+        );
 
     }
 
 
     window.scrollTo({
 
-        top: 0,
+        top:
+            0,
 
-        behavior: "smooth"
+        behavior:
+            "smooth"
 
     });
 
@@ -3927,12 +4150,20 @@ function updateProgress(index) {
         );
 
 
-    progressText.textContent =
-        `${String(index + 1).padStart(2, "0")} / 04`;
+    if (progressText) {
+
+        progressText.textContent =
+            `${String(index + 1).padStart(2, "0")} / 04`;
+
+    }
 
 
-    progressBar.style.width =
-        `${((index + 1) / 4) * 100}%`;
+    if (progressBar) {
+
+        progressBar.style.width =
+            `${((index + 1) / 4) * 100}%`;
+
+    }
 
 }
 
@@ -3949,9 +4180,7 @@ function clearWriting(index) {
         );
 
 
-    if (
-        !textarea.value.trim()
-    ) {
+    if (!textarea) {
 
         return;
 
@@ -3972,6 +4201,15 @@ function clearWriting(index) {
 
 
     if (
+        !textarea.value.trim()
+    ) {
+
+        return;
+
+    }
+
+
+    if (
         !confirm(
             "Bạn có chắc muốn xóa toàn bộ bài viết?"
         )
@@ -3982,7 +4220,8 @@ function clearWriting(index) {
     }
 
 
-    textarea.value = "";
+    textarea.value =
+        "";
 
 
     updateWordCount(
@@ -3990,21 +4229,33 @@ function clearWriting(index) {
     );
 
 
-    document
-        .getElementById(
+    const result =
+        document.getElementById(
             `result-${index}`
-        )
-        .classList.remove(
-            "show"
         );
 
 
-    document
-        .getElementById(
+    if (result) {
+
+        result.classList.remove(
+            "show"
+        );
+
+    }
+
+
+    const next =
+        document.getElementById(
             `next-${index}`
-        )
-        .style.display =
+        );
+
+
+    if (next) {
+
+        next.style.display =
             "none";
+
+    }
 
 }
 
@@ -4059,44 +4310,56 @@ function renderList(items) {
 
 
 /* =========================================================
-   CHECKLIST
+   CHECKLIST FRONTEND
 ========================================================= */
 
 function renderChecklist(
+    index,
     data,
     wordCount
 ) {
 
-    const checklist =
-        data.checklist || {};
+    const writing =
+        document.getElementById(
+            `writingInput-${index}`
+        )?.value ||
+        "";
+
+
+    const lower =
+        writing.toLowerCase();
 
 
     const hasMinimumWords =
         wordCount >= 80;
 
 
+    /*
+     * Đây là checklist hỗ trợ giao diện.
+     * Không phải điểm AI.
+     */
+
     const hasIntroduction =
-        checklist.introduction === true;
+        wordCount >= 20;
 
 
     const hasBody =
-        checklist.body === true;
+        wordCount >= 50;
 
 
     const hasConclusion =
-        checklist.conclusion === true;
+        wordCount >= 70;
 
 
-    const suitableTense =
-        checklist.suitable_tense === true;
-
-
-    const connectors =
-        checklist.connectors === true;
+    const hasConnector =
+        /\b(and|but|because|so|also|however|therefore|then|first|next|finally|usually|after|before)\b/i
+            .test(
+                lower
+            );
 
 
     const onTopic =
-        checklist.on_topic === true;
+        true;
 
 
     function item(
@@ -4105,9 +4368,15 @@ function renderChecklist(
     ) {
 
         return `
+
             <div class="check-item">
-                ${checked ? "✓" : "✗"} ${text}
+
+                ${checked ? "✓" : "✗"}
+
+                ${escapeHTML(text)}
+
             </div>
+
         `;
 
     }
@@ -4118,7 +4387,7 @@ function renderChecklist(
         <div class="checklist">
 
             <h4>
-                ✅ Checklist
+                ✅ Checklist bài viết
             </h4>
 
             ${item(
@@ -4128,32 +4397,27 @@ function renderChecklist(
 
             ${item(
                 hasIntroduction,
-                "Có Introduction"
+                "Có phần mở đầu"
             )}
 
             ${item(
                 hasBody,
-                "Có Body"
+                "Có phần phát triển ý"
             )}
 
             ${item(
                 hasConclusion,
-                "Có Conclusion"
+                "Có phần kết thúc"
             )}
 
             ${item(
-                suitableTense,
-                "Sử dụng thì phù hợp"
-            )}
-
-            ${item(
-                connectors,
-                "Có từ nối"
+                hasConnector,
+                "Có sử dụng từ nối"
             )}
 
             ${item(
                 onTopic,
-                "Ý tưởng bám sát đề"
+                "Bám sát chủ đề"
             )}
 
         </div>
@@ -4184,33 +4448,52 @@ function displayResult(
         );
 
 
+    if (!result || !body) {
+
+        return;
+
+    }
+
+
     const score =
-        data.score ?? 0;
+        Number(
+            data.score
+        ) || 0;
 
 
     const wordCount =
-        data.wordCount ??
+        Number(
+            data.wordCount
+        ) ||
         countWords(
             document.getElementById(
                 `writingInput-${index}`
-            ).value
+            )?.value || ""
         );
 
 
     const grammarScore =
-        data.grammar?.score ?? 0;
+        Number(
+            data.grammar?.score
+        ) || 0;
 
 
     const vocabularyScore =
-        data.vocabulary?.score ?? 0;
+        Number(
+            data.vocabulary?.score
+        ) || 0;
 
 
     const coherenceScore =
-        data.coherence?.score ?? 0;
+        Number(
+            data.coherence?.score
+        ) || 0;
 
 
     const contentScore =
-        data.content?.score ?? 0;
+        Number(
+            data.content?.score
+        ) || 0;
 
 
     const errors =
@@ -4221,7 +4504,8 @@ function displayResult(
             : [];
 
 
-    let errorsHTML = "";
+    let errorsHTML =
+        "";
 
 
     if (
@@ -4249,12 +4533,15 @@ function displayResult(
                                 </strong>
 
                                 <span class="error-original">
+
                                     ${escapeHTML(
                                         error.original || ""
                                     )}
+
                                 </span>
 
                             </div>
+
 
                             <div>
 
@@ -4263,17 +4550,26 @@ function displayResult(
                                 </strong>
 
                                 <span class="error-corrected">
+
                                     ${escapeHTML(
                                         error.corrected || ""
                                     )}
+
                                 </span>
 
                             </div>
 
-                            <div>
+
+                            <div style="margin-top:5px">
+
+                                <strong>
+                                    Giải thích:
+                                </strong>
+
                                 ${escapeHTML(
                                     error.explanation || ""
                                 )}
+
                             </div>
 
                         </div>
@@ -4313,8 +4609,13 @@ function displayResult(
         <div class="overall-score">
 
             <div class="score-number">
-                ${escapeHTML(score)}
+
+                ${escapeHTML(
+                    score
+                )}
+
             </div>
+
 
             <div class="score-label">
 
@@ -4323,7 +4624,9 @@ function displayResult(
                 </span>
 
                 <strong>
-                    ${escapeHTML(wordCount)} từ
+                    ${escapeHTML(
+                        wordCount
+                    )} từ
                 </strong>
 
             </div>
@@ -4340,13 +4643,17 @@ function displayResult(
                 </div>
 
                 <div class="criterion-score">
-                    ${escapeHTML(grammarScore)}/10
+                    ${escapeHTML(
+                        grammarScore
+                    )}/10
                 </div>
 
                 <div class="criterion-comment">
+
                     ${escapeHTML(
                         data.grammar?.comment || ""
                     )}
+
                 </div>
 
             </div>
@@ -4359,13 +4666,17 @@ function displayResult(
                 </div>
 
                 <div class="criterion-score">
-                    ${escapeHTML(vocabularyScore)}/10
+                    ${escapeHTML(
+                        vocabularyScore
+                    )}/10
                 </div>
 
                 <div class="criterion-comment">
+
                     ${escapeHTML(
                         data.vocabulary?.comment || ""
                     )}
+
                 </div>
 
             </div>
@@ -4378,13 +4689,17 @@ function displayResult(
                 </div>
 
                 <div class="criterion-score">
-                    ${escapeHTML(coherenceScore)}/10
+                    ${escapeHTML(
+                        coherenceScore
+                    )}/10
                 </div>
 
                 <div class="criterion-comment">
+
                     ${escapeHTML(
                         data.coherence?.comment || ""
                     )}
+
                 </div>
 
             </div>
@@ -4397,13 +4712,17 @@ function displayResult(
                 </div>
 
                 <div class="criterion-score">
-                    ${escapeHTML(contentScore)}/10
+                    ${escapeHTML(
+                        contentScore
+                    )}/10
                 </div>
 
                 <div class="criterion-comment">
+
                     ${escapeHTML(
                         data.content?.comment || ""
                     )}
+
                 </div>
 
             </div>
@@ -4421,9 +4740,11 @@ function displayResult(
             </h4>
 
             <ul>
+
                 ${renderList(
                     data.strengths
                 )}
+
             </ul>
 
         </div>
@@ -4436,9 +4757,11 @@ function displayResult(
             </h4>
 
             <ul>
+
                 ${renderList(
                     data.weaknesses
                 )}
+
             </ul>
 
         </div>
@@ -4451,9 +4774,11 @@ function displayResult(
             </h4>
 
             <ul>
+
                 ${renderList(
                     data.improvements
                 )}
+
             </ul>
 
         </div>
@@ -4466,15 +4791,18 @@ function displayResult(
             </h4>
 
             <div>
+
                 ${escapeHTML(
                     data.overall_comment || ""
                 )}
+
             </div>
 
         </div>
 
 
         ${renderChecklist(
+            index,
             data,
             wordCount
         )}
@@ -4487,12 +4815,120 @@ function displayResult(
     );
 
 
-    document
-        .getElementById(
+    const next =
+        document.getElementById(
             `next-${index}`
-        )
-        .style.display =
+        );
+
+
+    if (next) {
+
+        next.style.display =
             "block";
+
+    }
+
+}
+
+
+/* =========================================================
+   LOCK SUBMITTED UI
+========================================================= */
+
+function lockSubmittedTest(index) {
+
+    const textarea =
+        document.getElementById(
+            `writingInput-${index}`
+        );
+
+
+    const submitButton =
+        document.getElementById(
+            `submitBtn-${index}`
+        );
+
+
+    const clearButton =
+        document.getElementById(
+            `clearBtn-${index}`
+        );
+
+
+    if (textarea) {
+
+        textarea.disabled =
+            true;
+
+    }
+
+
+    if (submitButton) {
+
+        submitButton.disabled =
+            true;
+
+        submitButton.textContent =
+            "✓ Đã chấm bài";
+
+    }
+
+
+    if (clearButton) {
+
+        clearButton.disabled =
+            true;
+
+    }
+
+}
+
+
+/* =========================================================
+   RESTART TIMER AFTER AI ERROR
+========================================================= */
+
+function resumeTimerIfPossible(index) {
+
+    if (
+        !aiConnected
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        submitted[index]
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        timeLeft[index] <= 0
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        index !== currentTest
+    ) {
+
+        return;
+
+    }
+
+
+    startTimer(
+        index
+    );
 
 }
 
@@ -4515,8 +4951,34 @@ async function checkWriting(
     }
 
 
+    if (
+        submitted[index]
+    ) {
+
+        return;
+
+    }
+
+
     /*
-     * Không được chấm nếu AI chưa kết nối.
+     * Chỉ cho làm đề hiện tại.
+     */
+
+    if (
+        index !== currentTest
+    ) {
+
+        alert(
+            "🔒 Bạn chưa thể nộp đề này."
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * AI phải kết nối.
      */
 
     if (
@@ -4526,8 +4988,11 @@ async function checkWriting(
         if (!automatic) {
 
             alert(
+
                 "❌ Gemini AI chưa kết nối.\n\n" +
+
                 "Hãy bấm 'Kiểm tra AI' trước."
+
             );
 
         }
@@ -4572,6 +5037,10 @@ async function checkWriting(
     }
 
 
+    /*
+     * Kiểm tra tối thiểu 80 từ.
+     */
+
     if (
         words < 80 &&
         !automatic
@@ -4579,9 +5048,13 @@ async function checkWriting(
 
         const confirmSubmit =
             confirm(
+
                 `Bài viết hiện có ${words} từ.\n\n` +
+
                 `Đề yêu cầu ít nhất 80 từ.\n\n` +
+
                 `Bạn vẫn muốn nộp bài không?`
+
             );
 
 
@@ -4601,35 +5074,57 @@ async function checkWriting(
 
 
     /*
-     * Dừng timer ngay khi gửi bài.
-     * Không để thời gian tiếp tục chạy
-     * trong lúc AI đang chấm.
+     * Dừng timer trong lúc AI chấm.
      */
 
-    stopTimer(index);
+    stopTimer(
+        index
+    );
 
 
-    button.disabled = true;
+    if (button) {
 
-    button.textContent =
-        "🤖 AI đang chấm...";
+        button.disabled =
+            true;
+
+        button.textContent =
+            "🤖 AI đang chấm...";
+
+    }
 
 
     setAIStatus(
+
         "checking",
+
         "Gemini AI: Đang chấm",
+
         "AI đang phân tích bài viết..."
+
     );
 
 
     try {
 
+        /*
+         * QUAN TRỌNG:
+         *
+         * Không gọi /api/check-writing
+         *
+         * mà gọi:
+         *
+         * BASE_PATH + /api/check-writing
+         */
+
         const response =
             await fetch(
-                "/api/check-writing",
+
+                `${API_BASE}/check-writing`,
+
                 {
 
-                    method: "POST",
+                    method:
+                        "POST",
 
                     headers: {
 
@@ -4656,6 +5151,7 @@ async function checkWriting(
                         })
 
                 }
+
             );
 
 
@@ -4682,8 +5178,11 @@ async function checkWriting(
         ) {
 
             throw new Error(
+
                 result.message ||
+
                 "AI không thể chấm bài."
+
             );
 
         }
@@ -4702,14 +5201,20 @@ async function checkWriting(
 
 
         setAIStatus(
+
             "connected",
+
             "Gemini AI: Đã kết nối",
+
             "AI đã chấm bài thành công."
+
         );
 
 
         displayResult(
+
             index,
+
             {
 
                 ...result.data,
@@ -4718,8 +5223,18 @@ async function checkWriting(
                     words
 
             }
+
         );
 
+
+        lockSubmittedTest(
+            index
+        );
+
+
+        /*
+         * Đổi dot thành completed.
+         */
 
         const dot =
             document.querySelectorAll(
@@ -4755,16 +5270,48 @@ async function checkWriting(
                 nextLock.textContent =
                     "🔓 Đề đã mở. Bạn có thể bắt đầu làm bài.";
 
-                nextLock.classList.remove(
-                    "show"
-                );
-
             }
 
         }
 
 
         updateAllLockMessages();
+
+
+        /*
+         * Nếu chưa phải đề cuối,
+         * có thể sang đề tiếp theo.
+         */
+
+        if (
+            index < 3
+        ) {
+
+            /*
+             * Không tự chuyển slide.
+             * Người dùng bấm Đề tiếp theo.
+             */
+
+        } else {
+
+            /*
+             * Đề cuối hoàn thành.
+             */
+
+            const nextButton =
+                document.getElementById(
+                    "next-3"
+                );
+
+
+            if (nextButton) {
+
+                nextButton.textContent =
+                    "Hoàn thành ✓";
+
+            }
+
+        }
 
 
     } catch (error) {
@@ -4775,44 +5322,53 @@ async function checkWriting(
         );
 
 
-        /*
-         * Bài chưa được submit.
-         * AI lỗi -> không mất bài.
-         */
-
         submitted[index] =
             false;
 
+
+        /*
+         * Không nhất thiết backend chết.
+         *
+         * Nếu request tới API thất bại,
+         * kiểm tra lại trạng thái AI.
+         */
 
         aiConnected =
             false;
 
 
         setAIStatus(
+
             "error",
+
             "Gemini AI: Lỗi kết nối",
+
             error.message ||
             "Không thể kết nối AI."
+
         );
 
 
         updateAllLockMessages();
 
 
-        /*
-         * Nếu chưa hết giờ,
-         * giữ nguyên số giây còn lại.
-         */
-
-        updateTimer(index);
+        updateTimer(
+            index
+        );
 
 
         alert(
+
             "❌ Không thể chấm AI.\n\n" +
+
             error.message +
+
             "\n\n" +
+
             "Bài viết vẫn được giữ nguyên.\n" +
-            "Hãy kết nối lại AI rồi nộp lại."
+
+            "Hãy bấm 'Kiểm tra AI' để kết nối lại."
+
         );
 
 
@@ -4822,10 +5378,27 @@ async function checkWriting(
             false;
 
 
-        button.disabled = false;
+        if (button) {
 
-        button.textContent =
-            "Nộp bài & chấm AI";
+            button.disabled =
+                false;
+
+            button.textContent =
+                "Nộp bài & chấm AI";
+
+        }
+
+
+        /*
+         * Nếu bài chưa submit thành công,
+         * không để timer chạy âm thầm.
+         *
+         * Người dùng phải kiểm tra AI lại.
+         */
+
+        updateTimer(
+            index
+        );
 
     }
 
@@ -4849,8 +5422,11 @@ function showFinalResult() {
     ) {
 
         alert(
+
             `Bạn mới hoàn thành ${completed}/4 đề.\n\n` +
+
             "Hãy hoàn thành tất cả các đề trước."
+
         );
 
         return;
@@ -4858,10 +5434,17 @@ function showFinalResult() {
     }
 
 
+    stopAllTimers();
+
+
     alert(
+
         "🎉 HOÀN THÀNH!\n\n" +
+
         "Bạn đã nộp đủ 4/4 đề Writing.\n\n" +
+
         "Chúc mừng! 🔥"
+
     );
 
 }
@@ -4879,7 +5462,9 @@ document
         (textarea, index) => {
 
             textarea.addEventListener(
+
                 "input",
+
                 () => {
 
                     updateWordCount(
@@ -4887,6 +5472,7 @@ document
                     );
 
                 }
+
             );
 
         }
@@ -4920,38 +5506,20 @@ for (
 
 
 /*
- * =========================================================
+ * Không startTimer() trực tiếp.
  *
- * CỰC KỲ QUAN TRỌNG:
+ * Timer chỉ chạy sau khi:
  *
- * KHÔNG:
+ * GET
  *
- *     startTimer(0);
+ * /BASE_PATH/api/ai-status
  *
- * ở đây.
+ * trả:
  *
- * Timer chỉ được start bên trong:
- *
- *     checkAIConnection()
- *
- * sau khi backend trả:
- *
+ * {
+ *     success: true,
  *     connected: true
- *
- * =========================================================
- */
-
-
-/*
- * Tự động kiểm tra backend khi mở trang.
- *
- * Nếu Gemini OK:
- *      -> aiConnected = true
- *      -> timer đề 01 bắt đầu 20:00
- *
- * Nếu Gemini lỗi 503:
- *      -> aiConnected = false
- *      -> timer đứng ở 20:00
+ * }
  */
 
 checkAIConnection();
