@@ -1744,6 +1744,8 @@ let audioFinished = false;
 
 let submitted = false;
 
+let hasStartedAudio = false; // Track if audio has been started
+
 
 /* =============================================================
    GENERATE TEST 2 - 4
@@ -2113,6 +2115,7 @@ function showTest(testNumber) {
     });
 
 
+    // Load audio for the test
     audio.src =
         tests[testNumber].audio;
 
@@ -2130,6 +2133,8 @@ function showTest(testNumber) {
     audioFinished = false;
 
     submitted = false;
+
+    hasStartedAudio = false;
 
 
     startScreen.style.display =
@@ -2267,7 +2272,8 @@ function enableQuestions() {
 
     if (submit) {
 
-        submit.disabled = true;
+        // Cho phép nộp bài ngay khi bắt đầu
+        submit.disabled = false;
 
     }
 
@@ -2298,18 +2304,7 @@ function lockQuestions() {
         });
 
 
-    const submit =
-        document.getElementById(
-            `submitBtn-${currentTest}`
-        );
-
-
-    if (submit) {
-
-        submit.disabled = false;
-
-    }
-
+    // Không thay đổi trạng thái nút submit (vẫn enabled từ enableQuestions)
 
     audioStatus.textContent =
         "⏹ Audio đã kết thúc. Bài làm đã được khóa. Hãy kiểm tra và bấm NỘP BÀI.";
@@ -2333,6 +2328,8 @@ startBtn.addEventListener(
 
 
         audioFinished = false;
+
+        hasStartedAudio = true;
 
 
         audioStatus.textContent =
@@ -2373,7 +2370,7 @@ audio.addEventListener(
 
 
 /* =============================================================
-   SUBMIT
+   SUBMIT - WITH CONFIRMATION FOR EARLY SUBMISSION
 ============================================================= */
 
 document.addEventListener(
@@ -2392,17 +2389,6 @@ document.addEventListener(
         event.preventDefault();
 
 
-        if (!audioFinished) {
-
-            alert(
-                "Bạn chưa nghe hết audio. Hãy nghe hết bài trước khi nộp."
-            );
-
-            return;
-
-        }
-
-
         const testNumber =
             Number(
                 form.id.replace(
@@ -2410,6 +2396,31 @@ document.addEventListener(
                     ""
                 )
             );
+
+
+        // Check if audio is not finished and user is trying to submit early
+        if (!audioFinished) {
+            let warningMessage = "";
+            
+            if (!hasStartedAudio) {
+                warningMessage = "⚠️ Bạn chưa bắt đầu nghe audio.\n\n";
+            } else {
+                warningMessage = "⚠️ Bạn chưa nghe hết audio.\n\n";
+            }
+            
+            const confirmSubmit = confirm(
+                warningMessage +
+                "Bạn có chắc muốn nộp bài không?\n\n" +
+                "Lưu ý: Sau khi nộp, bạn sẽ không thể chỉnh sửa câu trả lời."
+            );
+            
+            if (!confirmSubmit) {
+                return;
+            }
+            
+            // If user confirms, mark audio as finished to allow submission
+            audioFinished = true;
+        }
 
 
         submitTest(
@@ -2659,11 +2670,8 @@ function submitTest(testNumber) {
     submitted = true;
 
 
-    /* khóa audio */
-
-    audio.pause();
-
-    audio.controls = false;
+    // Allow user to replay audio after submission
+    audio.controls = true;
 
 
     /* đánh dấu đã hoàn thành */
@@ -2806,36 +2814,56 @@ dots.forEach(dot => {
 
 
 /* =============================================================
-   CHẶN SEEK AUDIO
-   Không cho tua audio để né phần nghe.
+   CHẶN SEEK AUDIO - Allow seeking only after submission
 ============================================================= */
 
 let lastAudioTime = 0;
+let isSeekBlocked = true;
 
 
 audio.addEventListener(
     "timeupdate",
     function () {
 
-        if (
-            Math.abs(
-                audio.currentTime -
-                lastAudioTime
-            ) > 1.5
-        ) {
+        // Only block seeking if audio is not finished and not submitted
+        if (!audioFinished && !submitted && isSeekBlocked) {
+            if (
+                Math.abs(
+                    audio.currentTime -
+                    lastAudioTime
+                ) > 1.5
+            ) {
 
-            audio.currentTime =
-                lastAudioTime;
+                audio.currentTime =
+                    lastAudioTime;
 
+            } else {
+
+                lastAudioTime =
+                    audio.currentTime;
+
+            }
         } else {
-
-            lastAudioTime =
-                audio.currentTime;
-
+            // Update lastAudioTime normally when not blocking
+            lastAudioTime = audio.currentTime;
         }
 
     }
 );
+
+
+/* =============================================================
+   ALLOW SEEKING AFTER SUBMISSION
+============================================================= */
+
+// Override the submitTest function to allow seeking after submission
+const originalSubmitTest = submitTest;
+submitTest = function(testNumber) {
+    originalSubmitTest(testNumber);
+    // Allow seeking after submission
+    isSeekBlocked = false;
+    audio.controls = true;
+};
 
 
 /* =============================================================
