@@ -18,19 +18,27 @@ const app = express();
 
 
 // ============================================================
-// CONFIG
+// ENVIRONMENT
 // ============================================================
 
+const IS_VERCEL =
+    Boolean(process.env.VERCEL);
+
+const IS_RENDER =
+    Boolean(process.env.RENDER);
+
+
+// ============================================================
+// BASE PATH
+// ============================================================
+//
 // Render:
+//
 // /ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1
 //
 // Vercel:
-// /
 //
-// Tự nhận diện môi trường.
-
-const IS_VERCEL =
-    !!process.env.VERCEL;
+// /
 
 const BASE_PATH =
     IS_VERCEL
@@ -76,20 +84,49 @@ const INDEX_PATH =
 
 
 // ============================================================
-// LOG
+// LOG STARTUP
 // ============================================================
 
 console.log("");
+
 console.log("========================================");
 console.log("🚀 IELTS WRITING AI BACKEND");
 console.log("========================================");
 
-console.log("📁 Root:", ROOT_DIR);
-console.log("📄 Index:", INDEX_PATH);
-console.log("🌐 PORT:", PORT);
-console.log("☁️ VERCEL:", IS_VERCEL ? "YES" : "NO");
-console.log("🔗 BASE PATH:", BASE_PATH);
-console.log("🤖 GEMINI MODEL:", GEMINI_MODEL);
+console.log(
+    "📁 ROOT:",
+    ROOT_DIR
+);
+
+console.log(
+    "📄 INDEX:",
+    INDEX_PATH
+);
+
+console.log(
+    "🌐 PORT:",
+    PORT
+);
+
+console.log(
+    "☁️ VERCEL:",
+    IS_VERCEL ? "YES" : "NO"
+);
+
+console.log(
+    "🔥 RENDER:",
+    IS_RENDER ? "YES" : "NO"
+);
+
+console.log(
+    "🔗 BASE PATH:",
+    BASE_PATH || "/"
+);
+
+console.log(
+    "🤖 GEMINI MODEL:",
+    GEMINI_MODEL
+);
 
 console.log(
     "🔑 GEMINI API KEY:",
@@ -99,7 +136,6 @@ console.log(
 );
 
 console.log("========================================");
-console.log("");
 
 
 // ============================================================
@@ -114,19 +150,36 @@ app.use(
 
 app.use(
     express.urlencoded({
-        extended: true
+        extended: true,
+        limit: "1mb"
     })
 );
 
 
 // ============================================================
-// STATIC
+// STATIC - LOCAL / RENDER
+// ============================================================
+//
+// Trên Render:
+//
+// /ielts/.../bai-viet-1/style.css
+//
+// sẽ lấy từ thư mục project.
+//
+// Trên Vercel:
+// static file nên đặt trong public/.
+// Nhưng index.html vẫn được trả bằng sendFile().
+//
 // ============================================================
 
-app.use(
-    BASE_PATH || "/",
-    express.static(ROOT_DIR)
-);
+if (!IS_VERCEL) {
+
+    app.use(
+        BASE_PATH,
+        express.static(ROOT_DIR)
+    );
+
+}
 
 
 // ============================================================
@@ -139,8 +192,21 @@ async function callGemini(prompt) {
     console.log("========================================");
     console.log("🤖 GỌI GEMINI AI");
     console.log("========================================");
-    console.log("MODEL:", GEMINI_MODEL);
-    console.log("PROMPT LENGTH:", prompt.length);
+
+    console.log(
+        "MODEL:",
+        GEMINI_MODEL
+    );
+
+    console.log(
+        "PROMPT LENGTH:",
+        prompt.length
+    );
+
+
+    // ========================================================
+    // API KEY
+    // ========================================================
 
     if (!GEMINI_API_KEY) {
 
@@ -149,6 +215,11 @@ async function callGemini(prompt) {
         );
 
     }
+
+
+    // ========================================================
+    // REQUEST
+    // ========================================================
 
     let response;
 
@@ -210,12 +281,20 @@ async function callGemini(prompt) {
     }
 
 
+    // ========================================================
+    // STATUS
+    // ========================================================
+
     console.log(
         "📡 GEMINI STATUS:",
         response.status,
         response.statusText
     );
 
+
+    // ========================================================
+    // JSON
+    // ========================================================
 
     let data;
 
@@ -233,6 +312,10 @@ async function callGemini(prompt) {
     }
 
 
+    // ========================================================
+    // ERROR
+    // ========================================================
+
     if (!response.ok) {
 
         console.error(
@@ -245,7 +328,9 @@ async function callGemini(prompt) {
         );
 
 
-        if (response.status === 400) {
+        if (
+            response.status === 400
+        ) {
 
             throw new Error(
                 data?.error?.message ||
@@ -255,7 +340,9 @@ async function callGemini(prompt) {
         }
 
 
-        if (response.status === 401) {
+        if (
+            response.status === 401
+        ) {
 
             throw new Error(
                 "Gemini API Key không hợp lệ hoặc đã hết hạn."
@@ -264,7 +351,9 @@ async function callGemini(prompt) {
         }
 
 
-        if (response.status === 403) {
+        if (
+            response.status === 403
+        ) {
 
             throw new Error(
                 "Gemini API Key không có quyền sử dụng model này."
@@ -273,7 +362,9 @@ async function callGemini(prompt) {
         }
 
 
-        if (response.status === 404) {
+        if (
+            response.status === 404
+        ) {
 
             throw new Error(
                 `Gemini không tìm thấy model "${GEMINI_MODEL}".`
@@ -282,7 +373,9 @@ async function callGemini(prompt) {
         }
 
 
-        if (response.status === 429) {
+        if (
+            response.status === 429
+        ) {
 
             throw new Error(
                 "Gemini API đang giới hạn số lượt gọi."
@@ -291,7 +384,9 @@ async function callGemini(prompt) {
         }
 
 
-        if (response.status === 503) {
+        if (
+            response.status === 503
+        ) {
 
             throw new Error(
                 "Gemini đang quá tải. Vui lòng thử lại sau."
@@ -308,6 +403,10 @@ async function callGemini(prompt) {
     }
 
 
+    // ========================================================
+    // GET TEXT
+    // ========================================================
+
     const text =
         data
             ?.candidates?.[0]
@@ -319,6 +418,10 @@ async function callGemini(prompt) {
             ?.join("")
             ?.trim();
 
+
+    // ========================================================
+    // EMPTY
+    // ========================================================
 
     if (!text) {
 
@@ -369,6 +472,10 @@ function parseGeminiJSON(text) {
             .trim();
 
 
+    // ========================================================
+    // REMOVE MARKDOWN
+    // ========================================================
+
     cleaned =
         cleaned
             .replace(
@@ -385,6 +492,10 @@ function parseGeminiJSON(text) {
             )
             .trim();
 
+
+    // ========================================================
+    // FIND JSON
+    // ========================================================
 
     const firstBrace =
         cleaned.indexOf("{");
@@ -407,6 +518,10 @@ function parseGeminiJSON(text) {
 
     }
 
+
+    // ========================================================
+    // PARSE
+    // ========================================================
 
     try {
 
@@ -451,7 +566,7 @@ app.get(
                 );
 
 
-            res.json({
+            return res.json({
 
                 success:
                     true,
@@ -478,7 +593,7 @@ app.get(
             );
 
 
-            res.status(500).json({
+            return res.status(500).json({
 
                 success:
                     false,
@@ -536,9 +651,15 @@ app.post(
 
             console.log(
                 "📌 Outline:",
-                outline ? "Có" : "Không"
+                outline
+                    ? "Có"
+                    : "Không"
             );
 
+
+            // =================================================
+            // VALIDATE
+            // =================================================
 
             if (
                 typeof writing !== "string" ||
@@ -562,6 +683,10 @@ app.post(
                 writing.trim();
 
 
+            // =================================================
+            // WORD COUNT
+            // =================================================
+
             const wordCount =
                 cleanWriting
                     .split(/\s+/)
@@ -575,9 +700,9 @@ app.post(
             );
 
 
-            // ==================================================
+            // =================================================
             // PROMPT
-            // ==================================================
+            // =================================================
 
             const prompt = `
 
@@ -785,17 +910,29 @@ CHỈ TRẢ JSON.
 `;
 
 
+            // =================================================
+            // CALL GEMINI
+            // =================================================
+
             const aiText =
                 await callGemini(
                     prompt
                 );
 
 
+            // =================================================
+            // PARSE
+            // =================================================
+
             const result =
                 parseGeminiJSON(
                     aiText
                 );
 
+
+            // =================================================
+            // NORMALIZE
+            // =================================================
 
             const data = {
 
@@ -924,6 +1061,10 @@ CHỈ TRẢ JSON.
             };
 
 
+            // =================================================
+            // SUCCESS
+            // =================================================
+
             console.log("");
             console.log("========================================");
             console.log("✅ CHẤM BÀI THÀNH CÔNG");
@@ -971,11 +1112,13 @@ CHỈ TRẢ JSON.
 // ============================================================
 // HOME
 // ============================================================
-
+//
 // Render:
-// /ielts/.../bai-viet-1
+//
+// /ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1/
 //
 // Vercel:
+//
 // /
 
 app.get(
@@ -999,7 +1142,10 @@ app.get(
                         error.message
                     );
 
-                    if (!res.headersSent) {
+
+                    if (
+                        !res.headersSent
+                    ) {
 
                         res.status(500).send(
                             "Không tìm thấy index.html"
@@ -1017,7 +1163,7 @@ app.get(
 
 
 // ============================================================
-// ROOT FALLBACK FOR VERCEL
+// VERCEL ROOT
 // ============================================================
 
 if (IS_VERCEL) {
@@ -1051,7 +1197,7 @@ app.use(
         );
 
 
-        res.status(404).json({
+        return res.status(404).json({
 
             success:
                 false,
@@ -1081,14 +1227,16 @@ app.use(
         );
 
 
-        if (res.headersSent) {
+        if (
+            res.headersSent
+        ) {
 
             return next(error);
 
         }
 
 
-        res.status(500).json({
+        return res.status(500).json({
 
             success:
                 false,
@@ -1103,13 +1251,17 @@ app.use(
 
 
 // ============================================================
-// LOCAL SERVER
+// RENDER / LOCAL SERVER
 // ============================================================
-
-// ⚠️ QUAN TRỌNG:
-// Không app.listen() trên Vercel.
 //
-// Vercel sẽ tự chạy Express app.
+// Vercel:
+// Không listen.
+//
+// Render:
+// Có listen.
+//
+// Local:
+// Có listen.
 
 if (!IS_VERCEL) {
 
@@ -1122,18 +1274,22 @@ if (!IS_VERCEL) {
             console.log("========================================");
             console.log("🚀 IELTS WRITING AI ĐANG CHẠY");
             console.log("========================================");
+
             console.log(
                 "🌐 http://localhost:" +
                 PORT
             );
+
             console.log(
                 "🔗 BASE PATH:",
                 BASE_PATH
             );
+
             console.log(
                 "🤖 Gemini:",
                 GEMINI_MODEL
             );
+
             console.log("========================================");
             console.log("");
 
@@ -1148,4 +1304,3 @@ if (!IS_VERCEL) {
 // ============================================================
 
 module.exports = app;
-
