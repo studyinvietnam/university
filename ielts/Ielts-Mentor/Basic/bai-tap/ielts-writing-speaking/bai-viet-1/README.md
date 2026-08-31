@@ -8,8 +8,12 @@
 
 ## 🚀 Link làm bài
 
-👉 **Làm bài trực tiếp:**  
-[IELTS Writing – Bài viết 1](https://university-qh84.onrender.com/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1/?utm_source=chatgpt.com)
+👉 **Làm bài trực tiếp:**
+
+[IELTS Writing – Bài viết 1 (Render)](https://university-qh84.onrender.com/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1/?utm_source=chatgpt.com)
+
+[IELTS Writing – Bài viết 1 (Vercel)](https://studyinvietnamuniversityieltsimbasicbt-ws-bv-1-ks64jag5d.vercel.app/)
+
 
 👉 **Mã nguồn trên GitHub:**  
 [GitHub – IELTS Writing Bài viết 1](https://github.com/studyinvietnam/university/tree/main/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1?utm_source=chatgpt.com)
