@@ -1,5 +1,15 @@
-
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json"
+  "version": 2,
+  "builds": [
+    {
+      "src": "bai-viet-1.backend.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/bai-viet-1.backend.js"
+    }
+  ]
 }
-
