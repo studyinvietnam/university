@@ -10,8 +10,6 @@
 
 👉 **Làm bài trực tiếp:**
 
-[IELTS Writing – Bài viết 1 (Render)](https://university-qh84.onrender.com/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1/?utm_source=chatgpt.com)
-
 [IELTS Writing – Bài viết 1 (Vercel)](https://studyinvietnamuniversityieltsimbasi.vercel.app/)
 
 
