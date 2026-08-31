@@ -1,5 +1,7 @@
+
 // ============================================================
 // IELTS WRITING AI - BACKEND
+// Express + Vercel + Render
 // ============================================================
 
 require("dotenv").config();
@@ -16,43 +18,44 @@ const app = express();
 
 
 // ============================================================
-// PORT
+// CONFIG
 // ============================================================
 
-// Render tự cấp process.env.PORT.
-// Chạy local nếu không có PORT thì dùng 3001.
+// Render:
+// /ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1
+//
+// Vercel:
+// /
+//
+// Tự nhận diện môi trường.
+
+const IS_VERCEL =
+    !!process.env.VERCEL;
+
+const BASE_PATH =
+    IS_VERCEL
+        ? ""
+        : "/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1";
+
+
+// ============================================================
+// PORT
+// ============================================================
 
 const PORT =
     process.env.PORT || 3001;
 
 
 // ============================================================
-// BASE PATH
-// ============================================================
-
-// URL chính trên Render:
-//
-// https://university-qh84.onrender.com/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1
-//
-// Tất cả API cũng nằm dưới BASE_PATH.
-
-const BASE_PATH =
-    "/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1";
-
-
-// ============================================================
-// GEMINI CONFIG
+// GEMINI
 // ============================================================
 
 const GEMINI_API_KEY =
     process.env.GEMINI_API_KEY?.trim();
 
-
-// Model Gemini
-
 const GEMINI_MODEL =
+    process.env.GEMINI_MODEL?.trim() ||
     "gemini-3.6-flash";
-
 
 const GEMINI_URL =
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -65,7 +68,6 @@ const GEMINI_URL =
 const ROOT_DIR =
     __dirname;
 
-
 const INDEX_PATH =
     path.join(
         ROOT_DIR,
@@ -74,39 +76,20 @@ const INDEX_PATH =
 
 
 // ============================================================
-// LOG KHỞI ĐỘNG
+// LOG
 // ============================================================
 
 console.log("");
-
 console.log("========================================");
 console.log("🚀 IELTS WRITING AI BACKEND");
 console.log("========================================");
 
-console.log(
-    "📁 Root:",
-    ROOT_DIR
-);
-
-console.log(
-    "📄 index.html:",
-    INDEX_PATH
-);
-
-console.log(
-    "🌐 PORT:",
-    PORT
-);
-
-console.log(
-    "🔗 BASE PATH:",
-    BASE_PATH
-);
-
-console.log(
-    "🤖 GEMINI MODEL:",
-    GEMINI_MODEL
-);
+console.log("📁 Root:", ROOT_DIR);
+console.log("📄 Index:", INDEX_PATH);
+console.log("🌐 PORT:", PORT);
+console.log("☁️ VERCEL:", IS_VERCEL ? "YES" : "NO");
+console.log("🔗 BASE PATH:", BASE_PATH);
+console.log("🤖 GEMINI MODEL:", GEMINI_MODEL);
 
 console.log(
     "🔑 GEMINI API KEY:",
@@ -115,10 +98,7 @@ console.log(
         : "❌ KHÔNG TÌM THẤY"
 );
 
-console.log(
-    "========================================"
-);
-
+console.log("========================================");
 console.log("");
 
 
@@ -132,141 +112,37 @@ app.use(
     })
 );
 
+app.use(
+    express.urlencoded({
+        extended: true
+    })
+);
+
 
 // ============================================================
-// STATIC FILE
+// STATIC
 // ============================================================
-
-// Cho phép index.html, CSS, JS, image... nằm cùng thư mục
-// server.js được truy cập.
 
 app.use(
-    BASE_PATH,
+    BASE_PATH || "/",
     express.static(ROOT_DIR)
 );
 
 
 // ============================================================
-// KIỂM TRA API KEY
-// ============================================================
-
-if (!GEMINI_API_KEY) {
-
-    console.error("");
-
-    console.error(
-        "========================================"
-    );
-
-    console.error(
-        "❌ GEMINI API KEY ERROR"
-    );
-
-    console.error(
-        "========================================"
-    );
-
-    console.error(
-        "Không tìm thấy GEMINI_API_KEY."
-    );
-
-    console.error(
-        "Nếu chạy local:"
-    );
-
-    console.error(
-        "Tạo file .env ở thư mục phù hợp."
-    );
-
-    console.error(
-        "Ví dụ:"
-    );
-
-    console.error(
-        "GEMINI_API_KEY=YOUR_API_KEY"
-    );
-
-    console.error(
-        "Nếu chạy Render:"
-    );
-
-    console.error(
-        "Dashboard → Environment → Add Environment Variable"
-    );
-
-    console.error(
-        "Name: GEMINI_API_KEY"
-    );
-
-    console.error(
-        "Value: API KEY của bạn"
-    );
-
-    console.error(
-        "========================================"
-    );
-
-    console.error("");
-
-}
-
-
-// ============================================================
-// HÀM GỌI GEMINI
+// GEMINI FUNCTION
 // ============================================================
 
 async function callGemini(prompt) {
 
     console.log("");
-
-    console.log(
-        "========================================"
-    );
-
-    console.log(
-        "🤖 GỌI GEMINI AI"
-    );
-
-    console.log(
-        "========================================"
-    );
-
-    console.log(
-        "MODEL:",
-        GEMINI_MODEL
-    );
-
-    console.log(
-        "URL:",
-        GEMINI_URL
-    );
-
-    console.log(
-        "API KEY:",
-        GEMINI_API_KEY
-            ? "✅ ĐÃ CẤU HÌNH"
-            : "❌ THIẾU"
-    );
-
-    console.log(
-        "PROMPT LENGTH:",
-        prompt.length
-    );
-
-    console.log(
-        "========================================"
-    );
-
-
-    // ========================================================
-    // CHECK API KEY
-    // ========================================================
+    console.log("========================================");
+    console.log("🤖 GỌI GEMINI AI");
+    console.log("========================================");
+    console.log("MODEL:", GEMINI_MODEL);
+    console.log("PROMPT LENGTH:", prompt.length);
 
     if (!GEMINI_API_KEY) {
-
-        console.error(
-            "❌ GEMINI_API_KEY chưa được cấu hình."
-        );
 
         throw new Error(
             "GEMINI_API_KEY chưa được cấu hình."
@@ -274,13 +150,7 @@ async function callGemini(prompt) {
 
     }
 
-
-    // ========================================================
-    // REQUEST
-    // ========================================================
-
     let response;
-
 
     try {
 
@@ -326,42 +196,12 @@ async function callGemini(prompt) {
                 }
             );
 
-
     } catch (error) {
 
-        console.error("");
-
         console.error(
-            "========================================"
-        );
-
-        console.error(
-            "❌ FETCH GEMINI ERROR"
-        );
-
-        console.error(
-            "========================================"
-        );
-
-        console.error(
-            "NAME:",
-            error.name
-        );
-
-        console.error(
-            "MESSAGE:",
+            "❌ FETCH GEMINI ERROR:",
             error.message
         );
-
-        console.error(
-            "STACK:",
-            error.stack
-        );
-
-        console.error(
-            "========================================"
-        );
-
 
         throw new Error(
             "Không thể kết nối tới Gemini API."
@@ -370,34 +210,21 @@ async function callGemini(prompt) {
     }
 
 
-    // ========================================================
-    // STATUS
-    // ========================================================
-
     console.log(
-        "📡 GEMINI HTTP STATUS:",
+        "📡 GEMINI STATUS:",
         response.status,
         response.statusText
     );
 
 
-    // ========================================================
-    // READ JSON
-    // ========================================================
-
     let data;
-
 
     try {
 
         data =
             await response.json();
 
-    } catch (error) {
-
-        console.error(
-            "❌ Gemini không trả JSON hợp lệ."
-        );
+    } catch {
 
         throw new Error(
             "Gemini API không trả về JSON hợp lệ."
@@ -406,61 +233,10 @@ async function callGemini(prompt) {
     }
 
 
-    // ========================================================
-    // ERROR
-    // ========================================================
-
     if (!response.ok) {
 
-        console.error("");
-
         console.error(
-            "========================================"
-        );
-
-        console.error(
-            "❌ GEMINI API ERROR"
-        );
-
-        console.error(
-            "========================================"
-        );
-
-        console.error(
-            "HTTP STATUS:",
-            response.status
-        );
-
-        console.error(
-            "STATUS TEXT:",
-            response.statusText
-        );
-
-        console.error(
-            "MODEL:",
-            GEMINI_MODEL
-        );
-
-        console.error(
-            "ERROR CODE:",
-            data?.error?.code
-        );
-
-        console.error(
-            "ERROR STATUS:",
-            data?.error?.status
-        );
-
-        console.error(
-            "ERROR MESSAGE:",
-            data?.error?.message
-        );
-
-        console.error(
-            "FULL RESPONSE:"
-        );
-
-        console.error(
+            "❌ GEMINI ERROR:",
             JSON.stringify(
                 data,
                 null,
@@ -468,34 +244,18 @@ async function callGemini(prompt) {
             )
         );
 
-        console.error(
-            "========================================"
-        );
 
-
-        // ----------------------------------------------------
-        // 400
-        // ----------------------------------------------------
-
-        if (
-            response.status === 400
-        ) {
+        if (response.status === 400) {
 
             throw new Error(
                 data?.error?.message ||
-                "Gemini API nhận request không hợp lệ."
+                "Gemini nhận request không hợp lệ."
             );
 
         }
 
 
-        // ----------------------------------------------------
-        // 401
-        // ----------------------------------------------------
-
-        if (
-            response.status === 401
-        ) {
+        if (response.status === 401) {
 
             throw new Error(
                 "Gemini API Key không hợp lệ hoặc đã hết hạn."
@@ -504,13 +264,7 @@ async function callGemini(prompt) {
         }
 
 
-        // ----------------------------------------------------
-        // 403
-        // ----------------------------------------------------
-
-        if (
-            response.status === 403
-        ) {
+        if (response.status === 403) {
 
             throw new Error(
                 "Gemini API Key không có quyền sử dụng model này."
@@ -519,13 +273,7 @@ async function callGemini(prompt) {
         }
 
 
-        // ----------------------------------------------------
-        // 404
-        // ----------------------------------------------------
-
-        if (
-            response.status === 404
-        ) {
+        if (response.status === 404) {
 
             throw new Error(
                 `Gemini không tìm thấy model "${GEMINI_MODEL}".`
@@ -534,31 +282,19 @@ async function callGemini(prompt) {
         }
 
 
-        // ----------------------------------------------------
-        // 429
-        // ----------------------------------------------------
-
-        if (
-            response.status === 429
-        ) {
+        if (response.status === 429) {
 
             throw new Error(
-                "Gemini API đang giới hạn số lượt gọi. Vui lòng thử lại sau."
+                "Gemini API đang giới hạn số lượt gọi."
             );
 
         }
 
 
-        // ----------------------------------------------------
-        // 503
-        // ----------------------------------------------------
-
-        if (
-            response.status === 503
-        ) {
+        if (response.status === 503) {
 
             throw new Error(
-                "Gemini đang quá tải. Vui lòng thử lại sau ít phút."
+                "Gemini đang quá tải. Vui lòng thử lại sau."
             );
 
         }
@@ -572,10 +308,6 @@ async function callGemini(prompt) {
     }
 
 
-    // ========================================================
-    // GET TEXT
-    // ========================================================
-
     const text =
         data
             ?.candidates?.[0]
@@ -588,24 +320,10 @@ async function callGemini(prompt) {
             ?.trim();
 
 
-    // ========================================================
-    // NO TEXT
-    // ========================================================
-
     if (!text) {
-
-        console.error("");
-
-        console.error(
-            "========================================"
-        );
 
         console.error(
             "❌ GEMINI KHÔNG TRẢ TEXT"
-        );
-
-        console.error(
-            "========================================"
         );
 
         console.error(
@@ -616,11 +334,6 @@ async function callGemini(prompt) {
             )
         );
 
-        console.error(
-            "========================================"
-        );
-
-
         throw new Error(
             "Gemini không trả về nội dung."
         );
@@ -628,23 +341,13 @@ async function callGemini(prompt) {
     }
 
 
-    // ========================================================
-    // SUCCESS
-    // ========================================================
-
-    console.log("");
-
     console.log(
-        "✅ GEMINI TRẢ KẾT QUẢ THÀNH CÔNG"
+        "✅ GEMINI TRẢ KẾT QUẢ"
     );
 
     console.log(
         "TEXT LENGTH:",
         text.length
-    );
-
-    console.log(
-        "========================================"
     );
 
 
@@ -659,23 +362,12 @@ async function callGemini(prompt) {
 
 function parseGeminiJSON(text) {
 
-    console.log("");
-
-    console.log(
-        "🔍 ĐANG PARSE JSON GEMINI..."
-    );
-
-
     let cleaned =
         String(
             text || ""
         )
             .trim();
 
-
-    // ========================================================
-    // REMOVE MARKDOWN
-    // ========================================================
 
     cleaned =
         cleaned
@@ -694,13 +386,8 @@ function parseGeminiJSON(text) {
             .trim();
 
 
-    // ========================================================
-    // FIND JSON
-    // ========================================================
-
     const firstBrace =
         cleaned.indexOf("{");
-
 
     const lastBrace =
         cleaned.lastIndexOf("}");
@@ -721,59 +408,23 @@ function parseGeminiJSON(text) {
     }
 
 
-    // ========================================================
-    // PARSE
-    // ========================================================
-
     try {
 
-        const result =
-            JSON.parse(
-                cleaned
-            );
-
-
-        console.log(
-            "✅ PARSE JSON THÀNH CÔNG"
+        return JSON.parse(
+            cleaned
         );
-
-
-        return result;
-
 
     } catch (error) {
 
-        console.error("");
-
         console.error(
-            "========================================"
-        );
-
-        console.error(
-            "❌ JSON PARSE ERROR"
-        );
-
-        console.error(
-            "========================================"
-        );
-
-        console.error(
-            "ERROR:",
+            "❌ JSON PARSE ERROR:",
             error.message
         );
 
         console.error(
-            "GEMINI RAW RESPONSE:"
-        );
-
-        console.error(
+            "RAW:",
             text
         );
-
-        console.error(
-            "========================================"
-        );
-
 
         throw new Error(
             "Gemini trả dữ liệu không đúng định dạng JSON."
@@ -792,32 +443,12 @@ app.get(
     `${BASE_PATH}/api/ai-status`,
     async (req, res) => {
 
-        console.log("");
-
-        console.log(
-            "========================================"
-        );
-
-        console.log(
-            "🔍 KIỂM TRA GEMINI AI"
-        );
-
-        console.log(
-            "========================================"
-        );
-
-
         try {
 
             const text =
                 await callGemini(
                     "Reply with exactly one word: OK"
                 );
-
-
-            console.log(
-                "✅ GEMINI STATUS OK"
-            );
 
 
             res.json({
@@ -839,16 +470,10 @@ app.get(
 
             });
 
-
         } catch (error) {
 
-            console.error("");
-
             console.error(
-                "❌ GEMINI STATUS ERROR:"
-            );
-
-            console.error(
+                "❌ AI STATUS ERROR:",
                 error.message
             );
 
@@ -884,18 +509,9 @@ app.post(
     async (req, res) => {
 
         console.log("");
-
-        console.log(
-            "========================================"
-        );
-
-        console.log(
-            "📝 NHẬN BÀI WRITING"
-        );
-
-        console.log(
-            "========================================"
-        );
+        console.log("========================================");
+        console.log("📝 NHẬN BÀI WRITING");
+        console.log("========================================");
 
 
         try {
@@ -907,10 +523,6 @@ app.post(
                 writing
             } = req.body;
 
-
-            // =================================================
-            // LOG
-            // =================================================
 
             console.log(
                 "📌 Topic:",
@@ -924,25 +536,14 @@ app.post(
 
             console.log(
                 "📌 Outline:",
-                outline
-                    ? "Có"
-                    : "Không"
+                outline ? "Có" : "Không"
             );
 
-
-            // =================================================
-            // VALIDATE
-            // =================================================
 
             if (
                 typeof writing !== "string" ||
                 !writing.trim()
             ) {
-
-                console.error(
-                    "❌ BÀI VIẾT RỖNG"
-                );
-
 
                 return res.status(400).json({
 
@@ -961,10 +562,6 @@ app.post(
                 writing.trim();
 
 
-            // =================================================
-            // WORD COUNT
-            // =================================================
-
             const wordCount =
                 cleanWriting
                     .split(/\s+/)
@@ -973,14 +570,14 @@ app.post(
 
 
             console.log(
-                "📊 Số từ:",
+                "📊 WORD COUNT:",
                 wordCount
             );
 
 
-            // =================================================
+            // ==================================================
             // PROMPT
-            // =================================================
+            // ==================================================
 
             const prompt = `
 
@@ -1038,9 +635,7 @@ Có thể bao gồm:
 
 8. Nếu câu khó hiểu:
 
-Không được tự đoán quá mức.
-
-Hãy ghi rõ:
+Ghi rõ:
 
 "Chưa rõ ý"
 
@@ -1050,44 +645,15 @@ và giải thích tại sao câu đó khó hiểu.
 
 10. Không yêu cầu bài viết phải giống văn mẫu.
 
-11. Hãy đánh giá phù hợp với người Việt Nam đang học tiếng Anh.
+11. Đánh giá phù hợp với người Việt Nam đang học tiếng Anh.
 
-12. Nhận xét phải giống giáo viên Việt Nam đang chữa bài tiếng Anh.
+12. Nhận xét giống giáo viên Việt Nam đang chữa bài tiếng Anh.
 
 13. Ưu tiên giải thích đơn giản, dễ hiểu.
 
 14. Nếu học sinh viết đúng thì KHÔNG được cố tình tìm lỗi.
 
-15. Không sửa câu chỉ vì có thể viết theo cách tự nhiên hơn nếu câu hiện tại vẫn đúng.
-
-============================================================
-CÁCH CHỮA LỖI
-============================================================
-
-Mỗi lỗi cần có:
-
-original:
-
-Phần tiếng Anh bị sai.
-
-corrected:
-
-Cách sửa ngắn gọn.
-
-explanation:
-
-Giải thích bằng TIẾNG VIỆT.
-
-Ví dụ:
-
-original:
-"He go to school every day."
-
-corrected:
-"He goes to school every day."
-
-explanation:
-"Chủ ngữ 'He' là ngôi thứ ba số ít nên động từ ở thì hiện tại đơn cần thêm 's'."
+15. Không sửa câu chỉ vì có thể viết tự nhiên hơn nếu câu hiện tại vẫn đúng.
 
 ============================================================
 ĐỀ BÀI
@@ -1120,18 +686,16 @@ SỐ TỪ
 ${wordCount} từ
 
 ============================================================
-YÊU CẦU TRẢ KẾT QUẢ
+YÊU CẦU
 ============================================================
 
-Chỉ trả về JSON hợp lệ.
+CHỈ TRẢ VỀ JSON HỢP LỆ.
 
-KHÔNG Markdown.
+KHÔNG MARKDOWN.
 
-KHÔNG dùng code fence.
+KHÔNG CODE FENCE.
 
-KHÔNG viết lời giải thích bên ngoài JSON.
-
-JSON phải có cấu trúc:
+JSON:
 
 {
     "score": 0,
@@ -1177,70 +741,35 @@ GIẢI THÍCH
 ============================================================
 
 score:
-
 Điểm tổng từ 0 đến 10.
 
 grammar.score:
-
 Điểm ngữ pháp từ 0 đến 10.
 
 vocabulary.score:
-
 Điểm từ vựng từ 0 đến 10.
 
 coherence.score:
-
 Điểm mạch lạc và liên kết từ 0 đến 10.
 
 content.score:
-
 Điểm nội dung và mức độ trả lời đúng đề từ 0 đến 10.
 
-============================================================
-STRENGTHS
-============================================================
+strengths:
+Danh sách điểm mạnh bằng tiếng Việt.
 
-strengths phải là danh sách điểm mạnh.
+weaknesses:
+Danh sách điểm yếu bằng tiếng Việt.
 
-Viết bằng tiếng Việt.
+improvements:
+Danh sách gợi ý cải thiện bằng tiếng Việt.
 
-============================================================
-WEAKNESSES
-============================================================
-
-weaknesses phải là danh sách điểm yếu.
-
-Viết bằng tiếng Việt.
-
-============================================================
-IMPROVEMENTS
-============================================================
-
-improvements phải là danh sách gợi ý cải thiện.
-
-Viết bằng tiếng Việt.
-
-Không được viết lại toàn bộ bài.
-
-============================================================
-OVERALL COMMENT
-============================================================
-
+overall_comment:
 Nhận xét tổng quan bằng tiếng Việt.
 
-Hãy nói rõ:
+Không viết lại toàn bộ bài.
 
-- Bài có đáp ứng đề không.
-- Ý có dễ hiểu không.
-- Ngữ pháp có vấn đề gì.
-- Từ vựng thế nào.
-- Cần cải thiện điều gì.
-
-Không viết lại bài.
-
-============================================================
-QUAN TRỌNG NHẤT
-============================================================
+QUAN TRỌNG:
 
 CHỈ CHỮA LỖI TIẾNG ANH.
 
@@ -1256,39 +785,17 @@ CHỈ TRẢ JSON.
 `;
 
 
-            console.log(
-                "🤖 Bắt đầu gửi bài cho Gemini..."
-            );
-
-
-            // =================================================
-            // CALL GEMINI
-            // =================================================
-
             const aiText =
                 await callGemini(
                     prompt
                 );
 
 
-            console.log(
-                "📥 Đã nhận kết quả từ Gemini."
-            );
-
-
-            // =================================================
-            // PARSE
-            // =================================================
-
             const result =
                 parseGeminiJSON(
                     aiText
                 );
 
-
-            // =================================================
-            // NORMALIZE
-            // =================================================
 
             const data = {
 
@@ -1417,36 +924,15 @@ CHỈ TRẢ JSON.
             };
 
 
-            // =================================================
-            // RESPONSE
-            // =================================================
-
             console.log("");
-
-            console.log(
-                "========================================"
-            );
-
-            console.log(
-                "✅ CHẤM BÀI THÀNH CÔNG"
-            );
-
-            console.log(
-                "========================================"
-            );
-
-            console.log(
-                "⭐ SCORE:",
-                data.score
-            );
-
-            console.log(
-                "📝 WORD COUNT:",
-                data.wordCount
-            );
+            console.log("========================================");
+            console.log("✅ CHẤM BÀI THÀNH CÔNG");
+            console.log("⭐ SCORE:", data.score);
+            console.log("📝 WORD COUNT:", data.wordCount);
+            console.log("========================================");
 
 
-            res.json({
+            return res.json({
 
                 success:
                     true,
@@ -1455,39 +941,17 @@ CHỈ TRẢ JSON.
 
             });
 
-
         } catch (error) {
 
             console.error("");
-
-            console.error(
-                "========================================"
-            );
-
-            console.error(
-                "❌ CHECK WRITING ERROR"
-            );
-
-            console.error(
-                "========================================"
-            );
-
-            console.error(
-                "MESSAGE:",
-                error.message
-            );
-
-            console.error(
-                "STACK:",
-                error.stack
-            );
-
-            console.error(
-                "========================================"
-            );
+            console.error("========================================");
+            console.error("❌ CHECK WRITING ERROR");
+            console.error("MESSAGE:", error.message);
+            console.error("STACK:", error.stack);
+            console.error("========================================");
 
 
-            res.status(500).json({
+            return res.status(500).json({
 
                 success:
                     false,
@@ -1505,23 +969,22 @@ CHỈ TRẢ JSON.
 
 
 // ============================================================
-// TRANG CHỦ
+// HOME
 // ============================================================
 
+// Render:
+// /ielts/.../bai-viet-1
+//
+// Vercel:
+// /
+
 app.get(
-    BASE_PATH,
+    BASE_PATH || "/",
     (req, res) => {
 
-        console.log("");
-
         console.log(
-            "🌐 GET:",
-            BASE_PATH
-        );
-
-        console.log(
-            "📄 FILE:",
-            INDEX_PATH
+            "🌐 HOME:",
+            req.originalUrl
         );
 
 
@@ -1531,29 +994,18 @@ app.get(
 
                 if (error) {
 
-                    console.error("");
-
                     console.error(
-                        "========================================"
-                    );
-
-                    console.error(
-                        "❌ KHÔNG TÌM THẤY index.html"
-                    );
-
-                    console.error(
-                        "PATH:",
-                        INDEX_PATH
-                    );
-
-                    console.error(
-                        "ERROR:",
+                        "❌ INDEX ERROR:",
                         error.message
                     );
 
-                    console.error(
-                        "========================================"
-                    );
+                    if (!res.headersSent) {
+
+                        res.status(500).send(
+                            "Không tìm thấy index.html"
+                        );
+
+                    }
 
                 }
 
@@ -1565,25 +1017,23 @@ app.get(
 
 
 // ============================================================
-// ROOT LOCAL
+// ROOT FALLBACK FOR VERCEL
 // ============================================================
 
-// Cho phép chạy:
-//
-// http://localhost:3001/
-//
-// khi test local.
+if (IS_VERCEL) {
 
-app.get(
-    "/",
-    (req, res) => {
+    app.get(
+        "/",
+        (req, res) => {
 
-        res.sendFile(
-            INDEX_PATH
-        );
+            res.sendFile(
+                INDEX_PATH
+            );
 
-    }
-);
+        }
+    );
+
+}
 
 
 // ============================================================
@@ -1607,7 +1057,10 @@ app.use(
                 false,
 
             message:
-                "API không tồn tại."
+                "API không tồn tại.",
+
+            path:
+                req.originalUrl
 
         });
 
@@ -1622,38 +1075,13 @@ app.use(
 app.use(
     (error, req, res, next) => {
 
-        console.error("");
-
         console.error(
-            "========================================"
-        );
-
-        console.error(
-            "💥 GLOBAL SERVER ERROR"
-        );
-
-        console.error(
-            "========================================"
-        );
-
-        console.error(
-            "MESSAGE:",
-            error.message
-        );
-
-        console.error(
-            "STACK:",
-            error.stack
-        );
-
-        console.error(
-            "========================================"
+            "💥 GLOBAL ERROR:",
+            error
         );
 
 
-        if (
-            res.headersSent
-        ) {
+        if (res.headersSent) {
 
             return next(error);
 
@@ -1675,65 +1103,49 @@ app.use(
 
 
 // ============================================================
-// START SERVER
+// LOCAL SERVER
 // ============================================================
 
-app.listen(
-    PORT,
-    "0.0.0.0",
-    () => {
+// ⚠️ QUAN TRỌNG:
+// Không app.listen() trên Vercel.
+//
+// Vercel sẽ tự chạy Express app.
 
-        console.log("");
+if (!IS_VERCEL) {
 
-        console.log(
-            "========================================"
-        );
+    app.listen(
+        PORT,
+        "0.0.0.0",
+        () => {
 
-        console.log(
-            "🚀 IELTS WRITING AI ĐANG CHẠY"
-        );
+            console.log("");
+            console.log("========================================");
+            console.log("🚀 IELTS WRITING AI ĐANG CHẠY");
+            console.log("========================================");
+            console.log(
+                "🌐 http://localhost:" +
+                PORT
+            );
+            console.log(
+                "🔗 BASE PATH:",
+                BASE_PATH
+            );
+            console.log(
+                "🤖 Gemini:",
+                GEMINI_MODEL
+            );
+            console.log("========================================");
+            console.log("");
 
-        console.log(
-            "========================================"
-        );
+        }
+    );
 
-        console.log(
-            "🌐 PORT:",
-            PORT
-        );
+}
 
-        console.log(
-            "🔗 BASE URL:",
-            BASE_PATH
-        );
 
-        console.log(
-            "🤖 Gemini model:",
-            GEMINI_MODEL
-        );
+// ============================================================
+// VERCEL EXPORT
+// ============================================================
 
-        console.log(
-            "🔑 Gemini API:",
-            GEMINI_API_KEY
-                ? "✅ Đã cấu hình"
-                : "❌ Chưa có API KEY"
-        );
+module.exports = app;
 
-        console.log(
-            "📁 Root:",
-            ROOT_DIR
-        );
-
-        console.log(
-            "📄 Index:",
-            INDEX_PATH
-        );
-
-        console.log(
-            "========================================"
-        );
-
-        console.log("");
-
-    }
-);
