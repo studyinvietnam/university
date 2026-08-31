@@ -1,4 +1,4 @@
-// =============================================================
+﻿// =============================================================
 // WRITING AI CONTROLLER
 // =============================================================
 
@@ -36,7 +36,7 @@ exports.checkWriting = async (req, res) => {
                 success: false,
 
                 message:
-                    "Bài viết không được để trống."
+                    "BÃ i viáº¿t khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng."
 
             });
 
@@ -44,7 +44,7 @@ exports.checkWriting = async (req, res) => {
 
 
         // =====================================================
-        // CHẤM GEMINI
+        // CHáº¤M GEMINI
         // =====================================================
 
         const result =
@@ -63,7 +63,7 @@ exports.checkWriting = async (req, res) => {
             success: true,
 
             message:
-                "Chấm bài thành công.",
+                "Cháº¥m bÃ i thÃ nh cÃ´ng.",
 
             data: result
 
@@ -72,7 +72,7 @@ exports.checkWriting = async (req, res) => {
     } catch (error) {
 
         console.error(
-            "❌ WRITING AI ERROR:",
+            "âŒ WRITING AI ERROR:",
             error
         );
 
@@ -83,7 +83,7 @@ exports.checkWriting = async (req, res) => {
 
             message:
                 error.message ||
-                "Không thể chấm bài bằng AI."
+                "KhÃ´ng thá»ƒ cháº¥m bÃ i báº±ng AI."
 
         });
 
@@ -93,7 +93,7 @@ exports.checkWriting = async (req, res) => {
 
 
 // =============================================================
-// KIỂM TRA GEMINI CONNECTION
+// KIá»‚M TRA GEMINI CONNECTION
 // GET /api/check-writing/ai-status
 // =============================================================
 
@@ -122,11 +122,11 @@ exports.checkAIStatus = async (req, res) => {
             connected: true,
 
             message:
-                "Gemini AI đang hoạt động.",
+                "Gemini AI Ä‘ang hoáº¡t Ä‘á»™ng.",
 
             model:
                 process.env.GEMINI_MODEL ||
-                "gemini-flash-latest",
+                "gemini-2.5-flash",
 
             test: {
 
@@ -143,7 +143,7 @@ exports.checkAIStatus = async (req, res) => {
     } catch (error) {
 
         console.error(
-            "❌ GEMINI STATUS ERROR:",
+            "âŒ GEMINI STATUS ERROR:",
             error
         );
 
@@ -156,11 +156,11 @@ exports.checkAIStatus = async (req, res) => {
 
             message:
                 error.message ||
-                "Gemini AI chưa kết nối.",
+                "Gemini AI chÆ°a káº¿t ná»‘i.",
 
             model:
                 process.env.GEMINI_MODEL ||
-                "gemini-flash-latest"
+                "gemini-2.5-flash"
 
         });
 

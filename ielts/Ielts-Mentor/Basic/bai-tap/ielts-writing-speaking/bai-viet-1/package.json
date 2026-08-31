@@ -2,17 +2,17 @@
   "name": "ielts-writing-ai",
   "version": "1.0.0",
   "private": true,
+  "main": "index.js",
   "scripts": {
-    "start": "node bai-viet-1.backend.js",
-    "dev": "node bai-viet-1.backend.js",
-    "vercel-build": "echo Vercel build completed"
+    "start": "node index.js",
+    "vercel-build": "echo Vercel build OK"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1"
-  },
-  "engines": {
-    "node": ">=20"
   }
 }

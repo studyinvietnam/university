@@ -1,79 +1,79 @@
-// =============================================================
+﻿// =============================================================
 // GEMINI API - WRITING AI
 // =============================================================
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const GEMINI_MODEL =
-    process.env.GEMINI_MODEL || "gemini-flash-latest";
+    process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 
 // =============================================================
-// TẠO PROMPT CHẤM WRITING
+// Táº O PROMPT CHáº¤M WRITING
 // =============================================================
 
 function createWritingPrompt(essay, topic = "") {
 
     return `
-Bạn là một giáo viên chấm bài viết tiếng Anh.
+Báº¡n lÃ  má»™t giÃ¡o viÃªn cháº¥m bÃ i viáº¿t tiáº¿ng Anh.
 
-Nhiệm vụ:
+Nhiá»‡m vá»¥:
 
-- Đọc bài viết do học sinh gửi.
-- Đánh giá chất lượng bài viết một cách khách quan.
-- Chỉ dựa trên nội dung bài viết được cung cấp.
-- Không tự bịa thêm thông tin.
-- Nhận xét dễ hiểu, phù hợp với học sinh.
+- Äá»c bÃ i viáº¿t do há»c sinh gá»­i.
+- ÄÃ¡nh giÃ¡ cháº¥t lÆ°á»£ng bÃ i viáº¿t má»™t cÃ¡ch khÃ¡ch quan.
+- Chá»‰ dá»±a trÃªn ná»™i dung bÃ i viáº¿t Ä‘Æ°á»£c cung cáº¥p.
+- KhÃ´ng tá»± bá»‹a thÃªm thÃ´ng tin.
+- Nháº­n xÃ©t dá»… hiá»ƒu, phÃ¹ há»£p vá»›i há»c sinh.
 
 =============================================================
-ĐỀ BÀI
+Äá»€ BÃ€I
 =============================================================
 
 ${topic}
 
 =============================================================
-DÀN Ý HƯỚNG DẪN LÀM BÀI WRITING
+DÃ€N Ã HÆ¯á»šNG DáºªN LÃ€M BÃ€I WRITING
 =============================================================
 
-1. ĐỌC ĐỀ VÀ XÁC ĐỊNH YÊU CẦU
+1. Äá»ŒC Äá»€ VÃ€ XÃC Äá»ŠNH YÃŠU Cáº¦U
 
-- Xác định đúng chủ đề.
-- Xác định các từ khóa quan trọng trong đề.
-- Kiểm tra số lượng từ.
-- Bài yêu cầu tối thiểu 80 từ.
+- XÃ¡c Ä‘á»‹nh Ä‘Ãºng chá»§ Ä‘á».
+- XÃ¡c Ä‘á»‹nh cÃ¡c tá»« khÃ³a quan trá»ng trong Ä‘á».
+- Kiá»ƒm tra sá»‘ lÆ°á»£ng tá»«.
+- BÃ i yÃªu cáº§u tá»‘i thiá»ƒu 80 tá»«.
 
-2. LẬP DÀN Ý CƠ BẢN
+2. Láº¬P DÃ€N Ã CÆ  Báº¢N
 
-Bài viết nên có 3 phần:
+BÃ i viáº¿t nÃªn cÃ³ 3 pháº§n:
 
-Introduction – Body – Conclusion
+Introduction â€“ Body â€“ Conclusion
 
 2.1. INTRODUCTION
 
-- Viết 1–2 câu giới thiệu chung theo đề bài.
-- Giới thiệu đúng chủ đề.
+- Viáº¿t 1â€“2 cÃ¢u giá»›i thiá»‡u chung theo Ä‘á» bÃ i.
+- Giá»›i thiá»‡u Ä‘Ãºng chá»§ Ä‘á».
 
 2.2. BODY
 
-- Viết khoảng 3–4 câu phát triển ý.
-- Trả lời các câu hỏi gợi ý trong đề.
-- Có thể sử dụng:
+- Viáº¿t khoáº£ng 3â€“4 cÃ¢u phÃ¡t triá»ƒn Ã½.
+- Tráº£ lá»i cÃ¡c cÃ¢u há»i gá»£i Ã½ trong Ä‘á».
+- CÃ³ thá»ƒ sá»­ dá»¥ng:
   What / When / Where / Who
-- Bổ sung các chi tiết:
-  màu sắc, thời gian, đồ vật, hoạt động, cảm xúc...
+- Bá»• sung cÃ¡c chi tiáº¿t:
+  mÃ u sáº¯c, thá»i gian, Ä‘á»“ váº­t, hoáº¡t Ä‘á»™ng, cáº£m xÃºc...
 
 2.3. CONCLUSION
 
-- Viết 1–2 câu kết đoạn.
-- Nêu cảm xúc hoặc lý do thích/không thích.
+- Viáº¿t 1â€“2 cÃ¢u káº¿t Ä‘oáº¡n.
+- NÃªu cáº£m xÃºc hoáº·c lÃ½ do thÃ­ch/khÃ´ng thÃ­ch.
 
-3. LƯU Ý NGÔN NGỮ
+3. LÆ¯U Ã NGÃ”N NGá»®
 
-- Sử dụng thì chính xác.
-- Với bài mô tả thói quen, ưu tiên Present Simple.
-- Sử dụng từ nối phù hợp.
+- Sá»­ dá»¥ng thÃ¬ chÃ­nh xÃ¡c.
+- Vá»›i bÃ i mÃ´ táº£ thÃ³i quen, Æ°u tiÃªn Present Simple.
+- Sá»­ dá»¥ng tá»« ná»‘i phÃ¹ há»£p.
 
-Ví dụ:
+VÃ­ dá»¥:
 
 First,
 Then,
@@ -84,73 +84,73 @@ In the evening,
 Because,
 So,
 
-- Câu nên rõ ràng, đơn giản và dễ hiểu.
-- Mục tiêu khoảng 80–100 từ.
-- Khoảng 8–10 câu là phù hợp.
+- CÃ¢u nÃªn rÃµ rÃ ng, Ä‘Æ¡n giáº£n vÃ  dá»… hiá»ƒu.
+- Má»¥c tiÃªu khoáº£ng 80â€“100 tá»«.
+- Khoáº£ng 8â€“10 cÃ¢u lÃ  phÃ¹ há»£p.
 
 4. CHECKLIST
 
-Kiểm tra:
+Kiá»ƒm tra:
 
-- Có Introduction không?
-- Có Body không?
-- Có Conclusion không?
-- Có đủ ít nhất 80 từ không?
-- Có đúng chủ đề không?
-- Có trả lời các ý chính của đề không?
-- Thì có chính xác không?
-- Có sử dụng từ nối không?
-- Các câu có liên kết với nhau không?
+- CÃ³ Introduction khÃ´ng?
+- CÃ³ Body khÃ´ng?
+- CÃ³ Conclusion khÃ´ng?
+- CÃ³ Ä‘á»§ Ã­t nháº¥t 80 tá»« khÃ´ng?
+- CÃ³ Ä‘Ãºng chá»§ Ä‘á» khÃ´ng?
+- CÃ³ tráº£ lá»i cÃ¡c Ã½ chÃ­nh cá»§a Ä‘á» khÃ´ng?
+- ThÃ¬ cÃ³ chÃ­nh xÃ¡c khÃ´ng?
+- CÃ³ sá»­ dá»¥ng tá»« ná»‘i khÃ´ng?
+- CÃ¡c cÃ¢u cÃ³ liÃªn káº¿t vá»›i nhau khÃ´ng?
 
 =============================================================
-TIÊU CHÍ CHẤM
+TIÃŠU CHÃ CHáº¤M
 =============================================================
 
 1. Grammar
 
-- Kiểm tra lỗi ngữ pháp.
-- Chỉ ra lỗi quan trọng.
-- Đưa ra cách sửa.
-- Không cố tạo lỗi nếu bài không có lỗi.
+- Kiá»ƒm tra lá»—i ngá»¯ phÃ¡p.
+- Chá»‰ ra lá»—i quan trá»ng.
+- ÄÆ°a ra cÃ¡ch sá»­a.
+- KhÃ´ng cá»‘ táº¡o lá»—i náº¿u bÃ i khÃ´ng cÃ³ lá»—i.
 
 2. Vocabulary
 
-- Đánh giá độ đa dạng và chính xác.
-- Kiểm tra cách dùng từ.
-- Gợi ý từ/cụm từ tốt hơn nếu cần.
+- ÄÃ¡nh giÃ¡ Ä‘á»™ Ä‘a dáº¡ng vÃ  chÃ­nh xÃ¡c.
+- Kiá»ƒm tra cÃ¡ch dÃ¹ng tá»«.
+- Gá»£i Ã½ tá»«/cá»¥m tá»« tá»‘t hÆ¡n náº¿u cáº§n.
 
 3. Coherence & Cohesion
 
-- Kiểm tra cách triển khai ý.
-- Kiểm tra sự liên kết giữa các câu.
-- Kiểm tra bố cục Introduction – Body – Conclusion.
-- Kiểm tra cách sử dụng từ nối.
+- Kiá»ƒm tra cÃ¡ch triá»ƒn khai Ã½.
+- Kiá»ƒm tra sá»± liÃªn káº¿t giá»¯a cÃ¡c cÃ¢u.
+- Kiá»ƒm tra bá»‘ cá»¥c Introduction â€“ Body â€“ Conclusion.
+- Kiá»ƒm tra cÃ¡ch sá»­ dá»¥ng tá»« ná»‘i.
 
 4. Content
 
-- Kiểm tra bài viết có trả lời đúng đề không.
-- Kiểm tra mức độ phát triển ý.
-- Kiểm tra các ý còn thiếu.
+- Kiá»ƒm tra bÃ i viáº¿t cÃ³ tráº£ lá»i Ä‘Ãºng Ä‘á» khÃ´ng.
+- Kiá»ƒm tra má»©c Ä‘á»™ phÃ¡t triá»ƒn Ã½.
+- Kiá»ƒm tra cÃ¡c Ã½ cÃ²n thiáº¿u.
 
 5. Outline
 
-Kiểm tra riêng:
+Kiá»ƒm tra riÃªng:
 
 - Introduction
 - Body
 - Conclusion
 
-Đánh giá xem học sinh có thực sự triển khai đủ 3 phần hay không.
+ÄÃ¡nh giÃ¡ xem há»c sinh cÃ³ thá»±c sá»± triá»ƒn khai Ä‘á»§ 3 pháº§n hay khÃ´ng.
 
 6. Overall
 
-- Đưa ra điểm tổng quan trên thang 10.
-- Nhận xét ưu điểm.
-- Nhận xét điểm cần cải thiện.
-- Đưa ra 3–5 gợi ý cụ thể.
+- ÄÆ°a ra Ä‘iá»ƒm tá»•ng quan trÃªn thang 10.
+- Nháº­n xÃ©t Æ°u Ä‘iá»ƒm.
+- Nháº­n xÃ©t Ä‘iá»ƒm cáº§n cáº£i thiá»‡n.
+- ÄÆ°a ra 3â€“5 gá»£i Ã½ cá»¥ thá»ƒ.
 
 =============================================================
-BÀI VIẾT CỦA HỌC SINH
+BÃ€I VIáº¾T Cá»¦A Há»ŒC SINH
 =============================================================
 
 """
@@ -158,7 +158,7 @@ ${essay}
 """
 
 =============================================================
-TRẢ KẾT QUẢ THEO JSON
+TRáº¢ Káº¾T QUáº¢ THEO JSON
 =============================================================
 
 {
@@ -221,41 +221,41 @@ TRẢ KẾT QUẢ THEO JSON
 }
 
 =============================================================
-QUY TẮC BẮT BUỘC
+QUY Táº®C Báº®T BUá»˜C
 =============================================================
 
-- Chỉ trả về JSON hợp lệ.
-- Không thêm Markdown.
-- Không thêm \`\`\`json.
-- Không thêm lời giải thích bên ngoài JSON.
+- Chá»‰ tráº£ vá» JSON há»£p lá»‡.
+- KhÃ´ng thÃªm Markdown.
+- KhÃ´ng thÃªm \`\`\`json.
+- KhÃ´ng thÃªm lá»i giáº£i thÃ­ch bÃªn ngoÃ i JSON.
 
-- score từ 0 đến 10.
-- grammar.score từ 0 đến 10.
-- vocabulary.score từ 0 đến 10.
-- coherence.score từ 0 đến 10.
-- content.score từ 0 đến 10.
+- score tá»« 0 Ä‘áº¿n 10.
+- grammar.score tá»« 0 Ä‘áº¿n 10.
+- vocabulary.score tá»« 0 Ä‘áº¿n 10.
+- coherence.score tá»« 0 Ä‘áº¿n 10.
+- content.score tá»« 0 Ä‘áº¿n 10.
 
-- outline.introduction.score từ 0 đến 10.
-- outline.body.score từ 0 đến 10.
-- outline.conclusion.score từ 0 đến 10.
+- outline.introduction.score tá»« 0 Ä‘áº¿n 10.
+- outline.body.score tá»« 0 Ä‘áº¿n 10.
+- outline.conclusion.score tá»« 0 Ä‘áº¿n 10.
 
-- errors luôn là array.
-- suggestions luôn là array.
-- strengths luôn là array.
-- weaknesses luôn là array.
-- improvements luôn là array.
+- errors luÃ´n lÃ  array.
+- suggestions luÃ´n lÃ  array.
+- strengths luÃ´n lÃ  array.
+- weaknesses luÃ´n lÃ  array.
+- improvements luÃ´n lÃ  array.
 
-- wordCount phải là số nguyên.
+- wordCount pháº£i lÃ  sá»‘ nguyÃªn.
 
-- Không tự bịa lỗi ngữ pháp.
-- Nếu không có lỗi thì errors phải là [].
+- KhÃ´ng tá»± bá»‹a lá»—i ngá»¯ phÃ¡p.
+- Náº¿u khÃ´ng cÃ³ lá»—i thÃ¬ errors pháº£i lÃ  [].
 `;
 
 }
 
 
 // =============================================================
-// GỌI GEMINI API
+// Gá»ŒI GEMINI API
 // =============================================================
 
 async function checkWritingByGemini(essay, topic = "") {
@@ -263,7 +263,7 @@ async function checkWritingByGemini(essay, topic = "") {
     if (!GEMINI_API_KEY) {
 
         throw new Error(
-            "Chưa cấu hình GEMINI_API_KEY trong file .env."
+            "ChÆ°a cáº¥u hÃ¬nh GEMINI_API_KEY trong file .env."
         );
 
     }
@@ -272,7 +272,7 @@ async function checkWritingByGemini(essay, topic = "") {
     if (!essay || !essay.trim()) {
 
         throw new Error(
-            "Bài viết không được để trống."
+            "BÃ i viáº¿t khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng."
         );
 
     }
@@ -354,7 +354,7 @@ async function checkWritingByGemini(essay, topic = "") {
         );
 
         throw new Error(
-            "Không thể kết nối đến Gemini API."
+            "KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n Gemini API."
         );
 
     }
@@ -371,7 +371,7 @@ async function checkWritingByGemini(essay, topic = "") {
     } catch (error) {
 
         throw new Error(
-            "Gemini trả về dữ liệu không hợp lệ."
+            "Gemini tráº£ vá» dá»¯ liá»‡u khÃ´ng há»£p lá»‡."
         );
 
     }
@@ -391,7 +391,7 @@ async function checkWritingByGemini(essay, topic = "") {
 
         const message =
             data?.error?.message ||
-            "Gemini API không thể xử lý yêu cầu.";
+            "Gemini API khÃ´ng thá»ƒ xá»­ lÃ½ yÃªu cáº§u.";
 
 
         throw new Error(message);
@@ -400,7 +400,7 @@ async function checkWritingByGemini(essay, topic = "") {
 
 
     // =========================================================
-    // LẤY TEXT
+    // Láº¤Y TEXT
     // =========================================================
 
     const text =
@@ -422,7 +422,7 @@ async function checkWritingByGemini(essay, topic = "") {
 
 
         throw new Error(
-            "Gemini không trả về kết quả chấm bài."
+            "Gemini khÃ´ng tráº£ vá» káº¿t quáº£ cháº¥m bÃ i."
         );
 
     }
@@ -473,7 +473,7 @@ async function checkWritingByGemini(essay, topic = "") {
         } catch (secondError) {
 
             throw new Error(
-                "Gemini trả về JSON không hợp lệ."
+                "Gemini tráº£ vá» JSON khÃ´ng há»£p lá»‡."
             );
 
         }
@@ -490,7 +490,7 @@ async function checkWritingByGemini(essay, topic = "") {
 
 
 // =============================================================
-// CHUẨN HÓA RESULT
+// CHUáº¨N HÃ“A RESULT
 // =============================================================
 
 function normalizeWritingResult(

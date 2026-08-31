@@ -1,23 +1,57 @@
+﻿
 // =============================================================
 // GEMINI API - BÀI VIẾT WRITING
+// IELTS WRITING AI
+// Gemini 3.6 Flash + Interactions API
 // =============================================================
 
-// ⚠️ KHÔNG ĐƯA FILE NÀY LÊN FRONTEND
-// API KEY phải nằm ở backend.
-//
-// Thay 1111 bằng API key thật của bạn.
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// Model Gemini
-const GEMINI_MODEL = "gemini-2.5-flash";
+// =============================================================
+// DANH SÁCH MODEL GEMINI
+// =============================================================
 
+const SUPPORTED_MODELS = [
+    "gemini-3.6-flash",
+];
+
+// Model mặc định
+const DEFAULT_MODEL = "gemini-3.6-flash";
+
+// =============================================================
+// KIỂM TRA API KEY
+// =============================================================
+
+function validateGeminiApiKey() {
+    if (
+        !GEMINI_API_KEY ||
+        GEMINI_API_KEY === "1111" ||
+        GEMINI_API_KEY === "YOUR_NEW_GEMINI_API_KEY"
+    ) {
+        throw new Error("GEMINI_API_KEY chưa được cấu hình.");
+    }
+}
+
+// =============================================================
+// CHỌN MODEL AN TOÀN
+// =============================================================
+
+function getSafeModel(model = null) {
+    if (
+        typeof model === "string" &&
+        SUPPORTED_MODELS.includes(model)
+    ) {
+        return model;
+    }
+
+    return DEFAULT_MODEL;
+}
 
 // =============================================================
 // TẠO PROMPT CHẤM WRITING
 // =============================================================
 
 function createWritingPrompt(topic, essay) {
-
     return `
 Bạn là một giáo viên tiếng Anh chấm bài Writing cho học sinh.
 
@@ -30,7 +64,7 @@ Hãy chấm bài một cách khách quan và chỉ dựa trên:
 ĐỀ BÀI
 =============================================================
 
-${topic}
+${topic || "(Không có đề bài được cung cấp)"}
 
 =============================================================
 BÀI VIẾT CỦA HỌC SINH
@@ -114,6 +148,7 @@ TIÊU CHÍ CHẤM
 - Chỉ ra lỗi thực sự tồn tại.
 - Đưa ra câu sửa.
 - Không tự tạo lỗi.
+- Không đánh dấu một câu đúng thành câu sai.
 
 2. Vocabulary
 - Độ đa dạng.
@@ -134,7 +169,6 @@ TIÊU CHÍ CHẤM
 - Có chi tiết cụ thể không.
 
 5. Outline
-Kiểm tra riêng:
 
 Introduction:
 - Có mở đoạn phù hợp không?
@@ -230,333 +264,487 @@ QUY TẮC BẮT BUỘC
 - improvements luôn là array.
 - wordCount phải là số từ thực tế của bài viết.
 - Không được tự bịa lỗi ngữ pháp.
+- Chỉ ghi lỗi khi lỗi thực sự tồn tại trong bài.
+- Không thay đổi nội dung bài viết một cách không cần thiết.
+- Đánh giá công bằng với trình độ học sinh.
 `;
 }
-
 
 // =============================================================
 // CHUẨN HÓA RESULT
 // =============================================================
 
 function normalizeWritingResult(data, essay) {
+    const wordCount = String(essay || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .length;
 
-    const wordCount =
-        String(essay || "")
-            .trim()
-            .split(/\s+/)
-            .filter(Boolean)
-            .length;
+    const safeNumber = (value, fallback = 0) => {
+        const number = Number(value);
 
+        if (!Number.isFinite(number)) {
+            return fallback;
+        }
 
-    return {
-
-        score:
-            Number(data?.score ?? 0),
-
-
-        wordCount:
-            Number(
-                data?.wordCount ??
-                wordCount
-            ),
-
-
-        grammar: {
-
-            score:
-                Number(
-                    data?.grammar?.score ?? 0
-                ),
-
-            comment:
-                String(
-                    data?.grammar?.comment ?? ""
-                ),
-
-            errors:
-                Array.isArray(
-                    data?.grammar?.errors
-                )
-                    ? data.grammar.errors
-                    : []
-
-        },
-
-
-        vocabulary: {
-
-            score:
-                Number(
-                    data?.vocabulary?.score ?? 0
-                ),
-
-            comment:
-                String(
-                    data?.vocabulary?.comment ?? ""
-                ),
-
-            suggestions:
-                Array.isArray(
-                    data?.vocabulary?.suggestions
-                )
-                    ? data.vocabulary.suggestions
-                    : []
-
-        },
-
-
-        coherence: {
-
-            score:
-                Number(
-                    data?.coherence?.score ?? 0
-                ),
-
-            comment:
-                String(
-                    data?.coherence?.comment ?? ""
-                )
-
-        },
-
-
-        content: {
-
-            score:
-                Number(
-                    data?.content?.score ?? 0
-                ),
-
-            comment:
-                String(
-                    data?.content?.comment ?? ""
-                )
-
-        },
-
-
-        outline: {
-
-            introduction: {
-
-                score:
-                    Number(
-                        data?.outline
-                            ?.introduction
-                            ?.score ?? 0
-                    ),
-
-                comment:
-                    String(
-                        data?.outline
-                            ?.introduction
-                            ?.comment ?? ""
-                    )
-
-            },
-
-
-            body: {
-
-                score:
-                    Number(
-                        data?.outline
-                            ?.body
-                            ?.score ?? 0
-                    ),
-
-                comment:
-                    String(
-                        data?.outline
-                            ?.body
-                            ?.comment ?? ""
-                    )
-
-            },
-
-
-            conclusion: {
-
-                score:
-                    Number(
-                        data?.outline
-                            ?.conclusion
-                            ?.score ?? 0
-                    ),
-
-                comment:
-                    String(
-                        data?.outline
-                            ?.conclusion
-                            ?.comment ?? ""
-                    )
-
-            }
-
-        },
-
-
-        strengths:
-            Array.isArray(data?.strengths)
-                ? data.strengths
-                : [],
-
-
-        weaknesses:
-            Array.isArray(data?.weaknesses)
-                ? data.weaknesses
-                : [],
-
-
-        improvements:
-            Array.isArray(data?.improvements)
-                ? data.improvements
-                : [],
-
-
-        overall_comment:
-            String(
-                data?.overall_comment ?? ""
-            )
-
+        return number;
     };
 
+    return {
+        score: safeNumber(data?.score, 0),
+
+        wordCount: wordCount,
+
+        grammar: {
+            score: safeNumber(data?.grammar?.score, 0),
+
+            comment: String(
+                data?.grammar?.comment ?? ""
+            ),
+
+            errors: Array.isArray(
+                data?.grammar?.errors
+            )
+                ? data.grammar.errors
+                : [],
+        },
+
+        vocabulary: {
+            score: safeNumber(
+                data?.vocabulary?.score,
+                0
+            ),
+
+            comment: String(
+                data?.vocabulary?.comment ?? ""
+            ),
+
+            suggestions: Array.isArray(
+                data?.vocabulary?.suggestions
+            )
+                ? data.vocabulary.suggestions
+                : [],
+        },
+
+        coherence: {
+            score: safeNumber(
+                data?.coherence?.score,
+                0
+            ),
+
+            comment: String(
+                data?.coherence?.comment ?? ""
+            ),
+        },
+
+        content: {
+            score: safeNumber(
+                data?.content?.score,
+                0
+            ),
+
+            comment: String(
+                data?.content?.comment ?? ""
+            ),
+        },
+
+        outline: {
+            introduction: {
+                score: safeNumber(
+                    data?.outline?.introduction?.score,
+                    0
+                ),
+
+                comment: String(
+                    data?.outline?.introduction?.comment ?? ""
+                ),
+            },
+
+            body: {
+                score: safeNumber(
+                    data?.outline?.body?.score,
+                    0
+                ),
+
+                comment: String(
+                    data?.outline?.body?.comment ?? ""
+                ),
+            },
+
+            conclusion: {
+                score: safeNumber(
+                    data?.outline?.conclusion?.score,
+                    0
+                ),
+
+                comment: String(
+                    data?.outline?.conclusion?.comment ?? ""
+                ),
+            },
+        },
+
+        strengths: Array.isArray(data?.strengths)
+            ? data.strengths
+            : [],
+
+        weaknesses: Array.isArray(data?.weaknesses)
+            ? data.weaknesses
+            : [],
+
+        improvements: Array.isArray(data?.improvements)
+            ? data.improvements
+            : [],
+
+        overall_comment: String(
+            data?.overall_comment ?? ""
+        ),
+    };
 }
 
+// =============================================================
+// PARSE GEMINI JSON
+// =============================================================
+
+function parseGeminiJson(text) {
+    if (!text || typeof text !== "string") {
+        throw new Error(
+            "Gemini không trả về nội dung JSON."
+        );
+    }
+
+    // Parse trực tiếp
+    try {
+        return JSON.parse(text.trim());
+    } catch (_) {
+        // Tiếp tục làm sạch
+    }
+
+    console.warn(
+        "⚠️ Gemini trả về JSON có Markdown hoặc định dạng lạ. Đang làm sạch..."
+    );
+
+    let cleaned = text.trim();
+
+    cleaned = cleaned
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/\s*```$/i, "")
+        .trim();
+
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
+
+    if (
+        firstBrace !== -1 &&
+        lastBrace !== -1 &&
+        lastBrace > firstBrace
+    ) {
+        cleaned = cleaned.substring(
+            firstBrace,
+            lastBrace + 1
+        );
+    }
+
+    try {
+        return JSON.parse(cleaned);
+    } catch (error) {
+        console.error(
+            "❌ GEMINI RAW RESPONSE:",
+            text
+        );
+
+        throw new Error(
+            "Gemini trả về JSON không hợp lệ."
+        );
+    }
+}
 
 // =============================================================
-// GỌI GEMINI API
+// LẤY TEXT TỪ INTERACTION RESPONSE
+// =============================================================
+
+function extractInteractionText(data) {
+    if (!data || !Array.isArray(data.steps)) {
+        return "";
+    }
+
+    // Tìm step model_output
+    for (const step of data.steps) {
+        if (
+            step?.type !== "model_output" ||
+            !Array.isArray(step.content)
+        ) {
+            continue;
+        }
+
+        for (const content of step.content) {
+            if (
+                content?.type === "text" &&
+                typeof content.text === "string"
+            ) {
+                return content.text;
+            }
+        }
+    }
+
+    return "";
+}
+
+// =============================================================
+// GỌI GEMINI INTERACTIONS API
 // =============================================================
 
 async function checkWritingByGemini(
     topic,
-    essay
+    essay,
+    timeoutMs = 45000,
+    model = null
 ) {
-
-    // ---------------------------------------------------------
-    // CHECK API KEY
-    // ---------------------------------------------------------
+    validateGeminiApiKey();
 
     if (
-        !GEMINI_API_KEY ||
-        GEMINI_API_KEY === "1111" ||
-        GEMINI_API_KEY === "YOUR_NEW_GEMINI_API_KEY"
+        !essay ||
+        typeof essay !== "string" ||
+        !essay.trim()
     ) {
-
-        throw new Error(
-            "GEMINI_API_KEY chưa được cấu hình."
-        );
-
-    }
-
-
-    if (!essay || !essay.trim()) {
-
         throw new Error(
             "Bài viết đang trống."
         );
-
     }
 
+    const selectedModel = getSafeModel(model);
 
-    // ---------------------------------------------------------
-    // TẠO PROMPT
-    // ---------------------------------------------------------
+    console.log(
+        `📌 Using model: ${selectedModel}`
+    );
 
-    const prompt =
-        createWritingPrompt(
-            topic,
-            essay
+    const prompt = createWritingPrompt(
+        topic,
+        essay
+    );
+
+    if (prompt.length > 50000) {
+        throw new Error(
+            "Bài viết quá dài (trên 50.000 ký tự). Vui lòng rút gọn."
         );
+    }
 
-
-    // ---------------------------------------------------------
-    // URL GEMINI
-    // ---------------------------------------------------------
+    // =========================================================
+    // INTERACTIONS API
+    // =========================================================
 
     const url =
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-
+        "https://generativelanguage.googleapis.com/v1beta/interactions";
 
     console.log("");
-    console.log(
-        "=========================================="
-    );
+    console.log("==========================================");
+    console.log("🤖 ĐANG GỌI GEMINI");
+    console.log("==========================================");
+    console.log("API: Interactions API");
+    console.log("API Version: v1beta");
+    console.log("Model:", selectedModel);
+    console.log("Prompt length:", prompt.length);
+    console.log("==========================================");
 
-    console.log(
-        "🤖 ĐANG GỌI GEMINI"
-    );
+    const controller = new AbortController();
 
-    console.log(
-        "Model:",
-        GEMINI_MODEL
-    );
-
-    console.log(
-        "=========================================="
-    );
-
-
-    // ---------------------------------------------------------
-    // REQUEST
-    // ---------------------------------------------------------
+    const timeoutId = setTimeout(() => {
+        controller.abort();
+    }, timeoutMs);
 
     let response;
 
     try {
+        response = await fetch(url, {
+            method: "POST",
 
-        response =
-            await fetch(
-                url,
-                {
+            headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": GEMINI_API_KEY,
+            },
 
-                    method: "POST",
+            body: JSON.stringify({
+                model: selectedModel,
 
-                    headers: {
+                input: prompt,
 
-                        "Content-Type":
-                            "application/json"
+                response_format: {
+                    type: "text",
+                    mime_type: "application/json",
 
+                    schema: {
+                        type: "object",
+
+                        properties: {
+                            score: {
+                                type: "number",
+                            },
+
+                            wordCount: {
+                                type: "number",
+                            },
+
+                            grammar: {
+                                type: "object",
+                                properties: {
+                                    score: {
+                                        type: "number",
+                                    },
+
+                                    comment: {
+                                        type: "string",
+                                    },
+
+                                    errors: {
+                                        type: "array",
+                                        items: {
+                                            type: "object",
+                                            properties: {
+                                                original: {
+                                                    type: "string",
+                                                },
+
+                                                corrected: {
+                                                    type: "string",
+                                                },
+
+                                                explanation: {
+                                                    type: "string",
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+
+                            vocabulary: {
+                                type: "object",
+                                properties: {
+                                    score: {
+                                        type: "number",
+                                    },
+
+                                    comment: {
+                                        type: "string",
+                                    },
+
+                                    suggestions: {
+                                        type: "array",
+                                        items: {
+                                            type: "string",
+                                        },
+                                    },
+                                },
+                            },
+
+                            coherence: {
+                                type: "object",
+                                properties: {
+                                    score: {
+                                        type: "number",
+                                    },
+
+                                    comment: {
+                                        type: "string",
+                                    },
+                                },
+                            },
+
+                            content: {
+                                type: "object",
+                                properties: {
+                                    score: {
+                                        type: "number",
+                                    },
+
+                                    comment: {
+                                        type: "string",
+                                    },
+                                },
+                            },
+
+                            outline: {
+                                type: "object",
+                                properties: {
+                                    introduction: {
+                                        type: "object",
+                                        properties: {
+                                            score: {
+                                                type: "number",
+                                            },
+
+                                            comment: {
+                                                type: "string",
+                                            },
+                                        },
+                                    },
+
+                                    body: {
+                                        type: "object",
+                                        properties: {
+                                            score: {
+                                                type: "number",
+                                            },
+
+                                            comment: {
+                                                type: "string",
+                                            },
+                                        },
+                                    },
+
+                                    conclusion: {
+                                        type: "object",
+                                        properties: {
+                                            score: {
+                                                type: "number",
+                                            },
+
+                                            comment: {
+                                                type: "string",
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+
+                            strengths: {
+                                type: "array",
+                                items: {
+                                    type: "string",
+                                },
+                            },
+
+                            weaknesses: {
+                                type: "array",
+                                items: {
+                                    type: "string",
+                                },
+                            },
+
+                            improvements: {
+                                type: "array",
+                                items: {
+                                    type: "string",
+                                },
+                            },
+
+                            overall_comment: {
+                                type: "string",
+                            },
+                        },
                     },
+                },
+            }),
 
-                    body: JSON.stringify({
-
-                        contents: [
-
-                            {
-
-                                role: "user",
-
-                                parts: [
-
-                                    {
-
-                                        text:
-                                            prompt
-
-                                    }
-
-                                ]
-
-                            }
-
-                        ],
-
-                        generationConfig: {
-
-                            temperature: 0.2,
-
-                            responseMimeType:
-                                "application/json"
-
-                        }
-
-                    })
-
-                }
-            );
-
+            signal: controller.signal,
+        });
     } catch (error) {
+        if (error.name === "AbortError") {
+            throw new Error(
+                `Gemini API không phản hồi sau ${timeoutMs / 1000} giây.`
+            );
+        }
 
         console.error(
             "❌ FETCH GEMINI ERROR:",
@@ -566,23 +754,19 @@ async function checkWritingByGemini(
         throw new Error(
             "Không thể kết nối tới Gemini API."
         );
-
+    } finally {
+        clearTimeout(timeoutId);
     }
 
-
-    // ---------------------------------------------------------
+    // =========================================================
     // ĐỌC RESPONSE
-    // ---------------------------------------------------------
+    // =========================================================
 
     let data;
 
     try {
-
-        data =
-            await response.json();
-
+        data = await response.json();
     } catch (error) {
-
         console.error(
             "❌ GEMINI JSON ERROR:",
             error
@@ -591,16 +775,13 @@ async function checkWritingByGemini(
         throw new Error(
             "Gemini trả về dữ liệu không hợp lệ."
         );
-
     }
 
-
-    // ---------------------------------------------------------
+    // =========================================================
     // API ERROR
-    // ---------------------------------------------------------
+    // =========================================================
 
     if (!response.ok) {
-
         console.error(
             "❌ GEMINI API ERROR:"
         );
@@ -613,37 +794,40 @@ async function checkWritingByGemini(
             )
         );
 
-
         const message =
-            data
-                ?.error
-                ?.message ||
+            data?.error?.message ||
             "Gemini API không thể xử lý yêu cầu.";
 
-
         throw new Error(message);
-
     }
 
+    // =========================================================
+    // KIỂM TRA STATUS
+    // =========================================================
 
-    // ---------------------------------------------------------
-    // LẤY TEXT
-    // ---------------------------------------------------------
-
-    const text =
-        data
-            ?.candidates?.[0]
-            ?.content?.parts?.[0]
-            ?.text;
-
-
-    if (!text) {
-
+    if (
+        data?.status &&
+        data.status !== "completed"
+    ) {
         console.error(
-            "❌ GEMINI RESPONSE:"
+            "❌ GEMINI INTERACTION STATUS:",
+            data.status
         );
 
+        throw new Error(
+            `Gemini chưa hoàn thành yêu cầu. Status: ${data.status}`
+        );
+    }
+
+    // =========================================================
+    // LẤY TEXT
+    // =========================================================
+
+    const text = extractInteractionText(data);
+
+    if (!text) {
         console.error(
+            "❌ GEMINI RESPONSE:",
             JSON.stringify(
                 data,
                 null,
@@ -654,207 +838,158 @@ async function checkWritingByGemini(
         throw new Error(
             "Gemini không trả về kết quả chấm bài."
         );
-
     }
 
+    console.log(
+        "✅ Gemini trả về kết quả."
+    );
 
-    // ---------------------------------------------------------
+    // =========================================================
     // PARSE JSON
-    // ---------------------------------------------------------
+    // =========================================================
 
-    let result;
+    const result = parseGeminiJson(text);
 
-    try {
-
-        result =
-            JSON.parse(text);
-
-    } catch (error) {
-
-        console.warn(
-            "⚠️ Gemini trả về JSON có Markdown."
-        );
-
-
-        const cleaned =
-            text
-                .replace(
-                    /^```json\s*/i,
-                    ""
-                )
-                .replace(
-                    /^```\s*/i,
-                    ""
-                )
-                .replace(
-                    /\s*```$/i,
-                    ""
-                )
-                .trim();
-
-
-        try {
-
-            result =
-                JSON.parse(cleaned);
-
-        } catch (secondError) {
-
-            console.error(
-                "❌ GEMINI RAW RESPONSE:"
-            );
-
-            console.error(text);
-
-
-            throw new Error(
-                "Gemini trả về JSON không hợp lệ."
-            );
-
-        }
-
-    }
-
-
-    // ---------------------------------------------------------
+    // =========================================================
     // NORMALIZE
-    // ---------------------------------------------------------
+    // =========================================================
 
     return normalizeWritingResult(
         result,
         essay
     );
-
 }
-
 
 // =============================================================
 // TEST GEMINI CONNECTION
 // =============================================================
 
-async function testGeminiConnection() {
+async function testGeminiConnection(
+    model = null,
+    timeoutMs = 10000
+) {
+    validateGeminiApiKey();
 
-    if (
-        !GEMINI_API_KEY ||
-        GEMINI_API_KEY === "1111" ||
-        GEMINI_API_KEY === "YOUR_NEW_GEMINI_API_KEY"
-    ) {
+    const selectedModel =
+        getSafeModel(model);
 
-        throw new Error(
-            "GEMINI_API_KEY chưa được cấu hình."
-        );
-
-    }
-
+    console.log(
+        "🔍 testGeminiConnection with model:",
+        selectedModel
+    );
 
     const url =
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+        "https://generativelanguage.googleapis.com/v1beta/interactions";
 
+    const controller =
+        new AbortController();
 
-    const response =
-        await fetch(
-            url,
-            {
+    const timeoutId = setTimeout(() => {
+        controller.abort();
+    }, timeoutMs);
 
-                method: "POST",
+    let response;
 
-                headers: {
+    try {
+        response = await fetch(url, {
+            method: "POST",
 
-                    "Content-Type":
-                        "application/json"
+            headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": GEMINI_API_KEY,
+            },
 
-                },
+            body: JSON.stringify({
+                model: selectedModel,
 
-                body: JSON.stringify({
+                input: "Reply only with the word OK.",
+            }),
 
-                    contents: [
+            signal: controller.signal,
+        });
+    } catch (error) {
+        if (error.name === "AbortError") {
+            throw new Error(
+                `Gemini API không phản hồi sau ${timeoutMs / 1000} giây.`
+            );
+        }
 
-                        {
-
-                            role: "user",
-
-                            parts: [
-
-                                {
-
-                                    text:
-                                        "Reply only with the word OK."
-
-                                }
-
-                            ]
-
-                        }
-
-                    ],
-
-                    generationConfig: {
-
-                        temperature: 0
-
-                    }
-
-                })
-
-            }
+        console.error(
+            "❌ GEMINI CONNECTION ERROR:",
+            error
         );
 
+        throw new Error(
+            "Không thể kết nối tới Gemini API."
+        );
+    } finally {
+        clearTimeout(timeoutId);
+    }
 
-    const data =
-        await response.json();
+    let data;
 
+    try {
+        data = await response.json();
+    } catch (error) {
+        throw new Error(
+            "Gemini trả về dữ liệu không hợp lệ."
+        );
+    }
 
     if (!response.ok) {
+        console.error(
+            "❌ GEMINI STATUS ERROR:",
+            JSON.stringify(
+                data,
+                null,
+                2
+            )
+        );
 
         throw new Error(
             data?.error?.message ||
             "Gemini API chưa kết nối."
         );
-
     }
 
-
     const text =
-        data
-            ?.candidates?.[0]
-            ?.content?.parts?.[0]
-            ?.text;
-
+        extractInteractionText(data);
 
     if (!text) {
+        console.error(
+            "❌ GEMINI TEST RESPONSE:",
+            JSON.stringify(
+                data,
+                null,
+                2
+            )
+        );
 
         throw new Error(
             "Gemini không trả về dữ liệu."
         );
-
     }
 
-
     return {
-
         connected: true,
-
-        model: GEMINI_MODEL,
-
-        response: text.trim()
-
+        model: selectedModel,
+        response: text.trim(),
+        interactionId: data?.id || null,
+        status: data?.status || null,
     };
-
 }
-
 
 // =============================================================
 // EXPORT
 // =============================================================
 
 module.exports = {
-
     checkWritingByGemini,
-
     testGeminiConnection,
-
     createWritingPrompt,
-
-    normalizeWritingResult
-
+    normalizeWritingResult,
+    SUPPORTED_MODELS,
+    DEFAULT_MODEL,
+    getSafeModel,
 };
+

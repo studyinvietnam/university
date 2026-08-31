@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "bai-viet-1.backend.js",
+      "src": "index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/bai-viet-1.backend.js"
+      "dest": "/index.js"
     }
   ]
 }
