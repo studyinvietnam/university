@@ -1,6 +1,6 @@
 // ============================================================
-// IELTS WRITING AI - BACKEND SERVER
-// Express + Vercel + Render
+// IELTS WRITING AI - EXPRESS BACKEND
+// Express + Vercel + Render + Local
 // ============================================================
 
 require("dotenv").config();
@@ -26,39 +26,40 @@ const app = express();
 // ENVIRONMENT
 // ============================================================
 
-const IS_VERCEL = Boolean(
-    process.env.VERCEL
-);
+const IS_VERCEL =
+    Boolean(process.env.VERCEL);
 
-const IS_RENDER = Boolean(
-    process.env.RENDER
-);
+const IS_RENDER =
+    Boolean(process.env.RENDER);
 
 // ============================================================
 // BASE PATH
 // ============================================================
 
-const BASE_PATH = IS_VERCEL
-    ? ""
-    : "/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1";
+const BASE_PATH =
+    IS_VERCEL
+        ? ""
+        : "/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1";
 
 // ============================================================
 // PORT
 // ============================================================
 
 const PORT =
-    process.env.PORT || 3001;
+    process.env.PORT || 3000;
 
 // ============================================================
 // PATH
 // ============================================================
 
-const ROOT_DIR = __dirname;
+const ROOT_DIR =
+    __dirname;
 
-const INDEX_PATH = path.join(
-    ROOT_DIR,
-    "index.html"
-);
+const INDEX_PATH =
+    path.join(
+        ROOT_DIR,
+        "index.html"
+    );
 
 // ============================================================
 // MIDDLEWARE
@@ -96,13 +97,44 @@ app.use(
 );
 
 // ============================================================
-// STATIC
+// HEALTH
+// ============================================================
+
+app.get(
+    "/api/health",
+    (req, res) => {
+        return res.status(200).json({
+            success: true,
+
+            server:
+                "IELTS Writing AI",
+
+            environment:
+                IS_VERCEL
+                    ? "Vercel"
+                    : IS_RENDER
+                    ? "Render"
+                    : "Local",
+
+            geminiModel:
+                DEFAULT_MODEL,
+
+            timestamp:
+                new Date().toISOString(),
+        });
+    }
+);
+
+// ============================================================
+// STATIC LOCAL / RENDER
 // ============================================================
 
 if (!IS_VERCEL) {
     app.use(
         BASE_PATH,
-        express.static(ROOT_DIR)
+        express.static(
+            ROOT_DIR
+        )
     );
 }
 
@@ -114,15 +146,10 @@ app.get(
     `${BASE_PATH}/api/models`,
     (req, res) => {
         console.log(
-            "✅ /api/models called"
+            "✅ /api/models"
         );
 
-        console.log(
-            "📋 Models:",
-            SUPPORTED_MODELS
-        );
-
-        res.json({
+        return res.status(200).json({
             success: true,
 
             models:
@@ -143,16 +170,17 @@ app.get(
     async (req, res) => {
         try {
             const requestedModel =
-                req.query.model || null;
+                req.query.model ||
+                null;
 
             console.log(
-                "🔍 Checking AI status"
+                "🔍 Checking Gemini status"
             );
 
             console.log(
-                "🤖 Requested model:",
+                "🤖 Model:",
                 requestedModel ||
-                    "(default)"
+                    DEFAULT_MODEL
             );
 
             const result =
@@ -160,7 +188,7 @@ app.get(
                     requestedModel
                 );
 
-            res.json({
+            return res.status(200).json({
                 success: true,
 
                 connected: true,
@@ -173,6 +201,9 @@ app.get(
 
                 response:
                     result.response,
+
+                interactionId:
+                    result.interactionId,
             });
         } catch (error) {
             console.error(
@@ -180,13 +211,14 @@ app.get(
                 error.message
             );
 
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
 
                 connected: false,
 
                 message:
-                    error.message,
+                    error.message ||
+                    "Gemini API chưa kết nối.",
             });
         }
     }
@@ -200,6 +232,7 @@ app.post(
     `${BASE_PATH}/api/check-writing`,
     async (req, res) => {
         console.log("");
+
         console.log(
             "========================================"
         );
@@ -213,22 +246,34 @@ app.post(
         );
 
         try {
-            const {
-                topic,
-                title,
-                outline,
-                writing,
-                model,
-            } = req.body || {};
+            const body =
+                req.body || {};
+
+            const topic =
+                body.topic || "";
+
+            const title =
+                body.title || "";
+
+            const outline =
+                body.outline || "";
+
+            const writing =
+                body.writing || "";
+
+            const model =
+                body.model || null;
 
             console.log(
                 "📌 Topic:",
-                topic || "(không có)"
+                topic ||
+                    "(không có)"
             );
 
             console.log(
                 "📌 Title:",
-                title || "(không có)"
+                title ||
+                    "(không có)"
             );
 
             console.log(
@@ -239,17 +284,18 @@ app.post(
             );
 
             console.log(
-                "🤖 Model yêu cầu:",
+                "🤖 Model:",
                 model ||
-                    "(mặc định)"
+                    DEFAULT_MODEL
             );
 
             // ====================================================
-            // VALIDATE WRITING
+            // VALIDATE
             // ====================================================
 
             if (
-                typeof writing !== "string" ||
+                typeof writing !==
+                    "string" ||
                 !writing.trim()
             ) {
                 return res.status(400).json({
@@ -261,7 +307,7 @@ app.post(
             }
 
             // ====================================================
-            // CLEAN WRITING
+            // CLEAN
             // ====================================================
 
             const cleanWriting =
@@ -283,7 +329,7 @@ app.post(
             );
 
             // ====================================================
-            // CHECK WRITING
+            // CALL GEMINI
             // ====================================================
 
             const result =
@@ -291,7 +337,7 @@ app.post(
                     topic,
                     cleanWriting,
                     45000,
-                    model || null
+                    model
                 );
 
             // ====================================================
@@ -319,10 +365,20 @@ app.post(
             );
 
             console.log(
+                "🤖 MODEL:",
+                result.model
+            );
+
+            console.log(
+                "🆔 INTERACTION:",
+                result.interactionId
+            );
+
+            console.log(
                 "========================================"
             );
 
-            res.json({
+            return res.status(200).json({
                 success: true,
 
                 data: result,
@@ -352,60 +408,57 @@ app.post(
                 "========================================"
             );
 
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
 
                 message:
                     error.message ||
                     "Không thể chấm bài bằng Gemini AI.",
+
+                ...(IS_VERCEL
+                    ? {}
+                    : {
+                        error:
+                            error.stack,
+                    }),
             });
         }
     }
 );
 
 // ============================================================
-// HOME
+// HOME - LOCAL / RENDER
 // ============================================================
 
-app.get(
-    BASE_PATH || "/",
-    (req, res) => {
-        console.log(
-            "🌐 HOME:",
-            req.originalUrl
-        );
+if (!IS_VERCEL) {
+    app.get(
+        BASE_PATH,
+        (req, res) => {
+            return res.sendFile(
+                INDEX_PATH
+            );
+        }
+    );
 
-        res.sendFile(
-            INDEX_PATH,
-            (error) => {
-                if (error) {
-                    console.error(
-                        "❌ INDEX ERROR:",
-                        error.message
-                    );
-
-                    if (
-                        !res.headersSent
-                    ) {
-                        res.status(500).send(
-                            "Không tìm thấy index.html"
-                        );
-                    }
-                }
-            }
-        );
-    }
-);
+    app.get(
+        `${BASE_PATH}/`,
+        (req, res) => {
+            return res.sendFile(
+                INDEX_PATH
+            );
+        }
+    );
+}
 
 // ============================================================
-// VERCEL ROOT
+// VERCEL HOME
 // ============================================================
 
 if (IS_VERCEL) {
     app.get(
         "/",
         (req, res) => {
-            res.sendFile(
+            return res.sendFile(
                 INDEX_PATH
             );
         }
@@ -417,7 +470,7 @@ if (IS_VERCEL) {
 // ============================================================
 
 app.use(
-    `${BASE_PATH}/api`,
+    "/api",
     (req, res) => {
         console.error(
             "❌ API NOT FOUND:",
@@ -425,7 +478,7 @@ app.use(
             req.originalUrl
         );
 
-        res.status(404).json({
+        return res.status(404).json({
             success: false,
 
             message:
@@ -438,11 +491,16 @@ app.use(
 );
 
 // ============================================================
-// GLOBAL ERROR HANDLER
+// GLOBAL ERROR
 // ============================================================
 
 app.use(
-    (error, req, res, next) => {
+    (
+        error,
+        req,
+        res,
+        next
+    ) => {
         console.error(
             "💥 GLOBAL ERROR:",
             error
@@ -454,17 +512,18 @@ app.use(
             return next(error);
         }
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
 
             message:
+                error.message ||
                 "Lỗi server.",
         });
     }
 );
 
 // ============================================================
-// START SERVER
+// START LOCAL / RENDER
 // ============================================================
 
 if (!IS_VERCEL) {
