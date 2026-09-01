@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Booth's Algorithm – Interactive Visualization</title>
+
+    <!-- MathJax for beautiful math rendering -->
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+    <style>
+        /* ─── Reset & Variables ─── */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        :root {
+            --bg: #0b1120;
+            --surface: #152238;
+            --surface2: #1e2d4a;
+            --border: rgba(56, 189, 248, 0.15);
+            --text: #f0f4ff;
+            --sub: #94a9c9;
+            --cyan: #38bdf8;
+            --cyan-glow: rgba(56, 189, 248, 0.25);
+            --green: #4ade80;
+            --red: #f87171;
+            --orange: #fb923c;
+            --radius: 16px;
+            --shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 2rem 1.5rem;
+            line-height: 1.7;
+            min-height: 100vh;
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 70%);
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        /* ─── Glass Card ─── */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 1.8rem 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(2px);
+            transition: border-color var(--transition);
+        }
+        .card:hover { border-color: rgba(56, 189, 248, 0.3); }
+        .card-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--cyan);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .card-title .badge {
+            font-size: 0.7rem;
+            background: var(--cyan-glow);
+            color: var(--cyan);
+            padding: 0.2rem 0.8rem;
+            border-radius: 999px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        /* ─── Header ─── */
+        .hero {
+            text-align: center;
+            padding: 2.5rem 1rem 1.5rem;
+            position: relative;
+        }
+        .hero h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--cyan), #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+        .hero p {
+            color: var(--sub);
+            font-size: 1.15rem;
+            max-width: 700px;
+            margin: 0.5rem auto 0;
+        }
+        .hero .subtitle {
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 0.3rem 1.2rem;
+            border-radius: 999px;
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid var(--border);
+            color: var(--sub);
+            font-size: 0.9rem;
+        }
+
+        /* ─── Flowchart ─── */
+        .flowchart-wrapper {
+            background: var(--surface2);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        .flowchart-wrapper img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* ─── Video Lessons ─── */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1.25rem;
+            margin-top: 1rem;
+        }
+        .video-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform var(--transition), border-color var(--transition);
+        }
+        .video-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(56, 189, 248, 0.35);
+        }
+        .video-frame {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            border: 0;
+            display: block;
+        }
+        .video-info { padding: 1rem; }
+        .video-info h3 {
+            color: var(--text);
+            font-size: 1rem;
+            line-height: 1.4;
+            margin-bottom: 0.35rem;
+        }
+        .video-info p {
+            color: var(--sub);
+            font-size: 0.82rem;
+            line-height: 1.55;
+        }
+        .video-channel {
+            display: inline-block;
+            color: var(--cyan);
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+        }
+
+        @media (max-width: 900px) {
+            .video-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ─── Simulation Panel ─── */
+        .reg-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+        .reg-item {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 0.5rem 1rem;
+            min-width: 90px;
+            text-align: center;
+            border: 1.5px solid var(--border);
+            transition: border-color var(--transition);
+        }
+        .reg-item .reg-name {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--sub);
+            display: block;
+        }
+        .reg-item .reg-input {
+            background: transparent;
+            border: none;
+            color: var(--cyan);
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-align: center;
+            width: 100%;
+            outline: none;
+        }
+        .reg-item .reg-input.green { color: var(--green); }
+        .reg-item .reg-input.orange { color: var(--orange); }
+        .reg-item.highlight {
+            border-color: var(--cyan);
+            box-shadow: 0 0 16px var(--cyan-glow);
+        }
+        .reg-item.highlight-green {
+            border-color: var(--green);
+            box-shadow: 0 0 16px rgba(74, 222, 128, 0.15);
+        }
+
+        .step-log {
+            background: var(--bg);
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            max-height: 220px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+            color: var(--sub);
+            line-height: 1.6;
+        }
+        .step-log .log-entry {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .step-log .log-entry .step-num {
+            color: var(--cyan);
+            margin-right: 0.6rem;
+        }
+        .step-log .log-entry .op-text.add { color: var(--green); }
+        .step-log .log-entry .op-text.sub { color: var(--red); }
+        .step-log .log-entry .op-text.none { color: var(--sub); }
+
+        .sim-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin-top: 1rem;
+            align-items: center;
+            justify-content: center;
+        }
+        .sim-controls button {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.5rem 1.4rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .sim-controls button:hover {
+            background: var(--cyan);
+            color: var(--bg);
+            border-color: var(--cyan);
+            box-shadow: 0 0 24px var(--cyan-glow);
+        }
+        .sim-controls button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none;
+            background: var(--surface2);
+            color: var(--sub);
+        }
+        .sim-controls button.primary {
+            background: var(--cyan);
+            color: var(--bg);
+            border-color: var(--cyan);
+        }
+
+        .input-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem 1.2rem;
+            align-items: center;
+            justify-content: center;
+            margin-top: 0.5rem;
+        }
+        .input-group label {
+            font-weight: 500;
+            color: var(--sub);
+            font-size: 0.9rem;
+        }
+        .input-group input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.4rem;
+            color: var(--text);
+            text-align: center;
+            width: 60px;
+            font-size: 0.95rem;
+        }
+        .input-group input[type="number"] {
+            width: 70px;
+        }
+        .input-group .sep {
+            color: var(--border);
+            font-weight: 300;
+        }
+
+        /* ─── Code Block ─── */
+        .code-block {
+            background: #0a0e1a;
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            border: 1px solid var(--border);
+        }
+        .code-block .kw { color: #c084fc; }
+        .code-block .type { color: #60a5fa; }
+        .code-block .func { color: #fbbf24; }
+        .code-block .str { color: #34d399; }
+        .code-block .num { color: #f472b6; }
+        .code-block .cmt { color: #4b5563; font-style: italic; }
+
+        .result-banner {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-top: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            background: rgba(56, 189, 248, 0.05);
+            border: 1px solid var(--border);
+        }
+        .result-banner.done {
+            border-color: var(--green);
+            background: rgba(74, 222, 128, 0.06);
+            color: var(--green);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- HERO -->
+        <div class="hero">
+            <h1>🧮 Thuật Toán Booth</h1>
+            <p>Nhân số nguyên có dấu dạng bù 2 &bull; Mô phỏng trực quan &bull; Code C++ chuẩn xác</p>
+            <span class="subtitle">Andrew Donald Booth &bull; 1951</span>
+        </div>
+
+        <!-- FLOWCHART -->
+        <div class="card">
+            <div class="card-title">
+                📊 Sơ Đồ Khối &amp; Luồng Hoạt Động
+                <span class="badge">Hình ảnh</span>
+            </div>
+            <div class="flowchart-wrapper">
+                <img src="https://raw.githubusercontent.com/chunglop0781/project-cache/refs/heads/main/bai_tap_dh/utc/2026-2027/Kien_truc_va_to_chuc_may_tinh-1-1-26(N06)/tai-lieu-3-tu-chup/tuan-3/03d98a1f-77ee-4b38-8d04-761b8e3b3205.jpg"
+                     alt="Sơ đồ khối thuật toán Booth" loading="lazy" />
+            </div>
+        </div>
+
+        <!-- SIMULATION PANEL -->
+        <div class="card">
+            <div class="card-title">
+                🎮 Mô Phỏng Trực Tiếp
+                <span class="badge">Step-by-step</span>
+            </div>
+
+            <div class="input-group">
+                <label>Số bit (n) :</label>
+                <input type="number" id="inputN" value="4" min="2" max="8" />
+                <span class="sep">|</span>
+                <label>Số bị nhân (M) :</label>
+                <input type="number" id="inputM" value="-6" />
+                <span class="sep">|</span>
+                <label>Số nhân (Q) :</label>
+                <input type="number" id="inputQ" value="5" />
+                <span class="sep">|</span>
+                <label>A (khởi tạo) :</label>
+                <input type="number" id="inputA" value="0" />
+                <span class="sep">|</span>
+                <label>Count (C) :</label>
+                <input type="number" id="inputC" value="4" min="0" max="8" />
+                <button id="btnReset" style="border-color:var(--red); color:var(--red); background:transparent; padding:0.4rem 1rem; border-radius:999px; cursor:pointer;">⟳ Reset</button>
+            </div>
+
+            <div class="reg-display">
+                <div class="reg-item highlight" id="regA">
+                    <span class="reg-name">A (Tích lũy)</span>
+                    <input class="reg-input" id="valA" readonly />
+                </div>
+                <div class="reg-item highlight" id="regQ">
+                    <span class="reg-name">Q (Nhân)</span>
+                    <input class="reg-input" id="valQ" readonly />
+                </div>
+                <div class="reg-item highlight" id="regQm1">
+                    <span class="reg-name">Q<sub>-1</sub></span>
+                    <input class="reg-input" id="valQm1" readonly style="width:30px;" />
+                </div>
+                <div class="reg-item" id="regM">
+                    <span class="reg-name">M (Bị nhân)</span>
+                    <input class="reg-input green" id="valM" readonly />
+                </div>
+                <div class="reg-item" id="regCount">
+                    <span class="reg-name">Count</span>
+                    <input class="reg-input orange" id="valCount" readonly style="width:40px;" />
+                </div>
+            </div>
+
+            <div class="sim-controls">
+                <button id="btnStep" class="primary">▶ Bước tiếp</button>
+                <button id="btnAuto" style="border-color:var(--green); color:var(--green);">▶ Tự động</button>
+                <button id="btnStop" disabled style="border-color:var(--red); color:var(--red);">⏹ Dừng</button>
+                <span style="color:var(--sub); font-size:0.85rem;" id="stepCounter">Bước 0 / ?</span>
+            </div>
+
+            <div class="result-banner" id="resultBanner">⏳ Chưa bắt đầu</div>
+
+            <div style="margin-top:1rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3rem;">
+                    <span style="font-weight:600; color:var(--sub); font-size:0.9rem;">📋 Nhật ký thực thi</span>
+                    <button id="btnClearLog" style="background:transparent; border:none; color:var(--sub); cursor:pointer; font-size:0.8rem; text-decoration:underline;">Xóa</button>
+                </div>
+                <div class="step-log" id="stepLog"></div>
+            </div>
+        </div>
+
+        <!-- C++ CODE -->
+        <div class="card">
+            <div class="card-title">
+                💻 Code C++ – Thuật Toán Booth
+                <span class="badge">Implementation</span>
+            </div>
+            <div class="code-block">
+                <pre style="margin:0;"><span class="cmt">// Booth's Algorithm – Signed Binary Multiplication (C++17)</span>
+<span class="kw">#include</span> <span class="str">&lt;iostream&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;bitset&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;cstdint&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+
+<span class="cmt">// Mở rộng dấu cho giá trị x với độ dài n bit</span>
+<span class="type">int64_t</span> <span class="func">signExtend</span>(<span class="type">int64_t</span> x, <span class="type">int</span> n) {
+    <span class="type">int64_t</span> mask = (<span class="num">1LL</span> &lt;&lt; n) - <span class="num">1</span>;
+    <span class="kw">if</span> (x &amp; (<span class="num">1LL</span> &lt;&lt; (n - <span class="num">1</span>))) {
+        x |= ~mask;   <span class="cmt">// set các bit cao hơn thành 1</span>
+    } <span class="kw">else</span> {
+        x &amp;= mask;    <span class="cmt">// giữ nguyên n bit thấp</span>
+    }
+    <span class="kw">return</span> x;
+}
+
+<span class="cmt">// Thuật toán Booth</span>
+<span class="type">int64_t</span> <span class="func">boothMultiply</span>(<span class="type">int</span> n, <span class="type">int64_t</span> multiplicand, <span class="type">int64_t</span> multiplier) {
+    <span class="type">int64_t</span> mask = (<span class="num">1LL</span> &lt;&lt; n) - <span class="num">1</span>;
+
+    <span class="cmt">// Khởi tạo các thanh ghi</span>
+    <span class="type">int64_t</span> M = <span class="func">signExtend</span>(multiplicand &amp; mask, n);   <span class="cmt">// M = Multiplicand</span>
+    <span class="type">int64_t</span> Q = <span class="func">signExtend</span>(multiplier &amp; mask, n);     <span class="cmt">// Q = Multiplier</span>
+    <span class="type">int64_t</span> A = <span class="num">0</span>;                                   <span class="cmt">// A = 0</span>
+    <span class="type">int</span> Q0_ext = <span class="num">0</span>;                                  <span class="cmt">// Q_{-1} = 0</span>
+    <span class="type">int</span> count = n;
+
+    <span class="kw">while</span> (count &gt; <span class="num">0</span>) {
+        <span class="type">int</span> q0 = Q &amp; <span class="num">1</span>;      <span class="cmt">// bit thấp nhất của Q</span>
+
+        <span class="cmt">// Kiểm tra cặp bit (q0, Q0_ext)</span>
+        <span class="kw">if</span> (q0 == <span class="num">0</span> &amp;&amp; Q0_ext == <span class="num">1</span>) {
+            <span class="cmt">// 01 : A = A + M</span>
+            A = A + M;
+            A = <span class="func">signExtend</span>(A &amp; mask, n);
+        } <span class="kw">else</span> <span class="kw">if</span> (q0 == <span class="num">1</span> &amp;&amp; Q0_ext == <span class="num">0</span>) {
+            <span class="cmt">// 10 : A = A - M</span>
+            A = A - M;
+            A = <span class="func">signExtend</span>(A &amp; mask, n);
+        }
+        <span class="cmt">// Còn lại 00 hoặc 11: không làm gì</span>
+
+        <span class="cmt">// Dịch phải số học (A, Q, Q0_ext)</span>
+        <span class="type">int</span> sign = (A &gt;&gt; (n - <span class="num">1</span>)) &amp; <span class="num">1</span>;   <span class="cmt">// bit dấu của A trước khi dịch</span>
+        <span class="type">int</span> low_A = A &amp; <span class="num">1</span>;               <span class="cmt">// bit thấp nhất của A</span>
+        <span class="type">int</span> old_Q0 = Q &amp; <span class="num">1</span>;              <span class="cmt">// bit thấp nhất của Q (cũ)</span>
+
+        <span class="cmt">// Dịch phải A: giữ nguyên bit dấu</span>
+        A = (A &gt;&gt; <span class="num">1</span>) | (sign &lt;&lt; (n - <span class="num">1</span>));
+        A = <span class="func">signExtend</span>(A &amp; mask, n);
+
+        <span class="cmt">// Dịch phải Q, đưa bit thấp nhất của A cũ vào bit cao nhất của Q</span>
+        Q = (Q &gt;&gt; <span class="num">1</span>) | (low_A &lt;&lt; (n - <span class="num">1</span>));
+        Q &amp;= mask;   <span class="cmt">// giữ n bit</span>
+
+        <span class="cmt">// Cập nhật Q0_ext = old_Q0</span>
+        Q0_ext = old_Q0;
+
+        count--;
+    }
+
+    <span class="cmt">// Kết quả là (A, Q) tạo thành số nhị phân 2n bit</span>
+    <span class="type">int64_t</span> result = (A &lt;&lt; n) | (Q &amp; mask);
+
+    <span class="cmt">// Mở rộng dấu cho kết quả 2n bit</span>
+    <span class="kw">if</span> (result &amp; (<span class="num">1LL</span> &lt;&lt; (<span class="num">2</span> * n - <span class="num">1</span>))) {
+        result |= ~((<span class="num">1LL</span> &lt;&lt; (<span class="num">2</span> * n)) - <span class="num">1</span>);
+    }
+
+    <span class="kw">return</span> result;
+}
+
+<span class="type">int</span> <span class="func">main</span>() {
+    <span class="type">int</span> n;
+    <span class="type">int64_t</span> multiplicand, multiplier;
+
+    cout &lt;&lt; <span class="str">"Nhap so bit n: "</span>;
+    cin &gt;&gt; n;
+    cout &lt;&lt; <span class="str">"Nhap so bi nhan (Multiplicand): "</span>;
+    cin &gt;&gt; multiplicand;
+    cout &lt;&lt; <span class="str">"Nhap so nhan (Multiplier): "</span>;
+    cin &gt;&gt; multiplier;
+
+    <span class="type">int64_t</span> product = <span class="func">boothMultiply</span>(n, multiplicand, multiplier);
+
+    cout &lt;&lt; <span class="str">"Tich = "</span> &lt;&lt; product &lt;&lt; endl;
+
+    <span class="cmt">// In biểu diễn nhị phân (2n bit)</span>
+    cout &lt;&lt; <span class="str">"Nhi phan (2n bit): "</span>;
+    <span class="type">int</span> totalBits = <span class="num">2</span> * n;
+    <span class="kw">if</span> (totalBits &lt;= <span class="num">64</span>) {
+        <span class="kw">for</span> (<span class="type">int</span> i = totalBits - <span class="num">1</span>; i &gt;= <span class="num">0</span>; --i) {
+            cout &lt;&lt; ((product &gt;&gt; i) &amp; <span class="num">1</span>);
+            <span class="kw">if</span> (i % <span class="num">4</span> == <span class="num">0</span> &amp;&amp; i != <span class="num">0</span>) cout &lt;&lt; <span class="str">" "</span>;
+        }
+        cout &lt;&lt; endl;
+    } <span class="kw">else</span> {
+        cout &lt;&lt; <span class="str">"Khong the in do qua 64 bit."</span> &lt;&lt; endl;
+    }
+
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+            </div>
+        </div>
+
+        <!-- MATH RULES -->
+        <div class="card">
+            <div class="card-title">
+                📐 Quy Tắc &amp; Bảng Tra Cặp Bit
+                <span class="badge">Rules</span>
+            </div>
+            <table style="width:100%; border-collapse:collapse; font-size:0.95rem; text-align:left;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border); color:var(--cyan);">
+                        <th style="padding:0.5rem;">Q₀</th>
+                        <th style="padding:0.5rem;">Q₋₁</th>
+                        <th style="padding:0.5rem;">Thao tác tính toán</th>
+                        <th style="padding:0.5rem;">Bước tiếp theo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:0.5rem;">0</td>
+                        <td style="padding:0.5rem;">0</td>
+                        <td style="color:var(--sub);">Không thao tác trên A</td>
+                        <td style="color:var(--text);">Dịch phải số học (ARS) [A, Q, Q₋₁]</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:0.5rem;">0</td>
+                        <td style="padding:0.5rem;">1</td>
+                        <td style="color:var(--green); font-weight:600;">A = A + M</td>
+                        <td style="color:var(--text);">Dịch phải số học (ARS) [A, Q, Q₋₁]</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:0.5rem;">1</td>
+                        <td style="padding:0.5rem;">0</td>
+                        <td style="color:var(--red); font-weight:600;">A = A − M</td>
+                        <td style="color:var(--text);">Dịch phải số học (ARS) [A, Q, Q₋₁]</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:0.5rem;">1</td>
+                        <td style="padding:0.5rem;">1</td>
+                        <td style="color:var(--sub);">Không thao tác trên A</td>
+                        <td style="color:var(--text);">Dịch phải số học (ARS) [A, Q, Q₋₁]</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT ENGINE -->
+    <script>
+        (function() {
+            'use strict';
+
+            const $ = id => document.getElementById(id);
+            const valA = $('valA'), valQ = $('valQ'), valQm1 = $('valQm1'), valM = $('valM'), valCount = $('valCount');
+            const regA = $('regA'), regQ = $('regQ'), regQm1 = $('regQm1');
+            const stepLog = $('stepLog'), resultBanner = $('resultBanner'), stepCounter = $('stepCounter');
+            const btnStep = $('btnStep'), btnAuto = $('btnAuto'), btnStop = $('btnStop'), btnReset = $('btnReset'), btnClearLog = $('btnClearLog');
+            const inputM = $('inputM'), inputQ = $('inputQ'), inputN = $('inputN'), inputA = $('inputA'), inputC = $('inputC');
+
+            let state = {
+                M: 0, Q: 0, A: 0, Q_1: 0, Count: 0, n: 4, mask: 0,
+                steps: [], isRunning: false, autoTimer: null, finished: false
+            };
+
+            function toBin(val, n) {
+                const mask = (1 << n) - 1;
+                return (val & mask).toString(2).padStart(n, '0');
+            }
+
+            function fromTwosComplement(combined, totalBits) {
+                if (combined & (1 << (totalBits - 1))) {
+                    return combined - (1 << totalBits);
+                }
+                return combined;
+            }
+
+            function executeStep() {
+                if (state.finished || state.Count <= 0) {
+                    state.finished = true;
+                    return false;
+                }
+
+                const n = state.n;
+                const mask = state.mask;
+                const Q0 = state.Q & 1;
+                const Q_1 = state.Q_1 & 1;
+
+                let op = 'none';
+                let opDesc = 'Chỉ dịch (ARS)';
+
+                // 1. Phép toán Cộng / Trừ
+                if (Q0 === 0 && Q_1 === 1) {
+                    state.A = (state.A + state.M) & mask;
+                    op = 'add';
+                    opDesc = 'A = A + M, Dịch ARS';
+                } else if (Q0 === 1 && Q_1 === 0) {
+                    state.A = (state.A - state.M) & mask;
+                    op = 'sub';
+                    opDesc = 'A = A − M, Dịch ARS';
+                }
+
+                // 2. Dịch phải số học ARS
+                const msbA = (state.A >> (n - 1)) & 1;
+                const lsbA = state.A & 1;
+                const lsbQ = state.Q & 1;
+
+                state.A = ((state.A >> 1) | (msbA << (n - 1))) & mask;
+                state.Q = ((state.Q >> 1) | (lsbA << (n - 1))) & mask;
+                state.Q_1 = lsbQ;
+
+                state.Count--;
+
+                const logEntry = {
+                    step: state.steps.length + 1,
+                    A: state.A, Q: state.Q, Q_1: state.Q_1, Count: state.Count,
+                    op: op, opDesc: opDesc, Q0: Q0, Q_1_old: Q_1
+                };
+                state.steps.push(logEntry);
+
+                if (state.Count === 0) state.finished = true;
+                return true;
+            }
+
+            function render() {
+                const n = state.n;
+                valA.value = toBin(state.A, n);
+                valQ.value = toBin(state.Q, n);
+                valQm1.value = state.Q_1.toString();
+                valM.value = toBin(state.M, n);
+                valCount.value = state.Count.toString();
+
+                [regA, regQ, regQm1].forEach(el => el.classList.remove('highlight', 'highlight-green'));
+                if (state.finished) {
+                    regA.classList.add('highlight-green');
+                    regQ.classList.add('highlight-green');
+                } else {
+                    regA.classList.add('highlight');
+                    regQ.classList.add('highlight');
+                    regQm1.classList.add('highlight');
+                }
+
+                stepCounter.textContent = `Bước ${state.steps.length} / ${state.n}`;
+
+                if (state.finished) {
+                    const combined = ((state.A & state.mask) << state.n) | (state.Q & state.mask);
+                    const decResult = fromTwosComplement(combined, state.n * 2);
+                    resultBanner.textContent = `✅ Kết quả: ${decResult} (A=${toBin(state.A, state.n)}, Q=${toBin(state.Q, state.n)})`;
+                    resultBanner.className = 'result-banner done';
+                } else if (state.steps.length === 0) {
+                    resultBanner.textContent = '⏳ Chưa bắt đầu';
+                    resultBanner.className = 'result-banner';
+                } else {
+                    resultBanner.textContent = `⏳ Đang thực thi... (bước ${state.steps.length}/${state.n})`;
+                    resultBanner.className = 'result-banner';
+                }
+            }
+
+            function appendLog(entry) {
+                const div = document.createElement('div');
+                div.className = 'log-entry';
+                let opClass = entry.op;
+                div.innerHTML = `
+                    <span class="step-num">#${entry.step}</span>
+                    [Q₀,Q₋₁] = <strong>(${entry.Q0},${entry.Q_1_old})</strong>
+                    → <span class="op-text ${opClass}">${entry.opDesc}</span>
+                    &nbsp;→ A=${toBin(entry.A, state.n)}, Q=${toBin(entry.Q, state.n)}, Q₋₁=${entry.Q_1}
+                    <span style="color:var(--sub);font-size:0.8rem;margin-left:0.5rem;">(Count=${entry.Count})</span>
+                `;
+                stepLog.appendChild(div);
+                stepLog.scrollTop = stepLog.scrollHeight;
+            }
+
+            function resetSimulation() {
+                if (state.autoTimer) stopAuto();
+
+                const n = Math.max(2, Math.min(8, parseInt(inputN.value) || 4));
+                inputN.value = n;
+
+                let rawM = parseInt(inputM.value) || 0;
+                let rawQ = parseInt(inputQ.value) || 0;
+                let rawA = parseInt(inputA.value) || 0;
+                let rawC = parseInt(inputC.value) || n;
+                // Giới hạn Count trong khoảng 0..n
+                rawC = Math.min(n, Math.max(0, rawC));
+
+                const mask = (1 << n) - 1;
+                state.n = n;
+                state.mask = mask;
+                state.M = rawM & mask;
+                state.Q = rawQ & mask;
+                state.A = rawA & mask;
+                state.Q_1 = 0;
+                state.Count = rawC;
+                state.steps = [];
+                state.finished = false;
+
+                stepLog.innerHTML = '<div class="log-entry" style="color:var(--sub);">— Nhấn "Bước tiếp" để bắt đầu —</div>';
+                btnStep.disabled = false;
+                btnAuto.disabled = false;
+                render();
+            }
+
+            function stepForward() {
+                if (executeStep()) {
+                    if (state.steps.length === 1) stepLog.innerHTML = '';
+                    appendLog(state.steps[state.steps.length - 1]);
+                    render();
+                }
+                if (state.finished) {
+                    btnStep.disabled = true;
+                    btnAuto.disabled = true;
+                    if (state.isRunning) stopAuto();
+                }
+            }
+
+            function toggleAuto() {
+                if (state.isRunning) {
+                    stopAuto();
+                } else {
+                    if (state.finished) return;
+                    state.isRunning = true;
+                    btnAuto.textContent = '⏸ Tạm dừng';
+                    btnStop.disabled = false;
+                    state.autoTimer = setInterval(stepForward, 600);
+                }
+            }
+
+            function stopAuto() {
+                clearInterval(state.autoTimer);
+                state.autoTimer = null;
+                state.isRunning = false;
+                btnAuto.textContent = '▶ Tự động';
+                btnStop.disabled = true;
+            }
+
+            function init() {
+                resetSimulation();
+                btnStep.addEventListener('click', stepForward);
+                btnAuto.addEventListener('click', toggleAuto);
+                btnStop.addEventListener('click', stopAuto);
+                btnReset.addEventListener('click', resetSimulation);
+                btnClearLog.addEventListener('click', () => {
+                    stepLog.innerHTML = '<div class="log-entry" style="color:var(--sub);">— Nhật ký đã được xóa —</div>';
+                });
+
+                [inputM, inputQ, inputN, inputA, inputC].forEach(el => {
+                    el.addEventListener('change', resetSimulation);
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
+</body>
+</html>
