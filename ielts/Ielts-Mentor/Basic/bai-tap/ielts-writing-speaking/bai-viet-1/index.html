@@ -1234,10 +1234,15 @@
 
     <script>
         // =========================================================
-        // CẤU HÌNH
+        // CẤU HÌNH API (tự động chọn BASE_PATH)
         // =========================================================
 
-        const BASE_PATH = "/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1";
+        // Nếu đang chạy trên localhost (hoặc 127.0.0.1) thì dùng đường dẫn có BASE_PATH,
+        // còn lại (Vercel, Render, domain khác) thì dùng "/api".
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const BASE_PATH = isLocal
+            ? "/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1"
+            : "";
         const API_BASE = BASE_PATH + "/api";
 
         // =========================================================
