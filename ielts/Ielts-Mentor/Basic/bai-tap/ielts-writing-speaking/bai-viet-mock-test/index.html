@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS Writing Practice - Gia đình</title>
+
+    <style>
+        /* =========================================================
+           TOÀN BỘ CSS (giữ nguyên từ bản gốc)
+           ========================================================= */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        :root {
+            --ielts-red: #a61c2f;
+            --ielts-dark-red: #861426;
+            --text: #252525;
+            --muted: #6f6f6f;
+            --border: #e3e3e3;
+            --background: #f5f6f8;
+            --white: #ffffff;
+            --green: #16834b;
+            --orange: #d97706;
+            --blue: #2563eb;
+            --danger: #dc2626;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.65;
+            min-height: 100vh;
+        }
+        header {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
+        }
+        .header-inner {
+            width: min(1400px, 94%);
+            margin: auto;
+            min-height: 88px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+        .brand img {
+            width: 68px;
+            height: auto;
+            display: block;
+        }
+        .brand-text h1 {
+            color: var(--ielts-red);
+            font-size: 24px;
+            line-height: 1.2;
+            font-weight: 800;
+        }
+        .brand-text p {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .ai-status-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+        .ai-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            border: 1px solid var(--border);
+            background: #f8fafc;
+            color: #64748b;
+            white-space: nowrap;
+        }
+        .ai-status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #94a3b8;
+        }
+        .ai-status.checking {
+            background: #eff6ff;
+            color: var(--blue);
+            border-color: #bfdbfe;
+        }
+        .ai-status.checking .ai-status-dot {
+            background: var(--blue);
+            animation: pulse 1s infinite;
+        }
+        .ai-status.connected {
+            background: #f0fdf4;
+            color: var(--green);
+            border-color: #bbf7d0;
+        }
+        .ai-status.connected .ai-status-dot {
+            background: var(--green);
+        }
+        .ai-status.error {
+            background: #fef2f2;
+            color: var(--danger);
+            border-color: #fecaca;
+        }
+        .ai-status.error .ai-status-dot {
+            background: var(--danger);
+        }
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .35;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+        .ai-check-btn {
+            border: 1px solid #dbeafe;
+            background: #eff6ff;
+            color: var(--blue);
+            padding: 8px 12px;
+            border-radius: 7px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .ai-check-btn:hover {
+            background: #dbeafe;
+        }
+        .ai-check-btn:disabled {
+            opacity: .65;
+            cursor: not-allowed;
+        }
+        .progress-wrap {
+            width: 280px;
+            flex-shrink: 0;
+        }
+        .progress-text {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 7px;
+            text-align: right;
+        }
+        .progress-text b {
+            color: var(--ielts-red);
+            font-size: 15px;
+        }
+        .progress {
+            width: 100%;
+            height: 8px;
+            background: #ececec;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 33%;
+            background: var(--ielts-red);
+            border-radius: inherit;
+            transition: width .3s ease;
+        }
+        main {
+            width: min(1400px, 94%);
+            margin: 28px auto 60px;
+        }
+        .nav-dots {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #d0d0d0;
+            cursor: pointer;
+            transition: .25s;
+        }
+        .dot:hover {
+            transform: scale(1.15);
+        }
+        .dot.active {
+            background: var(--ielts-red);
+            box-shadow: 0 0 0 4px rgba(166, 28, 47, .12);
+        }
+        .dot.completed {
+            background: var(--green);
+        }
+        .slide {
+            display: none;
+        }
+        .slide.active {
+            display: block;
+            animation: slideIn .3s ease;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .test-title {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-left: 5px solid var(--ielts-red);
+            border-radius: 10px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+        .test-title h2 {
+            color: var(--ielts-red);
+            font-size: 23px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .test-title p {
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .test-badge {
+            background: #f8e9ec;
+            color: var(--ielts-red);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .writing-layout {
+            display: grid;
+            grid-template-columns: minmax(0, .95fr) minmax(0, 1.25fr);
+            gap: 20px;
+            align-items: start;
+        }
+        .question-panel,
+        .writing-panel {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(135deg, #fff, #fafafa);
+        }
+        .panel-header h3 {
+            color: var(--ielts-red);
+            font-size: 18px;
+            margin-bottom: 3px;
+        }
+        .panel-header span {
+            color: var(--muted);
+            font-size: 13px;
+        }
+        .question-content {
+            padding: 25px;
+        }
+        .writing-test-title {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+        .writing-test-title strong {
+            display: block;
+            font-size: 20px;
+            color: #222;
+        }
+        .writing-test-title span {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+        .task {
+            font-size: 16px;
+            line-height: 1.75;
+            margin-bottom: 20px;
+        }
+        .task strong {
+            color: var(--ielts-red);
+        }
+        .suggestions {
+            margin-top: 14px;
+            padding: 17px 18px;
+            background: #fafafa;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .suggestions-title {
+            color: var(--ielts-red);
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+        .suggestions ul {
+            padding-left: 22px;
+        }
+        .suggestions li {
+            margin-bottom: 8px;
+            color: #444;
+        }
+        .requirement {
+            margin-top: 18px;
+            padding: 13px 15px;
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 8px;
+            color: #9a3412;
+            font-size: 14px;
+        }
+        .outline {
+            margin-top: 20px;
+            padding: 18px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .outline h4 {
+            color: #334155;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        .outline-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .outline-item:last-child {
+            margin-bottom: 0;
+        }
+        .outline-number {
+            width: 23px;
+            height: 23px;
+            border-radius: 50%;
+            background: var(--ielts-red);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .writing-panel-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        .writing-panel-header h3 {
+            font-size: 18px;
+            color: var(--ielts-red);
+        }
+        .timer {
+            background: #fff1f2;
+            color: var(--ielts-red);
+            border: 1px solid #fecdd3;
+            padding: 7px 12px;
+            border-radius: 7px;
+            font-weight: 800;
+            font-size: 14px;
+            font-variant-numeric: tabular-nums;
+            min-width: 67px;
+            text-align: center;
+        }
+        .timer.waiting {
+            background: #f8fafc;
+            color: #64748b;
+            border-color: #cbd5e1;
+        }
+        .timer.warning {
+            background: #fff7ed;
+            color: var(--orange);
+            border-color: #fed7aa;
+        }
+        .timer.danger {
+            background: #fef2f2;
+            color: var(--danger);
+            border-color: #fecaca;
+        }
+        .timer.finished {
+            background: #fef2f2;
+            color: var(--danger);
+            border-color: #fecaca;
+        }
+        .writing-content {
+            padding: 22px;
+        }
+        .writing-input {
+            width: 100%;
+            min-height: 500px;
+            resize: vertical;
+            border: 1px solid #d7d7d7;
+            border-radius: 8px;
+            padding: 20px;
+            outline: none;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 16px;
+            line-height: 1.8;
+            color: #222;
+            background: repeating-linear-gradient(to bottom, #fff 0, #fff 31px, #eeeeee 32px);
+        }
+        .writing-input:focus {
+            border-color: var(--ielts-red);
+            box-shadow: 0 0 0 3px rgba(166, 28, 47, .08);
+        }
+        .writing-input:disabled {
+            background-color: #f1f5f9;
+            cursor: not-allowed;
+            opacity: .9;
+        }
+        .writing-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+        .word-count {
+            font-weight: 700;
+        }
+        .word-count.good {
+            color: var(--green);
+        }
+        .word-count.low {
+            color: var(--orange);
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+        button {
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .submit-btn {
+            flex: 1;
+            min-height: 48px;
+            padding: 12px 20px;
+            border-radius: 7px;
+            background: var(--ielts-red);
+            color: white;
+            font-size: 15px;
+            font-weight: 800;
+        }
+        .submit-btn:hover {
+            background: var(--ielts-dark-red);
+        }
+        .submit-btn:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+        .clear-btn {
+            min-height: 48px;
+            padding: 12px 18px;
+            border-radius: 7px;
+            background: #f3f4f6;
+            color: #444;
+            font-weight: 700;
+        }
+        .clear-btn:hover {
+            background: #e5e7eb;
+        }
+        .clear-btn:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+        .next-btn {
+            width: 100%;
+            min-height: 46px;
+            margin-top: 10px;
+            border-radius: 7px;
+            background: #1f2937;
+            color: white;
+            font-weight: 800;
+        }
+        .next-btn:hover {
+            background: #111827;
+        }
+        .result {
+            display: none;
+            margin-top: 20px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            overflow: hidden;
+            background: white;
+        }
+        .result.show {
+            display: block;
+            animation: resultIn .3s ease;
+        }
+        @keyframes resultIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .result-header {
+            padding: 17px 20px;
+            background: #fafafa;
+            border-bottom: 1px solid var(--border);
+        }
+        .result-header h3 {
+            color: var(--ielts-red);
+            font-size: 17px;
+        }
+        .result-body {
+            padding: 20px;
+        }
+        /* === Kết quả đơn giản: chỉ lỗi sai + bài mẫu === */
+        .result-errors {
+            margin-bottom: 20px;
+        }
+        .result-errors h4 {
+            color: var(--danger);
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+        .result-errors .no-errors {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 7px;
+            padding: 14px 16px;
+            color: #166534;
+            font-weight: 700;
+        }
+        .error-item-simple {
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 7px;
+            font-size: 14px;
+        }
+        .error-item-simple:last-child {
+            margin-bottom: 0;
+        }
+        .error-original-simple {
+            color: var(--danger);
+            text-decoration: line-through;
+        }
+        .error-corrected-simple {
+            color: var(--green);
+            font-weight: 700;
+        }
+        .error-explanation-simple {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .result-sample {
+            border-top: 1px solid var(--border);
+            padding-top: 18px;
+            margin-top: 10px;
+        }
+        .result-sample h4 {
+            color: var(--ielts-red);
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        .result-sample .sample-text {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 7px;
+            padding: 16px 18px;
+            font-size: 15px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            color: #1e293b;
+        }
+
+        .result-your-writing {
+            border-top: 1px solid var(--border);
+            padding-top: 18px;
+            margin-top: 12px;
+        }
+        .result-your-writing h4 {
+            color: #334155;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        .result-your-writing .your-text {
+            background: #fafafa;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 16px 18px;
+            font-size: 15px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            color: #1e293b;
+        }
+
+        .connection-box {
+            margin-bottom: 20px;
+            padding: 14px 16px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .connection-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .connection-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #f8e9ec;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .connection-title {
+            font-weight: 800;
+            font-size: 14px;
+        }
+        .connection-description {
+            color: var(--muted);
+            font-size: 12px;
+        }
+        .model-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .model-selector label {
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--text);
+        }
+        .model-selector select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: white;
+            font-size: 13px;
+            outline: none;
+        }
+        .model-selector select:focus {
+            border-color: var(--ielts-red);
+        }
+        .random-btn {
+            background: #f3f4f6;
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: .2s;
+        }
+        .random-btn:hover {
+            background: #e5e7eb;
+        }
+        .writing-lock-message {
+            display: none;
+            margin-bottom: 12px;
+            padding: 10px 13px;
+            border-radius: 7px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .writing-lock-message.show {
+            display: block;
+        }
+        footer {
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+            padding: 10px 20px 30px;
+        }
+        @media (max-width: 1100px) {
+            .ai-status-wrap {
+                display: none;
+            }
+        }
+        @media (max-width: 1000px) {
+            .writing-layout {
+                grid-template-columns: 1fr;
+            }
+            .writing-panel {
+                order: -1;
+            }
+        }
+        @media (max-width: 700px) {
+            .header-inner {
+                min-height: auto;
+                padding: 15px 0;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+            .progress-wrap {
+                width: 100%;
+            }
+            .progress-text {
+                text-align: left;
+            }
+            .brand-text h1 {
+                font-size: 20px;
+            }
+            .brand img {
+                width: 58px;
+            }
+            .test-title {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .writing-content,
+            .question-content {
+                padding: 17px;
+            }
+            .writing-input {
+                min-height: 420px;
+                font-size: 15px;
+            }
+            .writing-panel-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .connection-box {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .connection-box .ai-check-btn {
+                width: 100%;
+            }
+            .actions {
+                flex-direction: column;
+            }
+            .clear-btn {
+                width: 100%;
+            }
+            .model-selector {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            .model-selector select {
+                flex: 1;
+                min-width: 120px;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <header>
+        <div class="header-inner">
+            <div class="brand">
+                <img src="https://raw.githubusercontent.com/studyinvietnam/university/refs/heads/main/ielts/Ielts-Mentor/Basic/bai-tap/ielts-logo_brandlogos.net_ii6pz.png" alt="IELTS logo">
+                <div class="brand-text">
+                    <h1>Writing Practice</h1>
+                    <p>3 Đề luyện viết • Gia đình • AI Writing Checker</p>
+                </div>
+            </div>
+            <div class="ai-status-wrap">
+                <div class="ai-status" id="aiStatus">
+                    <span class="ai-status-dot"></span>
+                    <span id="aiStatusText">Gemini AI: Chưa kiểm tra</span>
+                </div>
+                <button class="ai-check-btn" id="aiCheckBtn" type="button" onclick="checkAIConnection()">Kiểm tra AI</button>
+            </div>
+            <div class="progress-wrap">
+                <div class="progress-text">Đề <b id="progressText">01 / 03</b></div>
+                <div class="progress"><div class="progress-bar" id="progressBar" style="width:33%"></div></div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- CONNECTION BOX với Model Selector -->
+        <div class="connection-box">
+            <div class="connection-info">
+                <div class="connection-icon">🤖</div>
+                <div>
+                    <div class="connection-title">Trạng thái hệ thống chấm AI</div>
+                    <div class="connection-description" id="connectionDescription">Chưa kiểm tra kết nối với máy chủ.</div>
+                </div>
+            </div>
+            <div class="model-selector">
+                <label for="modelSelect">🤖 Model:</label>
+                <select id="modelSelect"></select>
+                <button type="button" class="random-btn" onclick="randomModel()">🎲 Ngẫu nhiên</button>
+            </div>
+            <button class="ai-check-btn" id="aiCheckBtnMain" type="button" onclick="checkAIConnection()">🔄 Kiểm tra lại</button>
+        </div>
+
+        <!-- NAV DOTS -->
+        <div class="nav-dots">
+            <div class="dot active" onclick="goToTest(0)" title="Đề 01"></div>
+            <div class="dot" onclick="goToTest(1)" title="Đề 02"></div>
+            <div class="dot" onclick="goToTest(2)" title="Đề 03"></div>
+        </div>
+
+        <!-- =========================================================
+             ĐỀ 01
+             ========================================================= -->
+        <section class="slide active" id="slide-0">
+            <div class="test-title">
+                <div>
+                    <h2>ĐỀ 01</h2>
+                    <p>Chủ đề: Người thân bạn sống cùng</p>
+                </div>
+                <div class="test-badge">Writing Test 1</div>
+            </div>
+            <div class="writing-layout">
+                <div class="question-panel">
+                    <div class="panel-header">
+                        <h3>Đề bài</h3>
+                        <span>WRITING TEST • 20 minutes</span>
+                    </div>
+                    <div class="question-content">
+                        <div class="writing-test-title">
+                            <strong>WRITING TEST</strong>
+                            <span>20 MINUTES</span>
+                        </div>
+                        <div class="task">
+                            Write about <strong>a family member you live with</strong>
+                            (in about 80 words).
+                        </div>
+                        <div class="suggestions">
+                            <div class="suggestions-title">Gợi ý:</div>
+                            <ul>
+                                <li>Người đó là ai? Tên và tuổi?</li>
+                                <li>Nghề nghiệp hoặc hoạt động hàng ngày của họ?</li>
+                                <li>Bạn thường làm gì cùng nhau?</li>
+                                <li>Tình cảm của bạn dành cho người đó như thế nào?</li>
+                            </ul>
+                        </div>
+                        <div class="requirement">
+                            <strong>Yêu cầu:</strong>
+                            Viết khoảng 80 từ. Sử dụng thì hiện tại đơn,
+                            miêu tả người thân và các hoạt động chung.
+                        </div>
+                        <div class="outline">
+                            <h4>📚 Dàn ý tham khảo</h4>
+                            <div class="outline-item">
+                                <span class="outline-number">1</span>
+                                <span><strong>Giới thiệu:</strong> Người thân bạn sống cùng (tên, tuổi, mối quan hệ).</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="outline-number">2</span>
+                                <span><strong>Thân bài:</strong> Công việc, thói quen, hoạt động chung hàng ngày.</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="outline-number">3</span>
+                                <span><strong>Kết bài:</strong> Tình cảm của bạn dành cho người đó.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="writing-panel">
+                    <div class="writing-panel-header">
+                        <h3>✍️ Bài viết của bạn</h3>
+                        <div class="timer waiting" id="timer-0">20:00</div>
+                    </div>
+                    <div class="writing-content">
+                        <div class="writing-lock-message show" id="lockMessage-0">🔒 Hãy kết nối Gemini AI thành công để bắt đầu tính giờ.</div>
+                        <textarea id="writingInput-0" class="writing-input" placeholder="Viết đoạn văn của bạn tại đây..."></textarea>
+                        <div class="writing-info">
+                            <span class="word-count" id="wordCount-0">0 từ</span>
+                            <span>Mục tiêu: khoảng 80 từ</span>
+                        </div>
+                        <div class="actions">
+                            <button class="clear-btn" id="clearBtn-0" type="button" onclick="clearWriting(0)">Xóa bài</button>
+                            <button class="submit-btn" id="submitBtn-0" type="button" onclick="checkWriting(0)">Nộp bài & chấm AI</button>
+                        </div>
+                        <div class="result" id="result-0">
+                            <div class="result-header"><h3>🤖 Kết quả chấm bài AI</h3></div>
+                            <div class="result-body" id="resultBody-0"></div>
+                        </div>
+                        <button class="next-btn" id="next-0" type="button" style="display:none" onclick="nextTest(0)">Đề tiếp theo →</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================
+             ĐỀ 02
+             ========================================================= -->
+        <section class="slide" id="slide-1">
+            <div class="test-title">
+                <div>
+                    <h2>ĐỀ 02</h2>
+                    <p>Chủ đề: Bức ảnh gia đình</p>
+                </div>
+                <div class="test-badge">Writing Test 2</div>
+            </div>
+            <div class="writing-layout">
+                <div class="question-panel">
+                    <div class="panel-header">
+                        <h3>Đề bài</h3>
+                        <span>WRITING TEST • 20 minutes</span>
+                    </div>
+                    <div class="question-content">
+                        <div class="writing-test-title">
+                            <strong>WRITING TEST</strong>
+                            <span>20 MINUTES</span>
+                        </div>
+                        <div class="task">
+                            Write about <strong>a family photo</strong>
+                            (in about 80 words).
+                        </div>
+                        <div class="suggestions">
+                            <div class="suggestions-title">Gợi ý:</div>
+                            <ul>
+                                <li>Bức ảnh được chụp khi nào và ở đâu?</li>
+                                <li>Ai có mặt trong ảnh?</li>
+                                <li>Mọi người đang làm gì / mặc gì?</li>
+                                <li>Tại sao bạn yêu thích bức ảnh này?</li>
+                            </ul>
+                        </div>
+                        <div class="requirement">
+                            <strong>Yêu cầu:</strong>
+                            Viết khoảng 80 từ. Miêu tả bối cảnh, nhân vật và cảm xúc.
+                        </div>
+                        <div class="outline">
+                            <h4>📚 Dàn ý tham khảo</h4>
+                            <div class="outline-item">
+                                <span class="outline-number">1</span>
+                                <span><strong>Giới thiệu:</strong> Bức ảnh gia đình được chụp khi nào, ở đâu.</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="outline-number">2</span>
+                                <span><strong>Thân bài:</strong> Ai trong ảnh, họ đang làm gì, mặc gì.</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="outline-number">3</span>
+                                <span><strong>Kết bài:</strong> Cảm xúc của bạn khi nhìn bức ảnh.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="writing-panel">
+                    <div class="writing-panel-header">
+                        <h3>✍️ Bài viết của bạn</h3>
+                        <div class="timer waiting" id="timer-1">20:00</div>
+                    </div>
+                    <div class="writing-content">
+                        <div class="writing-lock-message show" id="lockMessage-1">🔒 Đề này sẽ bắt đầu tính giờ sau khi bạn hoàn thành đề trước.</div>
+                        <textarea id="writingInput-1" class="writing-input" placeholder="Viết đoạn văn của bạn tại đây..."></textarea>
+                        <div class="writing-info">
+                            <span class="word-count" id="wordCount-1">0 từ</span>
+                            <span>Mục tiêu: khoảng 80 từ</span>
+                        </div>
+                        <div class="actions">
+                            <button class="clear-btn" id="clearBtn-1" type="button" onclick="clearWriting(1)">Xóa bài</button>
+                            <button class="submit-btn" id="submitBtn-1" type="button" onclick="checkWriting(1)">Nộp bài & chấm AI</button>
+                        </div>
+                        <div class="result" id="result-1">
+                            <div class="result-header"><h3>🤖 Kết quả chấm bài AI</h3></div>
+                            <div class="result-body" id="resultBody-1"></div>
+                        </div>
+                        <button class="next-btn" id="next-1" type="button" style="display:none" onclick="nextTest(1)">Đề tiếp theo →</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================
+             ĐỀ 03
+             ========================================================= -->
+        <section class="slide" id="slide-2">
+            <div class="test-title">
+                <div>
+                    <h2>ĐỀ 03</h2>
+                    <p>Chủ đề: Người thân bạn yêu quý</p>
+                </div>
+                <div class="test-badge">Writing Test 3</div>
+            </div>
+            <div class="writing-layout">
+                <div class="question-panel">
+                    <div class="panel-header">
+                        <h3>Đề bài</h3>
+                        <span>WRITING TEST • 20 minutes</span>
+                    </div>
+                    <div class="question-content">
+                        <div class="writing-test-title">
+                            <strong>WRITING TEST</strong>
+                            <span>20 MINUTES</span>
+                        </div>
+                        <div class="task">
+                            Write about <strong>a family member that you really like</strong>
+                            (in about 80 words).
+                        </div>
+                        <div class="suggestions">
+                            <div class="suggestions-title">Gợi ý:</div>
+                            <ul>
+                                <li>Người đó là ai? Bao nhiêu tuổi?</li>
+                                <li>Họ có tính cách / sở thích gì đặc biệt?</li>
+                                <li>Bạn thường làm gì cùng nhau?</li>
+                                <li>Tại sao bạn yêu quý người đó?</li>
+                            </ul>
+                        </div>
+                        <div class="requirement">
+                            <strong>Yêu cầu:</strong>
+                            Viết khoảng 80 từ. Nêu rõ lý do bạn yêu quý người đó.
+                        </div>
+                        <div class="outline">
+                            <h4>📚 Dàn ý tham khảo</h4>
+                            <div class="outline-item">
+                                <span class="outline-number">1</span>
+                                <span><strong>Giới thiệu:</strong> Người thân bạn yêu quý (tên, tuổi, mối quan hệ).</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="outline-number">2</span>
+                                <span><strong>Thân bài:</strong> Tính cách, sở thích, hoạt động chung.</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="outline-number">3</span>
+                                <span><strong>Kết bài:</strong> Tình cảm và lý do bạn yêu quý họ.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="writing-panel">
+                    <div class="writing-panel-header">
+                        <h3>✍️ Bài viết của bạn</h3>
+                        <div class="timer waiting" id="timer-2">20:00</div>
+                    </div>
+                    <div class="writing-content">
+                        <div class="writing-lock-message show" id="lockMessage-2">🔒 Đề này sẽ bắt đầu tính giờ sau khi bạn hoàn thành đề trước.</div>
+                        <textarea id="writingInput-2" class="writing-input" placeholder="Viết đoạn văn của bạn tại đây..."></textarea>
+                        <div class="writing-info">
+                            <span class="word-count" id="wordCount-2">0 từ</span>
+                            <span>Mục tiêu: khoảng 80 từ</span>
+                        </div>
+                        <div class="actions">
+                            <button class="clear-btn" id="clearBtn-2" type="button" onclick="clearWriting(2)">Xóa bài</button>
+                            <button class="submit-btn" id="submitBtn-2" type="button" onclick="checkWriting(2)">Nộp bài & chấm AI</button>
+                        </div>
+                        <div class="result" id="result-2">
+                            <div class="result-header"><h3>🤖 Kết quả chấm bài AI</h3></div>
+                            <div class="result-body" id="resultBody-2"></div>
+                        </div>
+                        <button class="next-btn" id="next-2" type="button" style="display:none" onclick="nextTest(2)">Hoàn thành ✓</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>IELTS Writing Practice • Gia đình • AI Writing Checker</footer>
+
+    <script>
+        // =========================================================
+        // CẤU HÌNH
+        // =========================================================
+
+        const BASE_PATH = "/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1";
+        const API_BASE = BASE_PATH + "/api";
+
+        // =========================================================
+        // DỮ LIỆU 3 ĐỀ (có bài mẫu)
+        // =========================================================
+
+        const tests = [{
+            title: "Family member you live with",
+            topic: "Write about a family member you live with (in about 80 words).",
+            outline: "Introduction – Body – Conclusion. Describe who they are, daily activities, and your feelings.",
+            sample: `I live with my mother. Her name is Hoa, and she is 45 years old. She is a kind and hardworking woman. She works as a teacher at a primary school near our house. Every morning, she wakes up early to cook breakfast and prepare lunch for me. In the evening, we often talk about our day while eating dinner together. She also helps me with my homework and teaches me how to be a good person. On weekends, we go shopping or watch movies. I love my mother very much. She is the most important person in my life.`
+        }, {
+            title: "A family photo",
+            topic: "Write about a family photo (in about 80 words).",
+            outline: "Introduction – Body – Conclusion. Describe when/where the photo was taken, who is in it, and why you love it.",
+            sample: `One of my favorite family photos was taken at my grandmother's house during Tet holiday. In the photo, my parents, my younger brother, my grandmother, and I are all smiling. We are wearing beautiful traditional clothes called áo dài. My mom is holding a tray of fruit, and my dad is standing beside her. My brother and I are sitting on the sofa, holding red envelopes. The living room is decorated with flowers and lucky money trees. I love this photo because it shows how happy and close we are as a family. It always makes me feel warm inside.`
+        }, {
+            title: "A family member you really like",
+            topic: "Write about a family member that you really like (in about 80 words).",
+            outline: "Introduction – Body – Conclusion. Describe who they are, their personality, activities together, and why you like them.",
+            sample: `I really like my grandfather. He is 70 years old but still strong and active. He lives with us and takes care of the garden every morning. He grows many flowers and vegetables. My grandfather always tells me funny stories from when he was young. He also teaches me how to ride a bicycle and fix small things in the house. On weekends, we often walk to the park together. He is very kind and patient with me. I feel happy and safe when I am with him. He is my favorite person in the family.`
+        }];
+
+        // =========================================================
+        // STATE
+        // =========================================================
+
+        let currentTest = 0;
+        const submitted = [false, false, false];
+        const timers = [null, null, null];
+        const timeLeft = [20 * 60, 20 * 60, 20 * 60];
+        let aiConnected = false;
+        let checkingAI = false;
+        const submittingWriting = [false, false, false];
+
+        // =========================================================
+        // HÀM TẢI DANH SÁCH MODEL
+        // =========================================================
+
+        async function loadModels() {
+            try {
+                const res = await fetch(API_BASE + "/models");
+                const data = await res.json();
+                if (data.success) {
+                    const select = document.getElementById('modelSelect');
+                    select.innerHTML = '';
+                    data.models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m;
+                        opt.textContent = m;
+                        if (m === data.default) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                } else {
+                    console.warn('Không thể tải danh sách model:', data.message);
+                }
+            } catch (e) {
+                console.warn('Lỗi khi tải danh sách model:', e);
+            }
+        }
+
+        function randomModel() {
+            const select = document.getElementById('modelSelect');
+            const options = select.options;
+            if (options.length === 0) return;
+            const randomIndex = Math.floor(Math.random() * options.length);
+            select.selectedIndex = randomIndex;
+        }
+
+        // =========================================================
+        // CÁC HÀM HỖ TRỢ
+        // =========================================================
+
+        function setAIStatus(type, text, description) {
+            const status = document.getElementById("aiStatus");
+            const statusText = document.getElementById("aiStatusText");
+            const desc = document.getElementById("connectionDescription");
+            if (status) {
+                status.classList.remove("checking", "connected", "error");
+                if (type) status.classList.add(type);
+            }
+            if (statusText) statusText.textContent = text;
+            if (desc && description) desc.textContent = description;
+        }
+
+        function updateLockMessage(index) {
+            const message = document.getElementById("lockMessage-" + index);
+            const textarea = document.getElementById("writingInput-" + index);
+            if (!message || !textarea) return;
+
+            if (submitted[index]) {
+                message.classList.remove("show");
+                textarea.disabled = true;
+                return;
+            }
+            textarea.disabled = false;
+
+            if (!aiConnected) {
+                message.textContent = "🔒 Hãy kết nối Gemini AI thành công để bắt đầu tính giờ.";
+                message.classList.add("show");
+                return;
+            }
+            if (index > currentTest) {
+                message.textContent = "🔒 Hãy hoàn thành đề trước để mở đề này.";
+                message.classList.add("show");
+                textarea.disabled = true;
+                return;
+            }
+            message.classList.remove("show");
+        }
+
+        function updateAllLockMessages() {
+            for (let i = 0; i < 3; i++) updateLockMessage(i);
+        }
+
+        function countWords(text) {
+            if (!text || !text.trim()) return 0;
+            return text.trim().split(/\s+/).filter(Boolean).length;
+        }
+
+        function updateWordCount(index) {
+            const textarea = document.getElementById("writingInput-" + index);
+            const counter = document.getElementById("wordCount-" + index);
+            if (!textarea || !counter) return;
+            const count = countWords(textarea.value);
+            counter.textContent = count + " từ";
+            counter.classList.remove("good", "low");
+            if (count >= 80) counter.classList.add("good");
+            else counter.classList.add("low");
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+        }
+
+        function updateTimer(index) {
+            const timer = document.getElementById("timer-" + index);
+            if (!timer) return;
+            timer.textContent = formatTime(timeLeft[index]);
+            timer.classList.remove("waiting", "warning", "danger", "finished");
+
+            if (!aiConnected) {
+                timer.classList.add("waiting");
+                return;
+            }
+            if (submitted[index]) {
+                timer.classList.add("finished");
+                return;
+            }
+            if (timeLeft[index] <= 0) {
+                timer.textContent = "00:00";
+                timer.classList.add("finished");
+                return;
+            }
+            if (timeLeft[index] <= 60) {
+                timer.classList.add("danger");
+                return;
+            }
+            if (timeLeft[index] <= 300) {
+                timer.classList.add("warning");
+            }
+        }
+
+        function stopTimer(index) {
+            if (timers[index]) {
+                clearInterval(timers[index]);
+                timers[index] = null;
+            }
+        }
+
+        function stopAllTimers() {
+            for (let i = 0; i < 3; i++) stopTimer(i);
+        }
+
+        function startTimer(index) {
+            if (!aiConnected || submitted[index] || index !== currentTest || timers[index]) return;
+            updateTimer(index);
+            timers[index] = setInterval(() => {
+                if (!aiConnected) {
+                    stopTimer(index);
+                    updateTimer(index);
+                    return;
+                }
+                if (submitted[index]) {
+                    stopTimer(index);
+                    return;
+                }
+                if (timeLeft[index] <= 0) {
+                    stopTimer(index);
+                    timeExpired(index);
+                    return;
+                }
+                timeLeft[index]--;
+                updateTimer(index);
+                if (timeLeft[index] <= 0) {
+                    stopTimer(index);
+                    timeExpired(index);
+                }
+            }, 1000);
+        }
+
+        function timeExpired(index) {
+            updateTimer(index);
+            const textarea = document.getElementById("writingInput-" + index);
+            if (!textarea.value.trim()) {
+                alert("⏰ Đã hết 20 phút.\n\nBạn chưa nhập nội dung nên bài chưa thể được chấm.");
+                return;
+            }
+            alert("⏰ Đã hết 20 phút.\n\nBài viết sẽ được tự động nộp để AI chấm.");
+            checkWriting(index, true);
+        }
+
+        // =========================================================
+        // KIỂM TRA KẾT NỐI AI (có gửi model)
+        // =========================================================
+
+        async function checkAIConnection() {
+            if (checkingAI) return;
+            checkingAI = true;
+
+            const btn = document.getElementById("aiCheckBtn");
+            const btnMain = document.getElementById("aiCheckBtnMain");
+            if (btn) { btn.disabled = true;
+                btn.textContent = "Đang kiểm tra..."; }
+            if (btnMain) { btnMain.disabled = true;
+                btnMain.textContent = "Đang kiểm tra..."; }
+
+            setAIStatus("checking", "Gemini AI: Đang kiểm tra", "Đang kết nối tới backend...");
+
+            try {
+                const model = document.getElementById('modelSelect')?.value || '';
+                const url = model ? API_BASE + "/ai-status?model=" + encodeURIComponent(model) : API_BASE +
+                "/ai-status";
+                const response = await fetch(url, { method: "GET", cache: "no-store" });
+                let data = null;
+                try { data = await response.json(); } catch { throw new Error("Backend không trả về JSON."); }
+
+                if (!response.ok || !data.success || data.connected !== true) {
+                    throw new Error(data.message || "Gemini AI chưa kết nối.");
+                }
+
+                aiConnected = true;
+                setAIStatus("connected", "Gemini AI: Đã kết nối (" + (data.model || '') + ")", "AI hoạt động bình thường • Model: " + (data
+                    .model || "Gemini"));
+                updateAllLockMessages();
+                if (!submitted[currentTest]) startTimer(currentTest);
+
+            } catch (error) {
+                console.error("AI STATUS ERROR:", error);
+                aiConnected = false;
+                stopAllTimers();
+                setAIStatus("error", "Gemini AI: Chưa kết nối", error.message || "Không thể kết nối tới AI.");
+                updateAllLockMessages();
+                for (let i = 0; i < 3; i++) updateTimer(i);
+            } finally {
+                checkingAI = false;
+                if (btn) { btn.disabled = false;
+                    btn.textContent = "Kiểm tra AI"; }
+                if (btnMain) { btnMain.disabled = false;
+                    btnMain.textContent = "🔄 Kiểm tra lại"; }
+            }
+        }
+
+        // =========================================================
+        // NỘP BÀI VÀ CHẤM AI (có gửi model)
+        // KẾT QUẢ HIỂN THỊ: CHỈ LỖI SAI + BÀI MẪU
+        // =========================================================
+
+        async function checkWriting(index, automatic = false) {
+            if (submittingWriting[index] || submitted[index]) return;
+            if (index !== currentTest) {
+                alert("🔒 Bạn chưa thể nộp đề này.");
+                return;
+            }
+            if (!aiConnected) {
+                if (!automatic) alert("❌ Gemini AI chưa kết nối.\n\nHãy bấm 'Kiểm tra AI' trước.");
+                return;
+            }
+
+            const textarea = document.getElementById("writingInput-" + index);
+            const button = document.getElementById("submitBtn-" + index);
+            const writing = textarea.value.trim();
+            const words = countWords(writing);
+
+            if (!writing) {
+                alert("Bạn chưa viết bài.");
+                textarea.focus();
+                return;
+            }
+
+            if (words < 80 && !automatic) {
+                const confirmSubmit = confirm("Bài viết hiện có " + words + " từ.\n\nĐề yêu cầu khoảng 80 từ.\n\nBạn vẫn muốn nộp bài không?");
+                if (!confirmSubmit) return;
+            }
+
+            submittingWriting[index] = true;
+            stopTimer(index);
+            if (button) { button.disabled = true;
+                button.textContent = "🤖 AI đang chấm..."; }
+            setAIStatus("checking", "Gemini AI: Đang chấm", "AI đang phân tích bài viết...");
+
+            try {
+                const model = document.getElementById('modelSelect')?.value || '';
+                const response = await fetch(API_BASE + "/check-writing", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        topic: tests[index].topic,
+                        title: tests[index].title,
+                        outline: tests[index].outline,
+                        writing: writing,
+                        model: model
+                    })
+                });
+
+                let result;
+                try { result = await response.json(); } catch { throw new Error("Server không trả JSON. Hãy kiểm tra backend."); }
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || "AI không thể chấm bài.");
+                }
+
+                // Thành công
+                submitted[index] = true;
+                aiConnected = true;
+                setAIStatus("connected", "Gemini AI: Đã kết nối", "AI đã chấm bài thành công.");
+
+                // Hiển thị kết quả đơn giản: chỉ lỗi sai + bài mẫu
+                displaySimpleResult(index, {
+                    errors: result.data?.grammar?.errors || [],
+                    yourWriting: writing,
+                    sample: tests[index].sample,
+                    wordCount: words
+                });
+
+                lockSubmittedTest(index);
+
+                const dot = document.querySelectorAll(".dot")[index];
+                if (dot) dot.classList.add("completed");
+
+                if (index < 2) {
+                    const nextLock = document.getElementById("lockMessage-" + (index + 1));
+                    if (nextLock) nextLock.textContent = "🔓 Đề đã mở. Bạn có thể bắt đầu làm bài.";
+                }
+                updateAllLockMessages();
+
+                if (index === 2) {
+                    const nextButton = document.getElementById("next-2");
+                    if (nextButton) nextButton.textContent = "Hoàn thành ✓";
+                }
+
+            } catch (error) {
+                console.error("CHECK WRITING ERROR:", error);
+                submitted[index] = false;
+                aiConnected = false;
+                setAIStatus("error", "Gemini AI: Lỗi kết nối", error.message || "Không thể kết nối AI.");
+                updateAllLockMessages();
+                updateTimer(index);
+                alert("❌ Không thể chấm AI.\n\n" + error.message + "\n\nBài viết vẫn được giữ nguyên.\nHãy bấm 'Kiểm tra AI' để kết nối lại.");
+            } finally {
+                submittingWriting[index] = false;
+                if (button) { button.disabled = false;
+                    button.textContent = "Nộp bài & chấm AI"; }
+                updateTimer(index);
+            }
+        }
+
+        // =========================================================
+        // HIỂN THỊ KẾT QUẢ ĐƠN GIẢN: CHỈ LỖI SAI + BÀI MẪU
+        // =========================================================
+
+        function displaySimpleResult(index, data) {
+            const result = document.getElementById("result-" + index);
+            const body = document.getElementById("resultBody-" + index);
+            if (!result || !body) return;
+
+            const errors = Array.isArray(data.errors) ? data.errors : [];
+            const yourWriting = data.yourWriting || "";
+            const sample = data.sample || "";
+            const wordCount = data.wordCount || 0;
+
+            let errorsHTML = '';
+            if (errors.length === 0) {
+                errorsHTML = `
+                    <div class="result-errors">
+                        <h4>✅ Không phát hiện lỗi ngữ pháp</h4>
+                        <div class="no-errors">🎉 Bài viết của bạn không có lỗi ngữ pháp đáng chú ý.</div>
+                    </div>
+                `;
+            } else {
+                let errorItems = errors.map(e => `
+                    <div class="error-item-simple">
+                        <div><strong>❌ Lỗi:</strong> <span class="error-original-simple">${escapeHTML(e.original || '')}</span></div>
+                        <div><strong>✅ Sửa:</strong> <span class="error-corrected-simple">${escapeHTML(e.corrected || '')}</span></div>
+                        <div class="error-explanation-simple"><strong>💡 Giải thích:</strong> ${escapeHTML(e.explanation || '')}</div>
+                    </div>
+                `).join('');
+
+                errorsHTML = `
+                    <div class="result-errors">
+                        <h4>🔎 Lỗi cần sửa (${errors.length} lỗi)</h4>
+                        ${errorItems}
+                    </div>
+                `;
+            }
+
+            body.innerHTML = `
+                ${errorsHTML}
+
+                <div class="result-sample">
+                    <h4>📝 Bài viết mẫu tham khảo</h4>
+                    <div class="sample-text">${escapeHTML(sample)}</div>
+                    <div style="margin-top:8px;color:var(--muted);font-size:12px;">📊 Số từ: ${countWords(sample)} từ</div>
+                </div>
+
+                <div class="result-your-writing">
+                    <h4>✍️ Bài viết của bạn</h4>
+                    <div class="your-text">${escapeHTML(yourWriting)}</div>
+                    <div style="margin-top:8px;color:var(--muted);font-size:12px;">📊 Số từ: ${wordCount} từ ${wordCount >= 80 ? '✅' : '⚠️ (chưa đủ 80 từ)'}</div>
+                </div>
+            `;
+
+            result.classList.add("show");
+            const next = document.getElementById("next-" + index);
+            if (next) next.style.display = "block";
+        }
+
+        // =========================================================
+        // CÁC HÀM KHÁC (lockSubmittedTest, clearWriting, ...)
+        // =========================================================
+
+        function lockSubmittedTest(index) {
+            const textarea = document.getElementById("writingInput-" + index);
+            const submitBtn = document.getElementById("submitBtn-" + index);
+            const clearBtn = document.getElementById("clearBtn-" + index);
+            if (textarea) textarea.disabled = true;
+            if (submitBtn) { submitBtn.disabled = true;
+                submitBtn.textContent = "✓ Đã chấm bài"; }
+            if (clearBtn) clearBtn.disabled = true;
+        }
+
+        function clearWriting(index) {
+            const textarea = document.getElementById("writingInput-" + index);
+            if (!textarea) return;
+            if (submitted[index]) { alert("Bài đã được nộp, không thể xóa kết quả."); return; }
+            if (!textarea.value.trim()) return;
+            if (!confirm("Bạn có chắc muốn xóa toàn bộ bài viết?")) return;
+            textarea.value = "";
+            updateWordCount(index);
+            const result = document.getElementById("result-" + index);
+            if (result) result.classList.remove("show");
+            const next = document.getElementById("next-" + index);
+            if (next) next.style.display = "none";
+        }
+
+        function escapeHTML(text) {
+            const div = document.createElement("div");
+            div.textContent = String(text ?? "");
+            return div.innerHTML;
+        }
+
+        // =========================================================
+        // ĐIỀU HƯỚNG
+        // =========================================================
+
+        function goToTest(index) {
+            if (index < 0 || index > 2 || index === currentTest) return;
+            if (index > currentTest && !submitted[currentTest]) {
+                alert("🔒 Bạn cần nộp và chấm xong Đề " + String(currentTest + 1).padStart(2, "0") + " trước khi sang đề tiếp theo.");
+                return;
+            }
+            if (index > 0 && !submitted[index - 1]) return;
+
+            stopAllTimers();
+            document.querySelectorAll(".slide").forEach(s => s.classList.remove("active"));
+            const target = document.getElementById("slide-" + index);
+            if (target) target.classList.add("active");
+
+            document.querySelectorAll(".dot").forEach((dot, i) => {
+                dot.classList.toggle("active", i === index);
+            });
+
+            currentTest = index;
+            updateProgress(index);
+            updateAllLockMessages();
+
+            if (aiConnected && !submitted[index]) startTimer(index);
+            else updateTimer(index);
+
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function nextTest(index) {
+            if (!submitted[index]) { alert("Bạn cần nộp bài và nhận kết quả AI trước."); return; }
+            if (index < 2) goToTest(index + 1);
+            else showFinalResult();
+        }
+
+        function updateProgress(index) {
+            const text = document.getElementById("progressText");
+            const bar = document.getElementById("progressBar");
+            if (text) text.textContent = String(index + 1).padStart(2, "0") + " / 03";
+            if (bar) bar.style.width = ((index + 1) / 3) * 100 + "%";
+        }
+
+        function showFinalResult() {
+            const completed = submitted.filter(Boolean).length;
+            if (completed < 3) {
+                alert("Bạn mới hoàn thành " + completed + "/3 đề.\n\nHãy hoàn thành tất cả các đề trước.");
+                return;
+            }
+            stopAllTimers();
+            alert("🎉 HOÀN THÀNH!\n\nBạn đã nộp đủ 3/3 đề Writing.\n\nChúc mừng! 🔥");
+        }
+
+        // =========================================================
+        // KHỞI TẠO
+        // =========================================================
+
+        loadModels();
+        updateProgress(0);
+        for (let i = 0; i < 3; i++) {
+            updateWordCount(i);
+            updateTimer(i);
+        }
+        checkAIConnection();
+
+        document.querySelectorAll(".writing-input").forEach((ta, idx) => {
+            ta.addEventListener("input", () => updateWordCount(idx));
+        });
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listening Test</title>
+    <link rel="stylesheet" href="css.css">
+</head>
+<body>
+
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <img src="./ielts-logo_brandlogos.net_ii6pz.png" alt="IELTS logo">
+            <div class="brand-text">
+                <h1>LISTENING TEST</h1>
+                <p>Listening Practice • 3 Tests • 20 Questions</p>
+            </div>
+        </div>
+        <div class="progress-wrap">
+            <div class="progress-text">
+                Đề <b id="currentTestText">01</b> / 03
+            </div>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar" style="width: 33.33%;"></div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main>
+
+    <!-- AUDIO CONTROL -->
+    <div class="audio-control">
+        <div class="audio-info">
+            <div class="audio-icon">🔊</div>
+            <div>
+                <strong id="audioTitle">Đề 01 - Listening Audio</strong>
+                <p id="audioStatus">Hãy bấm "Bắt đầu làm bài" để bắt đầu nghe.</p>
+            </div>
+        </div>
+        <audio id="listeningAudio" preload="auto" controls></audio>
+    </div>
+
+    <!-- START SCREEN -->
+    <div class="start-screen" id="startScreen">
+        <div class="start-icon">🎧</div>
+        <h2>Sẵn sàng làm bài?</h2>
+        <p>Khi bấm bắt đầu, audio sẽ tự động phát. Bạn có thể làm bài trong thời gian audio đang chạy. Khi audio kết thúc, toàn bộ câu hỏi sẽ tự động khóa.</p>
+        <button type="button" class="start-btn" id="startBtn">▶ BẮT ĐẦU LÀM BÀI</button>
+    </div>
+
+    <!-- TEST 1 -->
+    <section class="slide active" id="test-1">
+        <div class="test-title">
+            <div>
+                <h2>ĐỀ 01 - LISTENING TEST</h2>
+                <p>Section 1 → 4 • Questions 1 → 20</p>
+            </div>
+            <span class="test-badge">TEST 01</span>
+        </div>
+        <div class="layout">
+            <div class="reading-panel">
+                <!-- Nội dung sẽ được generate từ JS, nhưng test-1 đã có sẵn trong HTML cũ? 
+                     Trong code cũ, test-1 là hardcode, nhưng ta sẽ thay thế bằng generate? 
+                     Để đồng bộ, ta có thể để generate cho tất cả, nhưng test-1 hiện đang có nội dung cũ.
+                     Ta sẽ xóa nội dung cũ của test-1 và để JS generate lại, hoặc ta có thể giữ nguyên test-1 hardcode nhưng cập nhật nội dung.
+                     Tuy nhiên, để dễ quản lý, ta sẽ dùng generateTest cho cả 3 test, và xóa phần hardcode của test-1.
+                     Trong code hiện tại, generateTest chỉ chạy cho test 2,3,4. Ta sẽ sửa để generate cả 1,2,3 và xóa nội dung hardcode của test-1.
+                -->
+            </div>
+            <div class="questions-panel"></div>
+        </div>
+    </section>
+
+    <!-- TEST 2 & 3 sẽ được generate -->
+    <section class="slide generated-test" id="test-2"></section>
+    <section class="slide generated-test" id="test-3"></section>
+
+    <!-- NAVIGATION DOTS -->
+    <div class="nav-dots">
+        <span class="dot active" data-test="1"></span>
+        <span class="dot" data-test="2"></span>
+        <span class="dot" data-test="3"></span>
+    </div>
+
+    <div class="actions">
+        <button type="button" class="next-btn" id="nextBtn" style="display:none;">ĐỀ TIẾP THEO →</button>
+    </div>
+
+</main>
+
+<script>
+
+/* =============================================================
+   DATA 3 ĐỀ (cập nhật theo nội dung mới)
+============================================================= */
+
+const tests = {
+
+    1: {
+        audio: "audio/Audio - Mock test 1-20260902T022144Z-1-001.MP3",
+
+        questions: [
+            ["Jill lives at 7 __________ Street.", "text"],
+            ["Jill is in class __________.", "text"],
+            ["Jill loves __________ best.", "text"],
+            ["Jill loves reading __________ best.", "text"],
+            ["Jill's pet is a __________.", "text"],
+            ["Paul is eating a __________.", ["A. banana", "B. pasta", "C. burger"]],
+            ["John is wearing a green __________.", ["A. hat", "B. trousers", "C. T-shirt"]],
+            ["Jill is sitting with her __________.", ["A. uncle", "B. mother", "C. friend"]],
+            ["Sally is __________ after the sheep.", ["A. running", "B. reading", "C. walking"]],
+            ["Jane is drawing a __________.", ["A. cat", "B. picture", "C. photo"]],
+            ["On Tuesday, Jane did homework. It was ___________.", ["A. difficult", "B. easy", "C. fun"]],
+            ["On Saturday, Jane went to the soccer match with her ___________.", ["A. mom", "B. friends", "C. dad"]],
+            ["On Monday, Jane had a bad ___________.", ["A. cold", "B. stomachache", "C. headache"]],
+            ["On Sunday, Jane went for a ___________ near the waterfall.", ["A. ride", "B. walk", "C. run"]],
+            ["On Wednesday, Jane took her ___________ to the park.", ["A. horse", "B. cat", "C. dog"]],
+            ["For supper, Daisy wants to eat pasta and __________.", "text"],
+            ["Sally's parents gave her a new __________ as a birthday gift.", "text"],
+            ["Peter went with his mother to the __________.", "text"],
+            ["Mary sat on the __________ in the living room.", "text"],
+            ["Fred's garden does not have coconuts or bananas. It has __________.", "text"]
+        ],
+
+        answers: [
+            "Main", "4B", "hockey", "comics", "snake",
+            "A", "C", "C", "A", "B",
+            "B", "C", "A", "B", "C",
+            "juice", "camera", "mountains", "sofa", "pineapples"
+        ],
+
+        explanations: [
+            "Nghe: 'I live at 7 Main Street.' → Main.",
+            "Nghe: 'I'm in 4B.' → 4B.",
+            "Nghe: 'I love hockey best.' → hockey.",
+            "Nghe: 'I think comics are my favourite.' → comics.",
+            "Nghe: 'I've got a snake.' → snake.",
+            "Nghe: 'He's eating a banana.' → A.",
+            "Nghe: 'A green T-shirt.' → C.",
+            "Nghe: 'She's sitting with her friend.' → C.",
+            "Nghe: 'She's running after that sheep.' → A.",
+            "Nghe: 'She's trying to draw a picture.' → B.",
+            "Nghe: 'It was easy.' → B.",
+            "Nghe: 'I went there with my dad.' → C.",
+            "Nghe: 'I had a bad cold.' → A.",
+            "Nghe: 'We went for a walk near a waterfall.' → B.",
+            "Nghe: 'And did you take the dog with you? Oh, yes!' → C.",
+            "Nghe: 'Can I have some pasta? ... with some juice' → juice.",
+            "Nghe: 'They gave her a new camera.' → camera.",
+            "Nghe: 'He went with his mum to the mountains.' → mountains.",
+            "Nghe: 'She sat on the sofa in the living room.' → sofa.",
+            "Nghe: 'It's got a lot of pineapples.' → pineapples."
+        ],
+
+        transcript: `
+            <h4>Section 1</h4>
+            <p><strong>MAN:</strong> Where do you live, Jill?</p>
+            <p><strong>GIRL:</strong> I live at 7 <mark>Main</mark> Street.</p>
+            <p><strong>MAN:</strong> Which class are you in?</p>
+            <p><strong>GIRL:</strong> I’m in <mark>4B</mark>.</p>
+            <p><strong>MAN:</strong> Which is your favourite sport?</p>
+            <p><strong>GIRL:</strong> I love <mark>hockey</mark> best.</p>
+            <p><strong>MAN:</strong> Do you like reading books or comics?</p>
+            <p><strong>GIRL:</strong> I think <mark>comics</mark> are my favourite.</p>
+            <p><strong>MAN:</strong> Have you got any pets?</p>
+            <p><strong>GIRL:</strong> I’ve got a <mark>snake</mark>.</p>
+
+            <h4>Section 2</h4>
+            <p><strong>WOMAN:</strong> He’s eating a <mark>banana</mark>.</p>
+            <p><strong>WOMAN:</strong> A green <mark>T-shirt</mark>, I think.</p>
+            <p><strong>WOMAN:</strong> She’s sitting with her <mark>friend</mark>.</p>
+            <p><strong>MAN:</strong> She’s <mark>running</mark> after that sheep.</p>
+            <p><strong>WOMAN:</strong> She’s trying to draw a <mark>picture</mark>.</p>
+
+            <h4>Section 3</h4>
+            <p><strong>MAN:</strong> Was it difficult?</p>
+            <p><strong>GIRL:</strong> No, it was <mark>easy</mark>.</p>
+            <p><strong>GIRL:</strong> I went there with my <mark>dad</mark>.</p>
+            <p><strong>GIRL:</strong> I had a bad <mark>cold</mark>.</p>
+            <p><strong>GIRL:</strong> We went for a <mark>walk</mark> near a waterfall.</p>
+            <p><strong>MAN:</strong> And did you take the dog with you?</p>
+            <p><strong>GIRL:</strong> Oh, yes!</p>
+
+            <h4>Section 4</h4>
+            <p><strong>GIRL:</strong> Can I have some pasta and <mark>juice</mark>?</p>
+            <p><strong>GIRL:</strong> They gave her a new <mark>camera</mark>.</p>
+            <p><strong>GIRL:</strong> He went with his mum to the <mark>mountains</mark>.</p>
+            <p><strong>GIRL:</strong> She sat on the <mark>sofa</mark> in the living room.</p>
+            <p><strong>GIRL:</strong> It’s got a lot of <mark>pineapples</mark>.</p>
+        `
+    },
+
+    2: {
+        audio: "audio/Audio - Mock test 2-20260902T023200Z-1-001.MP3",
+
+        questions: [
+            ["Mary had a birthday last __________.", "text"],
+            ["Her hair is __________.", "text"],
+            ["The color of her eyes is __________.", "text"],
+            ["She has three __________.", "text"],
+            ["She has __________ sisters.", "text"],
+            ["Tom is drawing a picture of a __________.", ["A. car", "B. tiger", "C. board"]],
+            ["Jane is playing with a toy __________.", ["A. plane", "B. car", "C. bus"]],
+            ["Paul is wearing __________ trousers.", ["A. white", "B. blue", "C. black"]],
+            ["Anna is standing by the __________.", ["A. door", "B. bookstore", "C. cafe"]],
+            ["Pat is working at the __________.", ["A. library", "B. computer", "C. supermarket"]],
+            ["On Thursday, Paul watched basketball on ___________.", ["A. phone", "B. TV", "C. computer"]],
+            ["On Friday, Paul went to the cinema to see a ___________.", ["A. cartoon", "B. friend", "C. film"]],
+            ["On Wednesday, Paul went to the ___________.", ["A. pool", "B. supermarket", "C. bookstore"]],
+            ["On Saturday, Paul played basketball with his ___________.", ["A. brother", "B. friends", "C. father"]],
+            ["On Sunday, Paul read a book about ___________.", ["A. birthday", "B. teacher", "C. sports"]],
+            ["Pat's mother has __________ hair.", "text"],
+            ["Pat wants to buy a __________.", "text"],
+            ["Yesterday, the weather here was beautiful and __________.", "text"],
+            ["Peter went to the __________ with his friends.", "text"],
+            ["Pat and the boy will take __________ on the picnics.", "text"]
+        ],
+
+        answers: [
+            "week", "blonde", "blue", "brothers", "4",
+            "A", "C", "C", "A", "B",
+            "B", "C", "A", "B", "C",
+            "curly", "skirt", "sunny", "playground", "sausages"
+        ],
+
+        explanations: [
+            "Nghe: 'It was my birthday last week.' → week.",
+            "Nghe: 'It's blonde.' → blonde.",
+            "Nghe: 'They're blue.' → blue.",
+            "Nghe: 'I've got three brothers.' → brothers.",
+            "Nghe: 'Four.' → 4.",
+            "Nghe: 'He's drawing a car.' → A.",
+            "Nghe: 'She's playing with a bus.' → C.",
+            "Nghe: 'Black trousers.' → C.",
+            "Nghe: 'She's standing by the door.' → A.",
+            "Nghe: 'She's working at the computer.' → B.",
+            "Nghe: 'I watched it on TV.' → B.",
+            "Nghe: 'We went to the cinema to see a film.' → C.",
+            "Nghe: 'I went to the pool.' → A.",
+            "Nghe: 'With all my friends.' → B.",
+            "Nghe: 'I read a book about different sports.' → C.",
+            "Nghe: 'Her hair is curly.' → curly.",
+            "Nghe: 'I'd like a skirt.' → skirt.",
+            "Nghe: 'It was sunny.' → sunny.",
+            "Nghe: 'He went to the playground with his friends.' → playground.",
+            "Nghe: 'Shall we take sausages?' → sausages."
+        ],
+
+        transcript: `
+            <h4>Section 1</h4>
+            <p><strong>MAN:</strong> And how old are you, Mary?</p>
+            <p><strong>GIRL:</strong> I’m 9. It was my birthday last <mark>week</mark>.</p>
+            <p><strong>MAN:</strong> What colour is your hair?</p>
+            <p><strong>GIRL:</strong> It’s <mark>blonde</mark>.</p>
+            <p><strong>MAN:</strong> What about your eyes?</p>
+            <p><strong>GIRL:</strong> They’re <mark>blue</mark>.</p>
+            <p><strong>MAN:</strong> Have you got any brothers?</p>
+            <p><strong>GIRL:</strong> Yes. I’ve got three <mark>brothers</mark>.</p>
+            <p><strong>MAN:</strong> How many sisters have you got?</p>
+            <p><strong>GIRL:</strong> <mark>4</mark>.</p>
+
+            <h4>Section 2</h4>
+            <p><strong>WOMAN:</strong> He’s drawing a <mark>car</mark>.</p>
+            <p><strong>WOMAN:</strong> She’s playing with a <mark>bus</mark>.</p>
+            <p><strong>MAN:</strong> <mark>Black</mark> trousers, I think.</p>
+            <p><strong>WOMAN:</strong> She’s standing by the <mark>door</mark>.</p>
+            <p><strong>MAN:</strong> She’s working at the <mark>computer</mark>.</p>
+
+            <h4>Section 3</h4>
+            <p><strong>BOY:</strong> I watched it on <mark>TV</mark> with Dad.</p>
+            <p><strong>BOY:</strong> We went to the cinema to see a <mark>film</mark>.</p>
+            <p><strong>BOY:</strong> I went to the <mark>pool</mark>.</p>
+            <p><strong>BOY:</strong> With all my <mark>friends</mark>.</p>
+            <p><strong>BOY:</strong> I read a book about different <mark>sports</mark>.</p>
+
+            <h4>Section 4</h4>
+            <p><strong>GIRL:</strong> No, her hair is <mark>curly</mark>.</p>
+            <p><strong>GIRL:</strong> I’d like a <mark>skirt</mark>.</p>
+            <p><strong>GIRL:</strong> It was <mark>sunny</mark>.</p>
+            <p><strong>GIRL:</strong> He went to the <mark>playground</mark> with his friends.</p>
+            <p><strong>BOY:</strong> Shall we take <mark>sausages</mark>?</p>
+        `
+    },
+
+    3: {
+        audio: "audio/Audio - Mock test 3-20260902T023304Z-1-001.MP3",
+
+        questions: [
+            ["Tom lives at 15 __________ Street.", "text"],
+            ["Tom is __________ years old.", "text"],
+            ["His father's name is John, like his older __________.", "text"],
+            ["His mother's name is __________.", "text"],
+            ["His neck __________ a lot.", "text"],
+            ["Mrs Green is wearing a red skirt and a red __________.", ["A. hat", "B. dress", "C. trousers"]],
+            ["Paul is carrying a school __________.", ["A. shop", "B. bag", "C. toy"]],
+            ["Mr Farmer's car is small and __________.", ["A. big", "B. blue", "C. black"]],
+            ["Yesterday, Tom played a lot of __________.", ["A. tennis", "B. badminton", "C. football"]],
+            ["The children are Sue's __________.", ["A. daughters", "B. cousins", "C. brothers"]],
+            ["On Friday, Jim went to the ___________ to buy food.", ["A. bookstore", "B. supermarket", "C. cinema"]],
+            ["On Wednesday, Jim went to the lake with his friend and the ___________.", ["A. sisters", "B. brothers", "C. parents"]],
+            ["On Sunday, Jim and his father went to the ___________.", ["A. beach", "B. supermarket", "C. cafe"]],
+            ["On Tuesday, the town was very ___________.", ["A. interesting", "B. busy", "C. fun"]],
+            ["On Monday, Jim and his friend watched a ___________ about a person with a big boat.", ["A. cartoon", "B. film", "C. DVD"]],
+            ["Ben's brother plays __________ every weekend.", "text"],
+            ["Ben's brother works in the __________ near the library.", "text"],
+            ["Ben flew to his grandparents' house because it's much quicker than the __________.", "text"],
+            ["Ben gave his sister a __________ as a gift.", "text"],
+            ["Ben's sister's favorite food is __________.", "text"]
+        ],
+
+        answers: [
+            "High", "10", "brother", "Clare", "hurts",
+            "A", "B", "B", "A", "B",
+            "B", "C", "A", "B", "C",
+            "basketball", "zoo", "train", "ball", "bananas"
+        ],
+
+        explanations: [
+            "Nghe: '15 High Street.' → High.",
+            "Nghe: 'Ten.' → 10.",
+            "Nghe: 'John, like my older brother.' → brother.",
+            "Nghe: 'It's Clare.' → Clare.",
+            "Nghe: 'My neck hurts.' → hurts.",
+            "Nghe: 'A red skirt and a red hat.' → A.",
+            "Nghe: 'The boy who's carrying a school bag.' → B.",
+            "Nghe: 'The small blue one.' → B.",
+            "Nghe: 'He played a lot of tennis yesterday.' → A.",
+            "Nghe: 'I think they're her cousins.' → B.",
+            "Nghe: 'Only to the supermarket.' → B.",
+            "Nghe: 'I went with my friend and his parents.' → C.",
+            "Nghe: 'Dad and I went there in the morning.' (to the beach) → A.",
+            "Nghe: 'The town was very busy.' → B.",
+            "Nghe: 'We watched a DVD.' → C.",
+            "Nghe: 'He plays basketball every weekend.' → basketball.",
+            "Nghe: 'He works in the zoo near the library.' → zoo.",
+            "Nghe: 'It's quicker than the train.' → train.",
+            "Nghe: 'You can give her a ball then.' → ball.",
+            "Nghe: 'She likes bananas best.' → bananas."
+        ],
+
+        transcript: `
+            <h4>Section 1</h4>
+            <p><strong>WOMAN:</strong> And where do you live, Tom?</p>
+            <p><strong>BOY:</strong> 15 <mark>High</mark> Street.</p>
+            <p><strong>WOMAN:</strong> How old are you?</p>
+            <p><strong>BOY:</strong> <mark>10</mark>.</p>
+            <p><strong>WOMAN:</strong> What's your father's name?</p>
+            <p><strong>BOY:</strong> John, like my older <mark>brother</mark>.</p>
+            <p><strong>WOMAN:</strong> And your mother's name?</p>
+            <p><strong>BOY:</strong> It's <mark>Clare</mark>.</p>
+            <p><strong>BOY:</strong> My neck <mark>hurts</mark> a lot.</p>
+
+            <h4>Section 2</h4>
+            <p><strong>WOMAN:</strong> A red skirt and a red <mark>hat</mark>.</p>
+            <p><strong>WOMAN:</strong> The boy who's carrying a school <mark>bag</mark>.</p>
+            <p><strong>WOMAN:</strong> The small <mark>blue</mark> one.</p>
+            <p><strong>MAN:</strong> He played a lot of <mark>tennis</mark> yesterday.</p>
+            <p><strong>WOMAN:</strong> I think they're her <mark>cousins</mark>.</p>
+
+            <h4>Section 3</h4>
+            <p><strong>BOY:</strong> Only to the <mark>supermarket</mark>.</p>
+            <p><strong>BOY:</strong> I went with my friend and his <mark>parents</mark>.</p>
+            <p><strong>BOY:</strong> Dad and I went to the <mark>beach</mark>.</p>
+            <p><strong>BOY:</strong> The town was very <mark>busy</mark>.</p>
+            <p><strong>BOY:</strong> We watched a <mark>DVD</mark>.</p>
+
+            <h4>Section 4</h4>
+            <p><strong>BOY:</strong> He plays <mark>basketball</mark> every weekend.</p>
+            <p><strong>BOY:</strong> He works in the <mark>zoo</mark> near the library.</p>
+            <p><strong>BOY:</strong> It's much quicker than the <mark>train</mark>.</p>
+            <p><strong>GIRL:</strong> You can give her a <mark>ball</mark> then.</p>
+            <p><strong>BOY:</strong> She likes <mark>bananas</mark> best.</p>
+        `
+    }
+
+};
+
+/* =============================================================
+   DOM
+============================================================= */
+
+const audio = document.getElementById("listeningAudio");
+const startScreen = document.getElementById("startScreen");
+const startBtn = document.getElementById("startBtn");
+const audioStatus = document.getElementById("audioStatus");
+const audioTitle = document.getElementById("audioTitle");
+const currentTestText = document.getElementById("currentTestText");
+const progressBar = document.getElementById("progressBar");
+const nextBtn = document.getElementById("nextBtn");
+const dots = document.querySelectorAll(".dot");
+
+let currentTest = 1;
+let audioFinished = false;
+let submitted = false;
+let hasStartedAudio = false;
+
+/* =============================================================
+   GENERATE TESTS (1,2,3)
+============================================================= */
+
+function generateTest(testNumber) {
+    const test = tests[testNumber];
+    const section = document.getElementById(`test-${testNumber}`);
+
+    let html = `
+        <div class="test-title">
+            <div>
+                <h2>ĐỀ 0${testNumber} - LISTENING TEST</h2>
+                <p>Section 1 → 4 • Questions 1 → 20</p>
+            </div>
+            <span class="test-badge">TEST 0${testNumber}</span>
+        </div>
+        <div class="layout">
+            <div class="reading-panel">
+    `;
+
+    // Chia 20 câu thành 4 sections
+    for (let sectionIndex = 0; sectionIndex < 4; sectionIndex++) {
+        const start = sectionIndex * 5;
+        html += `
+            <div class="passage">
+                <h3>Section ${sectionIndex + 1}: Questions ${start + 1}-${start + 5}</h3>
+        `;
+
+        // Thêm hướng dẫn cho section
+        if (sectionIndex === 1 || sectionIndex === 2) {
+            html += `<p><strong>Choose the correct answer.</strong></p>`;
+        } else {
+            html += `<p>Complete the sentences below. Write <strong>ONE WORD AND/OR A NUMBER</strong> for each answer.</p>`;
+        }
+
+        for (let q = start; q < start + 5; q++) {
+            const question = test.questions[q];
+            html += `<p><strong>${q + 1}.</strong> ${question[0]}</p>`;
+            if (Array.isArray(question[1])) {
+                html += `<p>${question[1].join("<br>")}</p>`;
+            } else {
+                html += `<p>__________________</p>`;
+            }
+        }
+        html += `</div>`;
+    }
+
+    html += `
+            </div>
+            <div class="questions-panel">
+                <div class="instruction">
+                    🎧 <strong>Hướng dẫn:</strong> Bấm "Bắt đầu làm bài". Audio sẽ tự động phát. Bạn có thể làm bài trong lúc nghe. Khi audio kết thúc, toàn bộ câu hỏi sẽ tự động khóa.
+                </div>
+                <div class="result" id="result-${testNumber}">
+                    <div>KẾT QUẢ ĐỀ 0${testNumber}</div>
+                    <div class="score" id="score-${testNumber}">0 / 20</div>
+                    <div class="score-message" id="scoreMessage-${testNumber}"></div>
+                </div>
+                <form id="form-${testNumber}" class="test-form">
+    `;
+
+    for (let q = 0; q < 20; q++) {
+        const questionNumber = q + 1;
+        const question = test.questions[q];
+        const answer = test.answers[q];
+        const explanation = test.explanations[q];
+
+        html += `
+            <div class="question" data-answer="${answer}" data-explanation="${explanation}">
+                <div class="question-title">${questionNumber}. ${question[0]}</div>
+        `;
+
+        if (Array.isArray(question[1])) {
+            html += `<div class="options">`;
+            question[1].forEach(option => {
+                const value = option.substring(0, 1);
+                html += `
+                    <label class="option">
+                        <input type="radio" name="q${questionNumber}" value="${value}" disabled>
+                        ${option}
+                    </label>
+                `;
+            });
+            html += `</div>`;
+        } else {
+            html += `<input type="text" class="text-answer" name="q${questionNumber}" disabled>`;
+        }
+
+        html += `
+                <div class="explanation">
+                    <div class="answer-label">Key: <span class="correct-answer">${answer}</span></div>
+                    <div class="explanation-text">${explanation}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    html += `
+                    <div class="actions">
+                        <button type="submit" class="submit-btn" id="submitBtn-${testNumber}" disabled>NỘP BÀI</button>
+                    </div>
+                </form>
+                <div class="transcript-box" id="transcript-${testNumber}">
+                    <div class="transcript-title">🎧 TRANSCRIPT - ĐỀ 0${testNumber}</div>
+                    <div class="transcript-content">${test.transcript}</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    section.innerHTML = html;
+}
+
+// Tạo cả 3 test
+generateTest(1);
+generateTest(2);
+generateTest(3);
+
+/* =============================================================
+   SHOW TEST
+============================================================= */
+
+function showTest(testNumber) {
+    document.querySelectorAll(".slide").forEach(slide => slide.classList.remove("active"));
+    const selected = document.getElementById(`test-${testNumber}`);
+    selected.classList.add("active");
+
+    currentTest = testNumber;
+    currentTestText.textContent = String(testNumber).padStart(2, "0");
+    progressBar.style.width = `${(testNumber / 3) * 100}%`;
+
+    dots.forEach(dot => {
+        const num = Number(dot.dataset.test);
+        dot.classList.toggle("active", num === testNumber);
+    });
+
+    // Load audio
+    audio.src = tests[testNumber].audio;
+    audio.load();
+    audioTitle.textContent = `Đề 0${testNumber} - Listening Audio`;
+    audioStatus.textContent = 'Hãy bấm "Bắt đầu làm bài" để bắt đầu nghe.';
+    audioFinished = false;
+    submitted = false;
+    hasStartedAudio = false;
+    startScreen.style.display = "flex";
+    nextBtn.style.display = "none";
+
+    resetTest(testNumber);
+}
+
+/* =============================================================
+   RESET TEST
+============================================================= */
+
+function resetTest(testNumber) {
+    const form = document.getElementById(`form-${testNumber}`);
+    if (!form) return;
+    form.reset();
+    form.querySelectorAll("input").forEach(input => input.disabled = true);
+    form.querySelectorAll(".question").forEach(q => q.classList.remove("correct", "wrong"));
+    form.querySelectorAll(".explanation").forEach(e => e.style.display = "none");
+
+    const result = document.getElementById(`result-${testNumber}`);
+    if (result) result.classList.remove("show");
+
+    const transcript = document.getElementById(`transcript-${testNumber}`);
+    if (transcript) transcript.classList.remove("show");
+
+    const submit = document.getElementById(`submitBtn-${testNumber}`);
+    if (submit) submit.disabled = true;
+}
+
+/* =============================================================
+   ENABLE / LOCK QUESTIONS
+============================================================= */
+
+function enableQuestions() {
+    const form = document.getElementById(`form-${currentTest}`);
+    if (!form) return;
+    form.querySelectorAll("input").forEach(input => input.disabled = false);
+    const submit = document.getElementById(`submitBtn-${currentTest}`);
+    if (submit) submit.disabled = false;
+}
+
+function lockQuestions() {
+    const form = document.getElementById(`form-${currentTest}`);
+    if (!form) return;
+    form.querySelectorAll("input").forEach(input => input.disabled = true);
+    audioStatus.textContent = "⏹ Audio đã kết thúc. Bài làm đã được khóa. Hãy kiểm tra và bấm NỘP BÀI.";
+}
+
+/* =============================================================
+   START TEST
+============================================================= */
+
+startBtn.addEventListener("click", async function () {
+    startScreen.style.display = "none";
+    enableQuestions();
+    audioFinished = false;
+    hasStartedAudio = true;
+    audioStatus.textContent = "🔊 Audio đang phát... Bạn có thể làm bài.";
+    try {
+        await audio.play();
+    } catch (error) {
+        audioStatus.textContent = "⚠️ Trình duyệt đã chặn autoplay. Hãy bấm nút Play trên audio.";
+        audio.controls = true;
+    }
+});
+
+/* =============================================================
+   AUDIO END
+============================================================= */
+
+audio.addEventListener("ended", function () {
+    audioFinished = true;
+    lockQuestions();
+});
+
+/* =============================================================
+   SUBMIT
+============================================================= */
+
+document.addEventListener("submit", function (event) {
+    const form = event.target.closest(".test-form");
+    if (!form) return;
+    event.preventDefault();
+
+    const testNumber = Number(form.id.replace("form-", ""));
+
+    if (!audioFinished) {
+        let warning = "";
+        if (!hasStartedAudio) warning = "⚠️ Bạn chưa bắt đầu nghe audio.\n\n";
+        else warning = "⚠️ Bạn chưa nghe hết audio.\n\n";
+        const confirmSubmit = confirm(warning + "Bạn có chắc muốn nộp bài không?\n\nLưu ý: Sau khi nộp, bạn sẽ không thể chỉnh sửa câu trả lời.");
+        if (!confirmSubmit) return;
+        audioFinished = true;
+    }
+
+    submitTest(testNumber);
+});
+
+/* =============================================================
+   CHECK ANSWERS
+============================================================= */
+
+function normalizeAnswer(value) {
+    return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function checkTextAnswer(userAnswer, correctAnswer) {
+    const user = normalizeAnswer(userAnswer);
+    const correct = normalizeAnswer(correctAnswer);
+    const alternatives = correct.split("/").map(item => normalizeAnswer(item));
+    return alternatives.includes(user);
+}
+
+function submitTest(testNumber) {
+    if (submitted) return;
+
+    const form = document.getElementById(`form-${testNumber}`);
+    const questions = form.querySelectorAll(".question");
+    const test = tests[testNumber];
+    let score = 0;
+
+    questions.forEach((question, index) => {
+        const correct = test.answers[index];
+        let userAnswer = "";
+
+        const textInput = question.querySelector(".text-answer");
+        if (textInput) {
+            userAnswer = textInput.value;
+        } else {
+            const selected = question.querySelector("input[type='radio']:checked");
+            if (selected) userAnswer = selected.value;
+        }
+
+        const isCorrect = checkTextAnswer(userAnswer, correct);
+        if (isCorrect) {
+            score++;
+            question.classList.add("correct");
+        } else {
+            question.classList.add("wrong");
+        }
+
+        const explanation = question.querySelector(".explanation");
+        if (explanation) {
+            explanation.style.display = "block";
+            const text = explanation.querySelector(".explanation-text");
+            if (text) text.textContent = test.explanations[index];
+        }
+    });
+
+    const result = document.getElementById(`result-${testNumber}`);
+    const scoreElement = document.getElementById(`score-${testNumber}`);
+    const message = document.getElementById(`scoreMessage-${testNumber}`);
+
+    scoreElement.textContent = `${score} / 20`;
+
+    if (score >= 18) message.textContent = "🔥 Xuất sắc! Khả năng Listening của bạn rất tốt.";
+    else if (score >= 15) message.textContent = "👏 Rất tốt! Chỉ cần cải thiện thêm một chút.";
+    else if (score >= 10) message.textContent = "💪 Khá ổn! Hãy xem lại Transcript và các câu sai.";
+    else message.textContent = "📚 Hãy nghe lại Transcript và luyện tập thêm nhé.";
+
+    result.classList.add("show");
+    const transcript = document.getElementById(`transcript-${testNumber}`);
+    if (transcript) transcript.classList.add("show");
+
+    const submit = document.getElementById(`submitBtn-${testNumber}`);
+    submit.disabled = true;
+    submitted = true;
+    audio.controls = true;
+
+    dots.forEach(dot => {
+        const num = Number(dot.dataset.test);
+        if (num === testNumber) dot.classList.add("done");
+    });
+
+    if (testNumber < 3) {
+        nextBtn.style.display = "block";
+    } else {
+        nextBtn.style.display = "none";
+    }
+
+    result.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+/* =============================================================
+   NEXT TEST
+============================================================= */
+
+nextBtn.addEventListener("click", function () {
+    if (!submitted) {
+        alert("Bạn phải nộp bài và xem kết quả trước khi chuyển sang đề tiếp theo.");
+        return;
+    }
+    if (currentTest >= 3) return;
+    const nextTest = currentTest + 1;
+    showTest(nextTest);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+/* =============================================================
+   DOT NAVIGATION
+============================================================= */
+
+dots.forEach(dot => {
+    dot.addEventListener("click", function () {
+        const target = Number(this.dataset.test);
+        if (target === currentTest) return;
+        if (target > currentTest) {
+            alert("⚠️ Bạn phải hoàn thành và nộp bài hiện tại trước khi chuyển sang đề tiếp theo.");
+            return;
+        }
+        showTest(target);
+    });
+});
+
+/* =============================================================
+   BLOCK SEEKING
+============================================================= */
+
+let lastAudioTime = 0;
+let isSeekBlocked = true;
+
+audio.addEventListener("timeupdate", function () {
+    if (!audioFinished && !submitted && isSeekBlocked) {
+        if (Math.abs(audio.currentTime - lastAudioTime) > 1.5) {
+            audio.currentTime = lastAudioTime;
+        } else {
+            lastAudioTime = audio.currentTime;
+        }
+    } else {
+        lastAudioTime = audio.currentTime;
+    }
+});
+
+// Cho phép seek sau khi nộp bài
+const originalSubmitTest = submitTest;
+submitTest = function(testNumber) {
+    originalSubmitTest(testNumber);
+    isSeekBlocked = false;
+    audio.controls = true;
+};
+
+/* =============================================================
+   KHỞI TẠO
+============================================================= */
+
+showTest(1);
+
+</script>
+
+</body>
+</html>
