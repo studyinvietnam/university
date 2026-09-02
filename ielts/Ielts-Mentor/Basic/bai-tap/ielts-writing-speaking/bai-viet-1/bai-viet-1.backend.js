@@ -1,7 +1,6 @@
-﻿
 // ============================================================
 // GEMINI API - IELTS WRITING AI
-// Gemini 3.6 Flash + Interactions API
+// Gemini 3.6 Flash + generateContent API
 // ============================================================
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -26,9 +25,7 @@ function validateGeminiApiKey() {
         GEMINI_API_KEY === "1111" ||
         GEMINI_API_KEY === "YOUR_NEW_GEMINI_API_KEY"
     ) {
-        throw new Error(
-            "GEMINI_API_KEY chưa được cấu hình."
-        );
+        throw new Error("GEMINI_API_KEY chưa được cấu hình.");
     }
 }
 
@@ -43,7 +40,6 @@ function getSafeModel(model = null) {
     ) {
         return model;
     }
-
     return DEFAULT_MODEL;
 }
 
@@ -290,122 +286,57 @@ function countWords(text) {
 // ============================================================
 
 function normalizeWritingResult(data, essay) {
-    const wordCount = countWords(essay);
-
     const safeNumber = (value, fallback = 0) => {
         const number = Number(value);
-
-        if (!Number.isFinite(number)) {
-            return fallback;
-        }
-
+        if (!Number.isFinite(number)) return fallback;
         return Math.max(0, Math.min(10, number));
     };
 
     return {
         score: safeNumber(data?.score),
-
         wordCount: countWords(essay),
 
         grammar: {
-            score: safeNumber(
-                data?.grammar?.score
-            ),
-
-            comment: String(
-                data?.grammar?.comment ?? ""
-            ),
-
-            errors: Array.isArray(
-                data?.grammar?.errors
-            )
-                ? data.grammar.errors
-                : [],
+            score: safeNumber(data?.grammar?.score),
+            comment: String(data?.grammar?.comment ?? ""),
+            errors: Array.isArray(data?.grammar?.errors) ? data.grammar.errors : [],
         },
 
         vocabulary: {
-            score: safeNumber(
-                data?.vocabulary?.score
-            ),
-
-            comment: String(
-                data?.vocabulary?.comment ?? ""
-            ),
-
-            suggestions: Array.isArray(
-                data?.vocabulary?.suggestions
-            )
-                ? data.vocabulary.suggestions
-                : [],
+            score: safeNumber(data?.vocabulary?.score),
+            comment: String(data?.vocabulary?.comment ?? ""),
+            suggestions: Array.isArray(data?.vocabulary?.suggestions) ? data.vocabulary.suggestions : [],
         },
 
         coherence: {
-            score: safeNumber(
-                data?.coherence?.score
-            ),
-
-            comment: String(
-                data?.coherence?.comment ?? ""
-            ),
+            score: safeNumber(data?.coherence?.score),
+            comment: String(data?.coherence?.comment ?? ""),
         },
 
         content: {
-            score: safeNumber(
-                data?.content?.score
-            ),
-
-            comment: String(
-                data?.content?.comment ?? ""
-            ),
+            score: safeNumber(data?.content?.score),
+            comment: String(data?.content?.comment ?? ""),
         },
 
         outline: {
             introduction: {
-                score: safeNumber(
-                    data?.outline?.introduction?.score
-                ),
-
-                comment: String(
-                    data?.outline?.introduction?.comment ?? ""
-                ),
+                score: safeNumber(data?.outline?.introduction?.score),
+                comment: String(data?.outline?.introduction?.comment ?? ""),
             },
-
             body: {
-                score: safeNumber(
-                    data?.outline?.body?.score
-                ),
-
-                comment: String(
-                    data?.outline?.body?.comment ?? ""
-                ),
+                score: safeNumber(data?.outline?.body?.score),
+                comment: String(data?.outline?.body?.comment ?? ""),
             },
-
             conclusion: {
-                score: safeNumber(
-                    data?.outline?.conclusion?.score
-                ),
-
-                comment: String(
-                    data?.outline?.conclusion?.comment ?? ""
-                ),
+                score: safeNumber(data?.outline?.conclusion?.score),
+                comment: String(data?.outline?.conclusion?.comment ?? ""),
             },
         },
 
-        strengths: Array.isArray(data?.strengths)
-            ? data.strengths
-            : [],
-
-        weaknesses: Array.isArray(data?.weaknesses)
-            ? data.weaknesses
-            : [],
-
-        improvements: Array.isArray(data?.improvements)
-            ? data.improvements
-            : [],
-
-        overall_comment: String(
-            data?.overall_comment ?? ""
-        ),
+        strengths: Array.isArray(data?.strengths) ? data.strengths : [],
+        weaknesses: Array.isArray(data?.weaknesses) ? data.weaknesses : [],
+        improvements: Array.isArray(data?.improvements) ? data.improvements : [],
+        overall_comment: String(data?.overall_comment ?? ""),
     };
 }
 
@@ -414,13 +345,8 @@ function normalizeWritingResult(data, essay) {
 // ============================================================
 
 function parseGeminiJson(text) {
-    if (
-        !text ||
-        typeof text !== "string"
-    ) {
-        throw new Error(
-            "Gemini không trả về nội dung JSON."
-        );
+    if (!text || typeof text !== "string") {
+        throw new Error("Gemini không trả về nội dung JSON.");
     }
 
     let cleaned = text.trim();
@@ -430,7 +356,7 @@ function parseGeminiJson(text) {
         return JSON.parse(cleaned);
     } catch (_) {}
 
-    // Xóa Markdown fence nếu Gemini vẫn trả về
+    // Xóa Markdown fence
     cleaned = cleaned
         .replace(/^```json\s*/i, "")
         .replace(/^```\s*/i, "")
@@ -438,184 +364,63 @@ function parseGeminiJson(text) {
         .trim();
 
     // Tìm JSON object
-    const firstBrace =
-        cleaned.indexOf("{");
-
-    const lastBrace =
-        cleaned.lastIndexOf("}");
-
-    if (
-        firstBrace !== -1 &&
-        lastBrace !== -1 &&
-        lastBrace > firstBrace
-    ) {
-        cleaned = cleaned.substring(
-            firstBrace,
-            lastBrace + 1
-        );
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
     }
 
     try {
         return JSON.parse(cleaned);
     } catch (error) {
-        console.error(
-            "❌ GEMINI RAW TEXT:"
-        );
-
+        console.error("❌ GEMINI RAW TEXT:");
         console.error(text);
-
-        throw new Error(
-            "Gemini trả về JSON không hợp lệ."
-        );
+        throw new Error("Gemini trả về JSON không hợp lệ.");
     }
 }
 
 // ============================================================
-// EXTRACT INTERACTION TEXT
+// CALL GEMINI generateContent API (chuẩn)
 // ============================================================
 
-function extractInteractionText(data) {
-    // Trường hợp response có steps
-    if (
-        Array.isArray(data?.steps)
-    ) {
-        for (
-            let i = data.steps.length - 1;
-            i >= 0;
-            i--
-        ) {
-            const step =
-                data.steps[i];
-
-            if (
-                Array.isArray(
-                    step?.content
-                )
-            ) {
-                for (
-                    let j =
-                        step.content.length - 1;
-                    j >= 0;
-                    j--
-                ) {
-                    const item =
-                        step.content[j];
-
-                    if (
-                        typeof item?.text ===
-                        "string" &&
-                        item.text.trim()
-                    ) {
-                        return item.text.trim();
-                    }
-                }
-            }
-        }
-    }
-
-    // Một số response có output trực tiếp
-    if (
-        typeof data?.output?.text ===
-        "string"
-    ) {
-        return data.output.text.trim();
-    }
-
-    if (
-        typeof data?.text ===
-        "string"
-    ) {
-        return data.text.trim();
-    }
-
-    return "";
-}
-
-// ============================================================
-// CALL GEMINI INTERACTIONS API
-// ============================================================
-
-async function callGeminiInteraction(
-    prompt,
-    model,
-    timeoutMs
-) {
+async function callGeminiGenerateContent(prompt, model, timeoutMs) {
     validateGeminiApiKey();
 
-    const controller =
-        new AbortController();
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
-    const timeoutId =
-        setTimeout(() => {
-            controller.abort();
-        }, timeoutMs);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-        const response =
-            await fetch(
-                "https://generativelanguage.googleapis.com/v1beta/interactions",
-                {
-                    method: "POST",
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+            }),
+            signal: controller.signal,
+        });
 
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-
-                        "x-goog-api-key":
-                            GEMINI_API_KEY,
-                    },
-
-                    body: JSON.stringify({
-                        model: model,
-
-                        input: prompt,
-                    }),
-
-                    signal: controller.signal,
-                }
-            );
-
-        let data;
-
-        try {
-            data =
-                await response.json();
-        } catch (_) {
-            throw new Error(
-                "Gemini trả về dữ liệu không hợp lệ."
-            );
-        }
+        const data = await response.json();
 
         if (!response.ok) {
-            console.error(
-                "❌ GEMINI INTERACTIONS ERROR:"
-            );
-
-            console.error(
-                JSON.stringify(
-                    data,
-                    null,
-                    2
-                )
-            );
-
-            throw new Error(
-                data?.error?.message ||
-                "Gemini Interactions API lỗi."
-            );
+            console.error("❌ GEMINI ERROR:");
+            console.error(JSON.stringify(data, null, 2));
+            throw new Error(data?.error?.message || "Gemini API lỗi.");
         }
 
-        return data;
+        // Lấy text từ response chuẩn
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        if (!text) {
+            console.error("❌ GEMINI RESPONSE (no text):", JSON.stringify(data, null, 2));
+            throw new Error("Gemini không trả về nội dung text.");
+        }
+
+        return { text };
     } catch (error) {
-        if (
-            error.name ===
-            "AbortError"
-        ) {
-            throw new Error(
-                `Gemini API không phản hồi sau ${timeoutMs / 1000} giây.`
-            );
+        if (error.name === "AbortError") {
+            throw new Error(`Gemini API không phản hồi sau ${timeoutMs / 1000} giây.`);
         }
-
         throw error;
     } finally {
         clearTimeout(timeoutId);
@@ -634,117 +439,33 @@ async function checkWritingByGemini(
 ) {
     validateGeminiApiKey();
 
-    if (
-        !essay ||
-        typeof essay !== "string" ||
-        !essay.trim()
-    ) {
-        throw new Error(
-            "Bài viết đang trống."
-        );
+    if (!essay || typeof essay !== "string" || !essay.trim()) {
+        throw new Error("Bài viết đang trống.");
     }
 
-    const selectedModel =
-        getSafeModel(model);
+    const selectedModel = getSafeModel(model);
+    console.log("🤖 Gemini model:", selectedModel);
 
-    console.log(
-        "🤖 Gemini model:",
-        selectedModel
-    );
-
-    const prompt =
-        createWritingPrompt(
-            topic,
-            essay
-        );
-
-    if (
-        prompt.length > 50000
-    ) {
-        throw new Error(
-            "Bài viết quá dài. Vui lòng rút gọn."
-        );
+    const prompt = createWritingPrompt(topic, essay);
+    if (prompt.length > 50000) {
+        throw new Error("Bài viết quá dài. Vui lòng rút gọn.");
     }
 
     console.log("");
-    console.log(
-        "=========================================="
-    );
+    console.log("==========================================");
+    console.log("🤖 ĐANG GỌI GEMINI generateContent API");
+    console.log("==========================================");
+    console.log("Model:", selectedModel);
+    console.log("Prompt length:", prompt.length);
+    console.log("==========================================");
 
-    console.log(
-        "🤖 ĐANG GỌI GEMINI INTERACTIONS API"
-    );
+    const data = await callGeminiGenerateContent(prompt, selectedModel, timeoutMs);
+    const text = data.text;
 
-    console.log(
-        "=========================================="
-    );
+    console.log("📥 Gemini text length:", text.length);
 
-    console.log(
-        "Model:",
-        selectedModel
-    );
-
-    console.log(
-        "Prompt length:",
-        prompt.length
-    );
-
-    console.log(
-        "=========================================="
-    );
-
-    const data =
-        await callGeminiInteraction(
-            prompt,
-            selectedModel,
-            timeoutMs
-        );
-
-    console.log(
-        "🆔 Interaction:",
-        data?.id || "(không có)"
-    );
-
-    console.log(
-        "📊 Status:",
-        data?.status || "(không có)"
-    );
-
-    const text =
-        extractInteractionText(
-            data
-        );
-
-    if (!text) {
-        console.error(
-            "❌ GEMINI RESPONSE:"
-        );
-
-        console.error(
-            JSON.stringify(
-                data,
-                null,
-                2
-            )
-        );
-
-        throw new Error(
-            "Gemini không trả về kết quả chấm bài."
-        );
-    }
-
-    console.log(
-        "📥 Gemini text length:",
-        text.length
-    );
-
-    const parsed =
-        parseGeminiJson(text);
-
-    return normalizeWritingResult(
-        parsed,
-        essay
-    );
+    const parsed = parseGeminiJson(text);
+    return normalizeWritingResult(parsed, essay);
 }
 
 // ============================================================
@@ -757,37 +478,21 @@ async function testGeminiConnection(
 ) {
     validateGeminiApiKey();
 
-    const selectedModel =
-        getSafeModel(model);
+    const selectedModel = getSafeModel(model);
+    console.log("🔍 testGeminiConnection:", selectedModel);
 
-    console.log(
-        "🔍 testGeminiConnection:",
-        selectedModel
+    const data = await callGeminiGenerateContent(
+        "Reply only with the word OK.",
+        selectedModel,
+        timeoutMs
     );
-
-    const data =
-        await callGeminiInteraction(
-            "Reply only with the word OK.",
-            selectedModel,
-            timeoutMs
-        );
-
-    const text =
-        extractInteractionText(
-            data
-        );
 
     return {
         connected: true,
-
-        model:
-            selectedModel,
-
-        response:
-            text || "OK",
-
-        interactionId:
-            data?.id || null,
+        model: selectedModel,
+        response: data.text || "OK",
+        // không có interactionId vì dùng generateContent
+        interactionId: null,
     };
 }
 
@@ -804,4 +509,3 @@ module.exports = {
     DEFAULT_MODEL,
     getSafeModel,
 };
-
