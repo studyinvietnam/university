@@ -1,0 +1,208 @@
+﻿Diagnose log at 2026-09-02T10:30:43Z
+
+AppPath: C:\Program Files\Git\mingw64\bin\git-credential-manager.exe
+InstallDir: C:\Program Files\Git\mingw64\bin\
+Version: 2.9.0+194ba290ce533465310d50f811684ab180536ae7
+
+------------
+Diagnostic: Environment
+Skipped: False
+Success: True
+Exception: None
+Log:
+OSType: Windows
+OSVersion: 10.0 (build 26100)
+Reading environment variables... OK
+ Variables:
+SESSIONNAME=Console
+ProgramFiles(x86)=C:\Program Files (x86)
+MSYSTEM=MINGW64
+ProgramW6432=C:\Program Files
+PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 142 Stepping 12, GenuineIntel
+TMP=C:\Users\Admin\AppData\Local\Temp
+PROCESSOR_ARCHITECTURE=AMD64
+Path=C:/Program Files/Git/mingw64/libexec/git-core;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\Admin\bin;C:\Program Files\Eclipse Adoptium\jdk-21.0.12.8-hotspot\bin;C:\Program Files\Eclipse Adoptium\jdk-17.0.20.8-hotspot\bin;C:\Program Files\Eclipse Adoptium\jdk-17.0.20.8-hotspot\bin;C:\Program Files (x86)\Common Files\Oracle\Java\java8path;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Go\bin;C:\Program Files\Git\cmd;C:\Program Files\dotnet\;C:\Program Files\nodejs\;C:\Program Files\nodejs\;C:\Program Files\MySQL\MySQL Shell 8.0\bin\;C:\Users\Admin\AppData\Local\Programs\Python\Python311\Scripts\;C:\Users\Admin\AppData\Local\Programs\Python\Python311\;C:\Users\Admin\AppData\Local\Microsoft\WindowsApps;C:\Users\Admin\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\Admin\AppData\Local\Microsoft\WinGet\Packages\aria2.aria2_Microsoft.Winget.Source_8wekyb3d8bbwe\aria2-1.37.0-win-64bit-build1;C:\Users\Admin\AppData\Local\Python\bin;C:\Users\Admin\AppData\Local\Pr;C:\Program Files\MySQL\MySQL Shell 8.0\bin\;C:\Users\Admin\AppData\Local\Programs\Python\Python311\Scripts\;C:\Users\Admin\AppData\Local\Programs\Python\Python311\;C:\Users\Admin\AppData\Local\Microsoft\WindowsApps;C:\Users\Admin\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\Admin\AppData\Local\Microsoft\WinGet\Packages\aria2.aria2_Microsoft.Winget.Source_8wekyb3d8bbwe\aria2-1.37.0-win-64bit-build1;C:\Users\Admin\AppData\Local\Python\bin;C:\Users\Admin\AppData\Local\Programs\Antigravity\bin;C:\Users\Admin\go\bin;C:\Users\Admin\AppData\Local\Programs\Antigravity IDE\bin;C:\Program Files\Java\jdk1.8.0_111\bin;C:\Users\Admin\AppData\Local\Microsoft\WinGet\Packages\Hawaii_Beach.TinyNvidiaUpdateChecker_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\Users\Admin\AppData\Roaming\npm;C:\Users\Admin\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg.Shared_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.1-full_build-shared\bin;;C:\Users\Admin\apache\apache-maven-3.9.16\bin;C:\msys64\ucrt64\bin
+PT8HOME=C:\Users\Admin\Cisco Packet Tracer 9.0.0
+EFC_20000_1592913036=1
+USERPROFILE=C:\Users\Admin
+PROCESSOR_REVISION=8e0c
+TEMP=C:\Users\Admin\AppData\Local\Temp
+FPS_BROWSER_APP_PROFILE_STRING=Internet Explorer
+FPS_BROWSER_USER_PROFILE_STRING=Default
+LOGONSERVER=\\ADMIN-PC
+TERM=xterm-256color
+USERNAME=Admin
+SystemRoot=C:\WINDOWS
+GIT_EXEC_PATH=C:/Program Files/Git/mingw64/libexec/git-core
+PLINK_PROTOCOL=ssh
+OneDrive=C:\Users\Admin\OneDrive
+USERDOMAIN_ROAMINGPROFILE=ADMIN-PC
+CommonProgramFiles=C:\Program Files\Common Files
+ZES_ENABLE_SYSMAN=1
+ProgramData=C:\ProgramData
+LC_CTYPE=C.UTF-8
+HOMEPATH=\Users\Admin
+COMPUTERNAME=ADMIN-PC
+ALLUSERSPROFILE=C:\ProgramData
+CommonProgramW6432=C:\Program Files\Common Files
+MOZ_PLUGIN_PATH=C:\Program Files (x86)\Foxit Software\Foxit Reader\plugins\
+MAVEN_HOME=C:\Users\Admin\apache\apache-maven-3.9.16
+EFC_20000_2283032206=1
+DriverData=C:\Windows\System32\Drivers\DriverData
+HOMEDRIVE=C:
+windir=C:\WINDOWS
+GIT_TRACE2_PARENT_SID=a69869ce-49b9-4b30-9015-d23b1c36bd91
+SystemDrive=C:
+NUMBER_OF_PROCESSORS=8
+OS=Windows_NT
+ProgramFiles=C:\Program Files
+ComSpec=C:\WINDOWS\system32\cmd.exe
+EFC_20000_3789132940=1
+PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC
+HOME=C:\Users\Admin
+PSModulePath=C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.20.8-hotspot
+PROMPT=$P$G
+TMPDIR=C:\Users\Admin\AppData\Local\Temp
+APPDATA=C:\Users\Admin\AppData\Roaming
+USERDOMAIN=ADMIN-PC
+PROCESSOR_LEVEL=6
+LOCALAPPDATA=C:\Users\Admin\AppData\Local
+CommonProgramFiles(x86)=C:\Program Files (x86)\Common Files
+COLORTERM=truecolor
+GOPATH=C:\Users\Admin\go
+PUBLIC=C:\Users\Public
+EFC_20000_1262719628=1
+EFC_20000_2775293581=1
+
+
+------------
+Diagnostic: File system
+Skipped: False
+Success: True
+Exception: None
+Log:
+Temporary directory is 'C:\Users\Admin\AppData\Local\Temp\'...
+Checking basic file I/O...
+Writing to temporary file 'C:\Users\Admin\AppData\Local\Temp\ceec43c6964d71506443ccc4'... OK
+Reading from temporary file 'C:\Users\Admin\AppData\Local\Temp\ceec43c6964d71506443ccc4'... OK
+Deleting temporary file 'C:\Users\Admin\AppData\Local\Temp\ceec43c6964d71506443ccc4'... OK
+Testing IFileSystem instance...
+UserHomePath: C:\Users\Admin
+UserDataDirectoryPath: C:\Users\Admin\.gcm
+GetCurrentDirectory(): D:\bai_tap_dh
+
+------------
+Diagnostic: Networking
+Skipped: False
+Success: True
+Exception: None
+Log:
+Checking networking and HTTP stack...
+Creating HTTP client... OK
+IsNetworkAvailable: True
+Sending HEAD request to http://example.com... OK
+Sending HEAD request to https://example.com... OK
+Acquiring free TCP port... OK
+Testing local HTTP loopback connections...
+Creating new HTTP listener for http://localhost:53110/... OK
+Waiting for loopback connection... OK
+Writing response... OK
+Waiting for response data... OK
+Loopback connection data OK
+
+------------
+Diagnostic: Git
+Skipped: False
+Success: True
+Exception: None
+Log:
+Getting Git version... OK
+Git version is '2.55.0.windows.3'
+Locating current repository...Git repository at 'D:/bai_tap_dh/.git'
+ OK
+Listing all Git configuration... OK
+Git configuration:
+file:C:/Program Files/Git/etc/gitconfig	diff.astextplain.textconv=astextplain
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.clean=git-lfs clean -- %f
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.smudge=git-lfs smudge -- %f
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.process=git-lfs filter-process
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.required=true
+file:C:/Program Files/Git/etc/gitconfig	http.sslbackend=schannel
+file:C:/Program Files/Git/etc/gitconfig	core.autocrlf=true
+file:C:/Program Files/Git/etc/gitconfig	core.fscache=true
+file:C:/Program Files/Git/etc/gitconfig	core.symlinks=false
+file:C:/Program Files/Git/etc/gitconfig	pull.rebase=false
+file:C:/Program Files/Git/etc/gitconfig	credential.helper=manager
+file:C:/Program Files/Git/etc/gitconfig	credential.https://dev.azure.com.usehttppath=true
+file:C:/Program Files/Git/etc/gitconfig	init.defaultbranch=master
+file:C:/Users/Admin/.gitconfig	user.name=Hùng Anh:Admin-PC
+file:C:/Users/Admin/.gitconfig	user.email=hunganh.okokok.0@gmail.com
+file:C:/Users/Admin/.gitconfig	core.autocrlf=true
+file:C:/Users/Admin/.gitconfig	difftool.sourcetree.cmd='' 
+file:C:/Users/Admin/.gitconfig	mergetool.sourcetree.cmd='' 
+file:C:/Users/Admin/.gitconfig	mergetool.sourcetree.trustexitcode=false
+file:C:/Users/Admin/.gitconfig	mergetool.sourcetree.keepbackup=false
+file:C:/Users/Admin/.gitconfig	safe.directory=D:/ffmpeg
+file:C:/Users/Admin/.gitconfig	http.version=HTTP/1.1
+file:C:/Users/Admin/.gitconfig	filter.lfs.required=true
+file:C:/Users/Admin/.gitconfig	filter.lfs.clean=git-lfs clean -- %f
+file:C:/Users/Admin/.gitconfig	filter.lfs.smudge=git-lfs smudge -- %f
+file:C:/Users/Admin/.gitconfig	filter.lfs.process=git-lfs filter-process
+file:C:/Users/Admin/.gitconfig	credential.helper=manager
+file:C:/Users/Admin/.gitconfig	credential.gitlabauthmodes=browser
+file:C:/Users/Admin/.gitconfig	credential.https://gitlab.com.provider=gitlab
+file:.git/config	core.repositoryformatversion=1
+file:.git/config	core.filemode=false
+file:.git/config	core.bare=false
+file:.git/config	core.logallrefupdates=true
+file:.git/config	core.symlinks=false
+file:.git/config	core.ignorecase=true
+file:.git/config	core.sparsecheckout=true
+file:.git/config	remote.origin.url=https://github.com/studyinvietnam/university.git
+file:.git/config	remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
+file:.git/config	remote.origin.promisor=true
+file:.git/config	remote.origin.partialclonefilter=blob:none
+file:.git/config	branch.main.remote=origin
+file:.git/config	branch.main.vscode-merge-base=origin/main
+file:.git/config	branch.main.merge=refs/heads/main
+file:.git/config	extensions.worktreeconfig=true
+file:.git/config.worktree	core.sparsecheckout=false
+file:.git/config.worktree	core.sparsecheckoutcone=false
+file:.git/config.worktree	index.sparse=false
+
+
+------------
+Diagnostic: Credential storage
+Skipped: False
+Success: True
+Exception: None
+Log:
+ICredentialStore instance is of type: CredentialStore
+Writing test credential... OK
+Reading test credential... OK
+Deleting test credential... OK
+
+------------
+Diagnostic: Microsoft authentication (AAD/MSA)
+Skipped: False
+Success: True
+Exception: None
+Log:
+Broker is not enabled.
+Gathering MSAL token cache data... OK
+CacheDirectory: C:\Users\Admin\AppData\Local\.IdentityService
+CacheFileName: msal.cache
+CacheFilePath: C:\Users\Admin\AppData\Local\.IdentityService\msal.cache
+Creating cache helper... OK
+Verifying MSAL token cache persistence... OK
+
+------------
+Diagnostic: GitHub API
+Skipped: False
+Success: True
+Exception: None
+Log:
+Using 'https://github.com/' as API target.
+Querying '/meta' endpoint... OK
+
