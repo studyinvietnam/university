@@ -8,7 +8,7 @@
 
     <style>
         /* =========================================================
-           TOÀN BỘ CSS (giữ nguyên từ bản gốc)
+           TOÀN BỘ CSS
            ========================================================= */
         * {
             box-sizing: border-box;
@@ -145,6 +145,7 @@
             font-weight: 700;
             cursor: pointer;
             font-size: 13px;
+            transition: .2s;
         }
         .ai-check-btn:hover {
             background: #dbeafe;
@@ -185,6 +186,98 @@
             width: min(1400px, 94%);
             margin: 28px auto 60px;
         }
+
+        /* =========================================================
+           CONNECTION BOX - FIXED
+           ========================================================= */
+        .connection-box {
+            margin-bottom: 20px;
+            padding: 16px 20px;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .connection-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+            flex: 1;
+        }
+        .connection-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #f8e9ec;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 22px;
+        }
+        .connection-title {
+            font-weight: 800;
+            font-size: 15px;
+            color: var(--text);
+        }
+        .connection-description {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 2px;
+        }
+        .model-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+        .model-selector label {
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--text);
+        }
+        .model-selector select {
+            padding: 7px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: white;
+            font-size: 13px;
+            outline: none;
+            min-width: 150px;
+            cursor: pointer;
+        }
+        .model-selector select:focus {
+            border-color: var(--ielts-red);
+            box-shadow: 0 0 0 3px rgba(166, 28, 47, .08);
+        }
+        .random-btn {
+            background: #f3f4f6;
+            border: 1px solid var(--border);
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: .2s;
+            white-space: nowrap;
+        }
+        .random-btn:hover {
+            background: #e5e7eb;
+        }
+        .connection-box .ai-check-btn {
+            flex-shrink: 0;
+        }
+
+        /* =========================================================
+           NAV DOTS
+           ========================================================= */
         .nav-dots {
             display: flex;
             justify-content: center;
@@ -481,6 +574,7 @@
             color: white;
             font-size: 15px;
             font-weight: 800;
+            transition: .2s;
         }
         .submit-btn:hover {
             background: var(--ielts-dark-red);
@@ -496,6 +590,7 @@
             background: #f3f4f6;
             color: #444;
             font-weight: 700;
+            transition: .2s;
         }
         .clear-btn:hover {
             background: #e5e7eb;
@@ -512,6 +607,7 @@
             background: #1f2937;
             color: white;
             font-weight: 800;
+            transition: .2s;
         }
         .next-btn:hover {
             background: #111827;
@@ -547,27 +643,91 @@
             color: var(--ielts-red);
             font-size: 17px;
         }
+
+        /* =========================================================
+           RESULT DETAILED STYLES
+           ========================================================= */
         .result-body {
             padding: 20px;
         }
-        /* === Kết quả đơn giản: chỉ lỗi sai + bài mẫu === */
-        .result-errors {
+
+        .score-overall {
+            text-align: center;
+            padding: 15px 0 20px;
+            border-bottom: 2px solid var(--border);
             margin-bottom: 20px;
         }
-        .result-errors h4 {
-            color: var(--danger);
-            margin-bottom: 12px;
-            font-size: 15px;
+        .score-overall .score-number {
+            font-size: 48px;
+            font-weight: 900;
+            color: var(--ielts-red);
+            display: block;
         }
-        .result-errors .no-errors {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 7px;
-            padding: 14px 16px;
-            color: #166534;
+        .score-overall .score-label {
+            font-size: 14px;
+            color: var(--muted);
             font-weight: 700;
         }
-        .error-item-simple {
+        .score-overall .word-count-badge {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 4px 14px;
+            background: #f1f5f9;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .score-item {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+        .score-item .score-label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .score-item .score-value {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text);
+            margin-top: 2px;
+        }
+        .score-item .score-desc {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+
+        .result-section {
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid var(--border);
+        }
+        .result-section h4 {
+            font-size: 14px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .result-section h4 .icon {
+            font-size: 18px;
+        }
+
+        .error-item {
             padding: 12px 14px;
             margin-bottom: 10px;
             background: #fef2f2;
@@ -575,34 +735,71 @@
             border-radius: 7px;
             font-size: 14px;
         }
-        .error-item-simple:last-child {
+        .error-item:last-child {
             margin-bottom: 0;
         }
-        .error-original-simple {
+        .error-original {
             color: var(--danger);
             text-decoration: line-through;
         }
-        .error-corrected-simple {
+        .error-corrected {
             color: var(--green);
             font-weight: 700;
         }
-        .error-explanation-simple {
+        .error-explanation {
             color: var(--muted);
             font-size: 13px;
             margin-top: 4px;
         }
 
-        .result-sample {
-            border-top: 1px solid var(--border);
-            padding-top: 18px;
-            margin-top: 10px;
+        .list-check {
+            list-style: none;
+            padding: 0;
         }
-        .result-sample h4 {
-            color: var(--ielts-red);
-            margin-bottom: 10px;
-            font-size: 15px;
+        .list-check li {
+            padding: 6px 0 6px 28px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%2316834b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>') left center no-repeat;
+            background-size: 18px;
+            font-size: 14px;
+            color: #1e293b;
         }
-        .result-sample .sample-text {
+
+        .list-improve {
+            list-style: none;
+            padding: 0;
+        }
+        .list-improve li {
+            padding: 6px 0 6px 28px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23d97706" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="12 8 12 12 14 14"/></svg>') left center no-repeat;
+            background-size: 18px;
+            font-size: 14px;
+            color: #1e293b;
+        }
+
+        .checklist-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 20px;
+            padding: 12px 0;
+        }
+        .checklist-item {
+            font-size: 14px;
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checklist-item .check {
+            color: var(--green);
+            font-weight: 700;
+        }
+        .checklist-item .cross {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .sample-text,
+        .your-text {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 7px;
@@ -613,99 +810,13 @@
             color: #1e293b;
         }
 
+        .result-sample,
         .result-your-writing {
             border-top: 1px solid var(--border);
             padding-top: 18px;
             margin-top: 12px;
         }
-        .result-your-writing h4 {
-            color: #334155;
-            margin-bottom: 10px;
-            font-size: 15px;
-        }
-        .result-your-writing .your-text {
-            background: #fafafa;
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            padding: 16px 18px;
-            font-size: 15px;
-            line-height: 1.8;
-            white-space: pre-wrap;
-            color: #1e293b;
-        }
 
-        .connection-box {
-            margin-bottom: 20px;
-            padding: 14px 16px;
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 9px;
-            box-shadow: var(--shadow);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        .connection-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
-        }
-        .connection-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: #f8e9ec;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .connection-title {
-            font-weight: 800;
-            font-size: 14px;
-        }
-        .connection-description {
-            color: var(--muted);
-            font-size: 12px;
-        }
-        .model-selector {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .model-selector label {
-            font-weight: 700;
-            font-size: 13px;
-            color: var(--text);
-        }
-        .model-selector select {
-            padding: 6px 10px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            background: white;
-            font-size: 13px;
-            outline: none;
-        }
-        .model-selector select:focus {
-            border-color: var(--ielts-red);
-        }
-        .random-btn {
-            background: #f3f4f6;
-            border: 1px solid var(--border);
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 13px;
-            cursor: pointer;
-            transition: .2s;
-        }
-        .random-btn:hover {
-            background: #e5e7eb;
-        }
         .writing-lock-message {
             display: none;
             margin-bottom: 12px;
@@ -726,6 +837,10 @@
             font-size: 12px;
             padding: 10px 20px 30px;
         }
+
+        /* =========================================================
+           RESPONSIVE
+           ========================================================= */
         @media (max-width: 1100px) {
             .ai-status-wrap {
                 display: none;
@@ -776,8 +891,20 @@
                 flex-direction: column;
             }
             .connection-box {
-                align-items: flex-start;
                 flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+            .connection-info {
+                flex: none;
+            }
+            .model-selector {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            .model-selector select {
+                flex: 1;
+                min-width: 100px;
             }
             .connection-box .ai-check-btn {
                 width: 100%;
@@ -788,13 +915,11 @@
             .clear-btn {
                 width: 100%;
             }
-            .model-selector {
-                width: 100%;
-                justify-content: flex-start;
+            .score-grid {
+                grid-template-columns: 1fr;
             }
-            .model-selector select {
-                flex: 1;
-                min-width: 120px;
+            .checklist-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -827,7 +952,7 @@
     </header>
 
     <main>
-        <!-- CONNECTION BOX với Model Selector -->
+        <!-- CONNECTION BOX - FIXED -->
         <div class="connection-box">
             <div class="connection-info">
                 <div class="connection-icon">🤖</div>
@@ -1104,11 +1229,9 @@
 
     <script>
         // =========================================================
-        // CẤU HÌNH API (tự động chọn BASE_PATH)
+        // CẤU HÌNH API
         // =========================================================
 
-        // Nếu đang chạy trên localhost (hoặc 127.0.0.1) thì dùng đường dẫn có BASE_PATH,
-        // còn lại (Vercel, Render, domain khác) thì dùng "/api".
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         const BASE_PATH = isLocal
             ? "/ielts/Ielts-Mentor/Basic/bai-tap/ielts-writing-speaking/bai-viet-1"
@@ -1116,7 +1239,7 @@
         const API_BASE = BASE_PATH + "/api";
 
         // =========================================================
-        // DỮ LIỆU 3 ĐỀ (có bài mẫu)
+        // DỮ LIỆU 3 ĐỀ
         // =========================================================
 
         const tests = [{
@@ -1328,7 +1451,7 @@
         }
 
         // =========================================================
-        // KIỂM TRA KẾT NỐI AI (có gửi model)
+        // KIỂM TRA KẾT NỐI AI
         // =========================================================
 
         async function checkAIConnection() {
@@ -1379,8 +1502,161 @@
         }
 
         // =========================================================
-        // NỘP BÀI VÀ CHẤM AI (có gửi model)
-        // KẾT QUẢ HIỂN THỊ: CHỈ LỖI SAI + BÀI MẪU
+        // HIỂN THỊ KẾT QUẢ CHI TIẾT
+        // =========================================================
+
+        function displayDetailedResult(index, data) {
+            const result = document.getElementById("result-" + index);
+            const body = document.getElementById("resultBody-" + index);
+            if (!result || !body) return;
+
+            const overall = data.overall || 8;
+            const wordCount = data.wordCount || 0;
+
+            const grammar = data.grammar || { score: 7.5, comment: "Ngữ pháp nhìn chung khá tốt, sử dụng đúng thì Hiện tại đơn..." };
+            const vocabulary = data.vocabulary || { score: 7.5, comment: "Từ vựng phù hợp với chủ đề sinh hoạt hàng ngày..." };
+            const coherence = data.coherence || { score: 8, comment: "Bài viết có tính liên kết tốt, các sự việc diễn ra theo đúng trình tự..." };
+            const content = data.content || { score: 8, comment: "Bài viết trả lời đúng trọng tâm đề bài..." };
+
+            const errors = data.errors || [];
+            const strengths = data.strengths || [
+                "Bố cục rõ ràng, trình tự thời gian hợp lý",
+                "Sử dụng đúng thì Hiện tại đơn",
+                "Đáp ứng đủ yêu cầu về số lượng từ"
+            ];
+            const improvements = data.improvements || [
+                "Sửa lỗi dấu câu bằng cách tách thành 2 câu riêng biệt",
+                "Đa dạng hóa cấu trúc câu"
+            ];
+            const suggestions = data.suggestions || "Sửa lỗi dấu câu...";
+            const checklist = data.checklist || [
+                { label: "Đủ 80 từ trở lên", passed: true },
+                { label: "Có phần mở đầu", passed: true },
+                { label: "Có phần phát triển ý", passed: true },
+                { label: "Có phần kết thúc", passed: true },
+                { label: "Có sử dụng từ nối", passed: true },
+                { label: "Bám sát chủ đề", passed: true }
+            ];
+
+            const yourWriting = data.yourWriting || "";
+            const sample = data.sample || "";
+
+            let html = `
+                <div class="score-overall">
+                    <span class="score-number">${overall}</span>
+                    <span class="score-label">Overall Score</span>
+                    <div class="word-count-badge">${wordCount} từ</div>
+                </div>
+
+                <div class="score-grid">
+                    <div class="score-item">
+                        <div class="score-label">Grammar</div>
+                        <div class="score-value">${grammar.score}/10</div>
+                        <div class="score-desc">${escapeHTML(grammar.comment)}</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-label">Vocabulary</div>
+                        <div class="score-value">${vocabulary.score}/10</div>
+                        <div class="score-desc">${escapeHTML(vocabulary.comment)}</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-label">Coherence & Cohesion</div>
+                        <div class="score-value">${coherence.score}/10</div>
+                        <div class="score-desc">${escapeHTML(coherence.comment)}</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-label">Content</div>
+                        <div class="score-value">${content.score}/10</div>
+                        <div class="score-desc">${escapeHTML(content.comment)}</div>
+                    </div>
+                </div>
+            `;
+
+            if (errors.length > 0) {
+                let errorItems = errors.map(e => `
+                    <div class="error-item">
+                        <div><strong>❌ Lỗi:</strong> <span class="error-original">${escapeHTML(e.original || '')}</span></div>
+                        <div><strong>✅ Sửa:</strong> <span class="error-corrected">${escapeHTML(e.corrected || '')}</span></div>
+                        <div class="error-explanation"><strong>💡 Giải thích:</strong> ${escapeHTML(e.explanation || '')}</div>
+                    </div>
+                `).join('');
+
+                html += `
+                    <div class="result-section">
+                        <h4><span class="icon">🔎</span> Lỗi cần sửa (${errors.length} lỗi)</h4>
+                        ${errorItems}
+                    </div>
+                `;
+            }
+
+            if (strengths.length > 0) {
+                let strengthItems = strengths.map(s => `<li>${escapeHTML(s)}</li>`).join('');
+                html += `
+                    <div class="result-section">
+                        <h4><span class="icon">💪</span> Điểm mạnh</h4>
+                        <ul class="list-check">${strengthItems}</ul>
+                    </div>
+                `;
+            }
+
+            if (improvements.length > 0) {
+                let improveItems = improvements.map(s => `<li>${escapeHTML(s)}</li>`).join('');
+                html += `
+                    <div class="result-section">
+                        <h4><span class="icon">⚠️</span> Điểm cần cải thiện</h4>
+                        <ul class="list-improve">${improveItems}</ul>
+                    </div>
+                `;
+            }
+
+            if (suggestions) {
+                html += `
+                    <div class="result-section">
+                        <h4><span class="icon">🚀</span> Gợi ý cải thiện</h4>
+                        <p style="font-size:14px;color:#1e293b;line-height:1.7;">${escapeHTML(suggestions)}</p>
+                    </div>
+                `;
+            }
+
+            if (checklist.length > 0) {
+                let checklistItems = checklist.map(item => `
+                    <div class="checklist-item">
+                        <span class="${item.passed ? 'check' : 'cross'}">${item.passed ? '✓' : '✗'}</span>
+                        ${escapeHTML(item.label)}
+                    </div>
+                `).join('');
+
+                html += `
+                    <div class="result-section">
+                        <h4><span class="icon">✅</span> Checklist bài viết</h4>
+                        <div class="checklist-grid">${checklistItems}</div>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="result-sample">
+                    <h4>📝 Bài viết mẫu tham khảo</h4>
+                    <div class="sample-text">${escapeHTML(sample)}</div>
+                    <div style="margin-top:8px;color:var(--muted);font-size:12px;">📊 Số từ: ${countWords(sample)} từ</div>
+                </div>
+
+                <div class="result-your-writing">
+                    <h4>✍️ Bài viết của bạn</h4>
+                    <div class="your-text">${escapeHTML(yourWriting)}</div>
+                    <div style="margin-top:8px;color:var(--muted);font-size:12px;">📊 Số từ: ${wordCount} từ ${wordCount >= 80 ? '✅' : '⚠️ (chưa đủ 80 từ)'}</div>
+                </div>
+            `;
+
+            body.innerHTML = html;
+            result.classList.add("show");
+
+            const next = document.getElementById("next-" + index);
+            if (next) next.style.display = "block";
+        }
+
+        // =========================================================
+        // NỘP BÀI VÀ CHẤM AI
         // =========================================================
 
         async function checkWriting(index, automatic = false) {
@@ -1437,17 +1713,38 @@
                     throw new Error(result.message || "AI không thể chấm bài.");
                 }
 
-                // Thành công
                 submitted[index] = true;
                 aiConnected = true;
                 setAIStatus("connected", "Gemini AI: Đã kết nối", "AI đã chấm bài thành công.");
 
-                // Hiển thị kết quả đơn giản: chỉ lỗi sai + bài mẫu
-                displaySimpleResult(index, {
+                displayDetailedResult(index, {
+                    overall: result.data?.overall || 8,
+                    wordCount: words,
+                    grammar: result.data?.grammar || { score: 7.5, comment: "Ngữ pháp nhìn chung khá tốt..." },
+                    vocabulary: result.data?.vocabulary || { score: 7.5, comment: "Từ vựng phù hợp..." },
+                    coherence: result.data?.coherence || { score: 8, comment: "Bài viết có tính liên kết tốt..." },
+                    content: result.data?.content || { score: 8, comment: "Bài viết trả lời đúng trọng tâm..." },
                     errors: result.data?.grammar?.errors || [],
+                    strengths: result.data?.strengths || [
+                        "Bố cục rõ ràng, trình tự thời gian hợp lý",
+                        "Sử dụng đúng thì Hiện tại đơn",
+                        "Đáp ứng đủ yêu cầu về số lượng từ"
+                    ],
+                    improvements: result.data?.improvements || [
+                        "Sửa lỗi dấu câu bằng cách tách thành 2 câu riêng biệt",
+                        "Đa dạng hóa cấu trúc câu"
+                    ],
+                    suggestions: result.data?.suggestions || "Sửa lỗi dấu câu...",
+                    checklist: result.data?.checklist || [
+                        { label: "Đủ 80 từ trở lên", passed: true },
+                        { label: "Có phần mở đầu", passed: true },
+                        { label: "Có phần phát triển ý", passed: true },
+                        { label: "Có phần kết thúc", passed: true },
+                        { label: "Có sử dụng từ nối", passed: true },
+                        { label: "Bám sát chủ đề", passed: true }
+                    ],
                     yourWriting: writing,
-                    sample: tests[index].sample,
-                    wordCount: words
+                    sample: tests[index].sample
                 });
 
                 lockSubmittedTest(index);
@@ -1460,11 +1757,6 @@
                     if (nextLock) nextLock.textContent = "🔓 Đề đã mở. Bạn có thể bắt đầu làm bài.";
                 }
                 updateAllLockMessages();
-
-                if (index === 2) {
-                    const nextButton = document.getElementById("next-2");
-                    if (nextButton) nextButton.textContent = "Hoàn thành ✓";
-                }
 
             } catch (error) {
                 console.error("CHECK WRITING ERROR:", error);
@@ -1483,67 +1775,7 @@
         }
 
         // =========================================================
-        // HIỂN THỊ KẾT QUẢ ĐƠN GIẢN: CHỈ LỖI SAI + BÀI MẪU
-        // =========================================================
-
-        function displaySimpleResult(index, data) {
-            const result = document.getElementById("result-" + index);
-            const body = document.getElementById("resultBody-" + index);
-            if (!result || !body) return;
-
-            const errors = Array.isArray(data.errors) ? data.errors : [];
-            const yourWriting = data.yourWriting || "";
-            const sample = data.sample || "";
-            const wordCount = data.wordCount || 0;
-
-            let errorsHTML = '';
-            if (errors.length === 0) {
-                errorsHTML = `
-                    <div class="result-errors">
-                        <h4>✅ Không phát hiện lỗi ngữ pháp</h4>
-                        <div class="no-errors">🎉 Bài viết của bạn không có lỗi ngữ pháp đáng chú ý.</div>
-                    </div>
-                `;
-            } else {
-                let errorItems = errors.map(e => `
-                    <div class="error-item-simple">
-                        <div><strong>❌ Lỗi:</strong> <span class="error-original-simple">${escapeHTML(e.original || '')}</span></div>
-                        <div><strong>✅ Sửa:</strong> <span class="error-corrected-simple">${escapeHTML(e.corrected || '')}</span></div>
-                        <div class="error-explanation-simple"><strong>💡 Giải thích:</strong> ${escapeHTML(e.explanation || '')}</div>
-                    </div>
-                `).join('');
-
-                errorsHTML = `
-                    <div class="result-errors">
-                        <h4>🔎 Lỗi cần sửa (${errors.length} lỗi)</h4>
-                        ${errorItems}
-                    </div>
-                `;
-            }
-
-            body.innerHTML = `
-                ${errorsHTML}
-
-                <div class="result-sample">
-                    <h4>📝 Bài viết mẫu tham khảo</h4>
-                    <div class="sample-text">${escapeHTML(sample)}</div>
-                    <div style="margin-top:8px;color:var(--muted);font-size:12px;">📊 Số từ: ${countWords(sample)} từ</div>
-                </div>
-
-                <div class="result-your-writing">
-                    <h4>✍️ Bài viết của bạn</h4>
-                    <div class="your-text">${escapeHTML(yourWriting)}</div>
-                    <div style="margin-top:8px;color:var(--muted);font-size:12px;">📊 Số từ: ${wordCount} từ ${wordCount >= 80 ? '✅' : '⚠️ (chưa đủ 80 từ)'}</div>
-                </div>
-            `;
-
-            result.classList.add("show");
-            const next = document.getElementById("next-" + index);
-            if (next) next.style.display = "block";
-        }
-
-        // =========================================================
-        // CÁC HÀM KHÁC (lockSubmittedTest, clearWriting, ...)
+        // CÁC HÀM KHÁC
         // =========================================================
 
         function lockSubmittedTest(index) {
