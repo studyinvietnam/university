@@ -92,8 +92,19 @@ app.use(BASE_PATH, express.static(ROOT_DIR));
 // GET /api/models
 // ============================================================
 
+// Route không có BASE_PATH - ưu tiên cho frontend gọi trực tiếp
+app.get("/api/models", (req, res) => {
+    console.log("✅ /api/models (no prefix)");
+    return res.status(200).json({
+        success: true,
+        models: SUPPORTED_MODELS,
+        default: DEFAULT_MODEL,
+    });
+});
+
+// Route có BASE_PATH - giữ để tương thích
 app.get(`${BASE_PATH}/api/models`, (req, res) => {
-    console.log("✅ /api/models");
+    console.log("✅ /api/models (with prefix)");
     return res.status(200).json({
         success: true,
         models: SUPPORTED_MODELS,
@@ -105,7 +116,7 @@ app.get(`${BASE_PATH}/api/models`, (req, res) => {
 // GET /api/ai-status
 // ============================================================
 
-app.get(`${BASE_PATH}/api/ai-status`, async (req, res) => {
+const handleAiStatus = async (req, res) => {
     try {
         const requestedModel = req.query.model || null;
         console.log("🔍 Checking Gemini status");
@@ -128,13 +139,16 @@ app.get(`${BASE_PATH}/api/ai-status`, async (req, res) => {
             message: error.message || "Gemini API chưa kết nối.",
         });
     }
-});
+};
+
+app.get("/api/ai-status", handleAiStatus);
+app.get(`${BASE_PATH}/api/ai-status`, handleAiStatus);
 
 // ============================================================
 // POST /api/check-writing
 // ============================================================
 
-app.post(`${BASE_PATH}/api/check-writing`, async (req, res) => {
+const handleCheckWriting = async (req, res) => {
     console.log("");
     console.log("========================================");
     console.log("📝 NHẬN BÀI WRITING");
@@ -202,7 +216,10 @@ app.post(`${BASE_PATH}/api/check-writing`, async (req, res) => {
             ...(IS_VERCEL ? {} : { error: error.stack }),
         });
     }
-});
+};
+
+app.post("/api/check-writing", handleCheckWriting);
+app.post(`${BASE_PATH}/api/check-writing`, handleCheckWriting);
 
 // ============================================================
 // HOME - LOCAL / RENDER / VERCEL

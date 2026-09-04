@@ -11,6 +11,20 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const SUPPORTED_MODELS = [
     "gemini-3.6-flash",
+    "gemini-3.7-flash",
+    "gemini-2-flash",
+    "gemini-2-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-pro",
+    "gemini-3-flash",
+    "gemini-3.1-pro",
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemma-4-26b",
+    "gemma-4-31b"
 ];
 
 const DEFAULT_MODEL = "gemini-3.6-flash";
