@@ -1,13 +1,25 @@
+
+// backend/src/services/codeRunner/codeRunnerService.js
+
 // ============================================================
-// CODE RUNNER - WINDOWS + LINUX / VERCEL
+// CODE RUNNER
+// WINDOWS + LINUX / VERCEL
 // ============================================================
 
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const { exec } =
+    require('child_process');
 
-const { v4: uuidv4 } = require('uuid');
+const fs =
+    require('fs');
+
+const path =
+    require('path');
+
+const os =
+    require('os');
+
+const { v4: uuidv4 } =
+    require('uuid');
 
 // ============================================================
 // PLATFORM
@@ -41,10 +53,6 @@ let JAVA;
 
 if (IS_WINDOWS) {
 
-    // ========================================================
-    // WINDOWS
-    // ========================================================
-
     const TOOLS_DIR =
         process.env.TOOLS_DIR ||
         path.join(
@@ -52,45 +60,46 @@ if (IS_WINDOWS) {
             'tools'
         );
 
-    GCC = path.join(
-        TOOLS_DIR,
-        'mingw64',
-        'bin',
-        'gcc.exe'
-    );
+    GCC =
+        path.join(
+            TOOLS_DIR,
+            'mingw64',
+            'bin',
+            'gcc.exe'
+        );
 
-    GPP = path.join(
-        TOOLS_DIR,
-        'mingw64',
-        'bin',
-        'g++.exe'
-    );
+    GPP =
+        path.join(
+            TOOLS_DIR,
+            'mingw64',
+            'bin',
+            'g++.exe'
+        );
 
-    PYTHON = path.join(
-        TOOLS_DIR,
-        'python',
-        'python.exe'
-    );
+    PYTHON =
+        path.join(
+            TOOLS_DIR,
+            'python',
+            'python.exe'
+        );
 
-    JAVAC = path.join(
-        TOOLS_DIR,
-        'jdk',
-        'bin',
-        'javac.exe'
-    );
+    JAVAC =
+        path.join(
+            TOOLS_DIR,
+            'jdk',
+            'bin',
+            'javac.exe'
+        );
 
-    JAVA = path.join(
-        TOOLS_DIR,
-        'jdk',
-        'bin',
-        'java.exe'
-    );
+    JAVA =
+        path.join(
+            TOOLS_DIR,
+            'jdk',
+            'bin',
+            'java.exe'
+        );
 
 } else if (IS_LINUX) {
-
-    // ========================================================
-    // LINUX / VERCEL
-    // ========================================================
 
     const LINUX_TOOLS_DIR =
         process.env.LINUX_TOOLS_DIR ||
@@ -100,40 +109,45 @@ if (IS_WINDOWS) {
             'linux'
         );
 
-    GCC = path.join(
-        LINUX_TOOLS_DIR,
-        'gcc',
-        'bin',
-        'gcc'
-    );
+    GCC =
+        path.join(
+            LINUX_TOOLS_DIR,
+            'gcc',
+            'bin',
+            'gcc'
+        );
 
-    GPP = path.join(
-        LINUX_TOOLS_DIR,
-        'gcc',
-        'bin',
-        'g++'
-    );
+    GPP =
+        path.join(
+            LINUX_TOOLS_DIR,
+            'gcc',
+            'bin',
+            'g++'
+        );
 
-    PYTHON = path.join(
-        LINUX_TOOLS_DIR,
-        'python',
-        'bin',
-        'python3'
-    );
+    PYTHON =
+        path.join(
+            LINUX_TOOLS_DIR,
+            'python',
+            'bin',
+            'python3'
+        );
 
-    JAVAC = path.join(
-        LINUX_TOOLS_DIR,
-        'jdk',
-        'bin',
-        'javac'
-    );
+    JAVAC =
+        path.join(
+            LINUX_TOOLS_DIR,
+            'jdk',
+            'bin',
+            'javac'
+        );
 
-    JAVA = path.join(
-        LINUX_TOOLS_DIR,
-        'jdk',
-        'bin',
-        'java'
-    );
+    JAVA =
+        path.join(
+            LINUX_TOOLS_DIR,
+            'jdk',
+            'bin',
+            'java'
+        );
 
 } else {
 
@@ -147,6 +161,7 @@ if (IS_WINDOWS) {
 // ============================================================
 
 console.log('');
+
 console.log(
     '=========================================='
 );
@@ -213,16 +228,13 @@ function checkTool(
     name,
     file
 ) {
-
     if (!fs.existsSync(file)) {
 
         console.warn(
             `⚠️ Không tìm thấy ${name}:`
         );
 
-        console.warn(
-            file
-        );
+        console.warn(file);
 
         return false;
     }
@@ -238,30 +250,38 @@ function checkTool(
 // CHECK ALL TOOLS
 // ============================================================
 
-checkTool(
-    'GCC',
-    GCC
-);
+const TOOL_STATUS = {
 
-checkTool(
-    'G++',
-    GPP
-);
+    gcc:
+        checkTool(
+            'GCC',
+            GCC
+        ),
 
-checkTool(
-    'Python',
-    PYTHON
-);
+    gpp:
+        checkTool(
+            'G++',
+            GPP
+        ),
 
-checkTool(
-    'Javac',
-    JAVAC
-);
+    python:
+        checkTool(
+            'Python',
+            PYTHON
+        ),
 
-checkTool(
-    'Java',
-    JAVA
-);
+    javac:
+        checkTool(
+            'Javac',
+            JAVAC
+        ),
+
+    java:
+        checkTool(
+            'Java',
+            JAVA
+        )
+};
 
 // ============================================================
 // CREATE TEMP DIRECTORY
@@ -344,7 +364,6 @@ async function runCode({
         langMap[language];
 
     if (!runner) {
-
         throw new Error(
             `Unsupported language: ${language}`
         );
@@ -368,6 +387,41 @@ async function runCode({
 }
 
 // ============================================================
+// EXECUTION HELPER
+// ============================================================
+
+function executeCommand(
+    command,
+    options
+) {
+    return new Promise(
+        (resolve) => {
+
+            exec(
+                command,
+                options,
+                (
+                    error,
+                    stdout,
+                    stderr
+                ) => {
+
+                    resolve({
+                        error,
+
+                        stdout:
+                            stdout || '',
+
+                        stderr:
+                            stderr || ''
+                    });
+                }
+            );
+        }
+    );
+}
+
+// ============================================================
 // C
 // ============================================================
 
@@ -378,6 +432,17 @@ async function runC(
     extraFiles = [],
     outputFiles = []
 ) {
+
+    if (!TOOL_STATUS.gcc) {
+
+        return {
+            output: '',
+            error:
+                'GCC is not installed on this server.',
+            executionTime: 0,
+            generatedFiles: []
+        };
+    }
 
     const tempDir =
         createTempDir();
@@ -421,98 +486,77 @@ async function runC(
             extraFiles
         );
 
-        return await new Promise(
-            (resolve) => {
+        const compile =
+            await executeCommand(
+                `"${GCC}" "${sourceFile}" -o "${exeFile}"`,
+                {
+                    cwd: tempDir,
+                    timeout: timeoutMs
+                }
+            );
 
-                exec(
-                    `"${GCC}" "${sourceFile}" -o "${exeFile}"`,
-                    {
-                        cwd: tempDir,
-                        timeout: timeoutMs
-                    },
-                    (
-                        compileErr,
-                        stdout,
-                        stderr
-                    ) => {
+        if (compile.error) {
 
-                        if (compileErr) {
-
-                            const generatedFiles =
-                                collectOutputFiles(
-                                    tempDir,
-                                    outputFiles
-                                );
-
-                            cleanup(
-                                tempDir
-                            );
-
-                            return resolve({
-                                output:
-                                    stdout || '',
-
-                                error:
-                                    stderr ||
-                                    compileErr.message,
-
-                                executionTime: 0,
-
-                                generatedFiles
-                            });
-                        }
-
-                        const start =
-                            Date.now();
-
-                        exec(
-                            IS_WINDOWS
-                                ? `"${exeFile}" < "${inputFile}"`
-                                : `"${exeFile}" < "${inputFile}"`,
-                            {
-                                cwd: tempDir,
-                                timeout: timeoutMs
-                            },
-                            (
-                                runErr,
-                                runStdout,
-                                runStderr
-                            ) => {
-
-                                const executionTime =
-                                    Date.now() -
-                                    start;
-
-                                const generatedFiles =
-                                    collectOutputFiles(
-                                        tempDir,
-                                        outputFiles
-                                    );
-
-                                cleanup(
-                                    tempDir
-                                );
-
-                                resolve({
-                                    output:
-                                        runStdout ||
-                                        '',
-
-                                    error:
-                                        runStderr ||
-                                        runErr?.message ||
-                                        '',
-
-                                    executionTime,
-
-                                    generatedFiles
-                                });
-                            }
-                        );
-                    }
+            const generatedFiles =
+                collectOutputFiles(
+                    tempDir,
+                    outputFiles
                 );
-            }
-        );
+
+            cleanup(tempDir);
+
+            return {
+
+                output:
+                    compile.stdout,
+
+                error:
+                    compile.stderr ||
+                    compile.error.message,
+
+                executionTime: 0,
+
+                generatedFiles
+            };
+        }
+
+        const start =
+            Date.now();
+
+        const run =
+            await executeCommand(
+                `"${exeFile}" < "${inputFile}"`,
+                {
+                    cwd: tempDir,
+                    timeout: timeoutMs
+                }
+            );
+
+        const executionTime =
+            Date.now() - start;
+
+        const generatedFiles =
+            collectOutputFiles(
+                tempDir,
+                outputFiles
+            );
+
+        cleanup(tempDir);
+
+        return {
+
+            output:
+                run.stdout,
+
+            error:
+                run.stderr ||
+                run.error?.message ||
+                '',
+
+            executionTime,
+
+            generatedFiles
+        };
 
     } catch (error) {
 
@@ -533,6 +577,17 @@ async function runCpp(
     extraFiles = [],
     outputFiles = []
 ) {
+
+    if (!TOOL_STATUS.gpp) {
+
+        return {
+            output: '',
+            error:
+                'G++ is not installed on this server.',
+            executionTime: 0,
+            generatedFiles: []
+        };
+    }
 
     const tempDir =
         createTempDir();
@@ -576,96 +631,77 @@ async function runCpp(
             extraFiles
         );
 
-        return await new Promise(
-            (resolve) => {
+        const compile =
+            await executeCommand(
+                `"${GPP}" "${sourceFile}" -o "${exeFile}"`,
+                {
+                    cwd: tempDir,
+                    timeout: timeoutMs
+                }
+            );
 
-                exec(
-                    `"${GPP}" "${sourceFile}" -o "${exeFile}"`,
-                    {
-                        cwd: tempDir,
-                        timeout: timeoutMs
-                    },
-                    (
-                        compileErr,
-                        stdout,
-                        stderr
-                    ) => {
+        if (compile.error) {
 
-                        if (compileErr) {
-
-                            const generatedFiles =
-                                collectOutputFiles(
-                                    tempDir,
-                                    outputFiles
-                                );
-
-                            cleanup(
-                                tempDir
-                            );
-
-                            return resolve({
-                                output:
-                                    stdout || '',
-
-                                error:
-                                    stderr ||
-                                    compileErr.message,
-
-                                executionTime: 0,
-
-                                generatedFiles
-                            });
-                        }
-
-                        const start =
-                            Date.now();
-
-                        exec(
-                            `"${exeFile}" < "${inputFile}"`,
-                            {
-                                cwd: tempDir,
-                                timeout: timeoutMs
-                            },
-                            (
-                                runErr,
-                                runStdout,
-                                runStderr
-                            ) => {
-
-                                const executionTime =
-                                    Date.now() -
-                                    start;
-
-                                const generatedFiles =
-                                    collectOutputFiles(
-                                        tempDir,
-                                        outputFiles
-                                    );
-
-                                cleanup(
-                                    tempDir
-                                );
-
-                                resolve({
-                                    output:
-                                        runStdout ||
-                                        '',
-
-                                    error:
-                                        runStderr ||
-                                        runErr?.message ||
-                                        '',
-
-                                    executionTime,
-
-                                    generatedFiles
-                                });
-                            }
-                        );
-                    }
+            const generatedFiles =
+                collectOutputFiles(
+                    tempDir,
+                    outputFiles
                 );
-            }
-        );
+
+            cleanup(tempDir);
+
+            return {
+
+                output:
+                    compile.stdout,
+
+                error:
+                    compile.stderr ||
+                    compile.error.message,
+
+                executionTime: 0,
+
+                generatedFiles
+            };
+        }
+
+        const start =
+            Date.now();
+
+        const run =
+            await executeCommand(
+                `"${exeFile}" < "${inputFile}"`,
+                {
+                    cwd: tempDir,
+                    timeout: timeoutMs
+                }
+            );
+
+        const executionTime =
+            Date.now() - start;
+
+        const generatedFiles =
+            collectOutputFiles(
+                tempDir,
+                outputFiles
+            );
+
+        cleanup(tempDir);
+
+        return {
+
+            output:
+                run.stdout,
+
+            error:
+                run.stderr ||
+                run.error?.message ||
+                '',
+
+            executionTime,
+
+            generatedFiles
+        };
 
     } catch (error) {
 
@@ -686,6 +722,17 @@ async function runPython(
     extraFiles = [],
     outputFiles = []
 ) {
+
+    if (!TOOL_STATUS.python) {
+
+        return {
+            output: '',
+            error:
+                'Python is not installed on this server.',
+            executionTime: 0,
+            generatedFiles: []
+        };
+    }
 
     const tempDir =
         createTempDir();
@@ -721,55 +768,43 @@ async function runPython(
             extraFiles
         );
 
-        return await new Promise(
-            (resolve) => {
+        const start =
+            Date.now();
 
-                const start =
-                    Date.now();
+        const run =
+            await executeCommand(
+                `"${PYTHON}" "${sourceFile}" < "${inputFile}"`,
+                {
+                    cwd: tempDir,
+                    timeout: timeoutMs
+                }
+            );
 
-                exec(
-                    `"${PYTHON}" "${sourceFile}" < "${inputFile}"`,
-                    {
-                        cwd: tempDir,
-                        timeout: timeoutMs
-                    },
-                    (
-                        runErr,
-                        stdout,
-                        stderr
-                    ) => {
+        const executionTime =
+            Date.now() - start;
 
-                        const executionTime =
-                            Date.now() -
-                            start;
+        const generatedFiles =
+            collectOutputFiles(
+                tempDir,
+                outputFiles
+            );
 
-                        const generatedFiles =
-                            collectOutputFiles(
-                                tempDir,
-                                outputFiles
-                            );
+        cleanup(tempDir);
 
-                        cleanup(
-                            tempDir
-                        );
+        return {
 
-                        resolve({
-                            output:
-                                stdout || '',
+            output:
+                run.stdout,
 
-                            error:
-                                stderr ||
-                                runErr?.message ||
-                                '',
+            error:
+                run.stderr ||
+                run.error?.message ||
+                '',
 
-                            executionTime,
+            executionTime,
 
-                            generatedFiles
-                        });
-                    }
-                );
-            }
-        );
+            generatedFiles
+        };
 
     } catch (error) {
 
@@ -791,6 +826,20 @@ async function runJava(
     outputFiles = []
 ) {
 
+    if (
+        !TOOL_STATUS.javac ||
+        !TOOL_STATUS.java
+    ) {
+
+        return {
+            output: '',
+            error:
+                'Java JDK is not installed on this server.',
+            executionTime: 0,
+            generatedFiles: []
+        };
+    }
+
     const tempDir =
         createTempDir();
 
@@ -803,6 +852,7 @@ async function runJava(
      *
      * Main.java
      */
+
     const sourceFile =
         path.join(
             tempDir,
@@ -834,96 +884,77 @@ async function runJava(
             extraFiles
         );
 
-        return await new Promise(
-            (resolve) => {
+        const compile =
+            await executeCommand(
+                `"${JAVAC}" "${sourceFile}"`,
+                {
+                    cwd: tempDir,
+                    timeout: timeoutMs
+                }
+            );
 
-                exec(
-                    `"${JAVAC}" "${sourceFile}"`,
-                    {
-                        cwd: tempDir,
-                        timeout: timeoutMs
-                    },
-                    (
-                        compileErr,
-                        stdout,
-                        stderr
-                    ) => {
+        if (compile.error) {
 
-                        if (compileErr) {
-
-                            const generatedFiles =
-                                collectOutputFiles(
-                                    tempDir,
-                                    outputFiles
-                                );
-
-                            cleanup(
-                                tempDir
-                            );
-
-                            return resolve({
-                                output:
-                                    stdout || '',
-
-                                error:
-                                    stderr ||
-                                    compileErr.message,
-
-                                executionTime: 0,
-
-                                generatedFiles
-                            });
-                        }
-
-                        const start =
-                            Date.now();
-
-                        exec(
-                            `"${JAVA}" -cp "${tempDir}" Main < "${inputFile}"`,
-                            {
-                                cwd: tempDir,
-                                timeout: timeoutMs
-                            },
-                            (
-                                runErr,
-                                runStdout,
-                                runStderr
-                            ) => {
-
-                                const executionTime =
-                                    Date.now() -
-                                    start;
-
-                                const generatedFiles =
-                                    collectOutputFiles(
-                                        tempDir,
-                                        outputFiles
-                                    );
-
-                                cleanup(
-                                    tempDir
-                                );
-
-                                resolve({
-                                    output:
-                                        runStdout ||
-                                        '',
-
-                                    error:
-                                        runStderr ||
-                                        runErr?.message ||
-                                        '',
-
-                                    executionTime,
-
-                                    generatedFiles
-                                });
-                            }
-                        );
-                    }
+            const generatedFiles =
+                collectOutputFiles(
+                    tempDir,
+                    outputFiles
                 );
-            }
-        );
+
+            cleanup(tempDir);
+
+            return {
+
+                output:
+                    compile.stdout,
+
+                error:
+                    compile.stderr ||
+                    compile.error.message,
+
+                executionTime: 0,
+
+                generatedFiles
+            };
+        }
+
+        const start =
+            Date.now();
+
+        const run =
+            await executeCommand(
+                `"${JAVA}" -cp "${tempDir}" Main < "${inputFile}"`,
+                {
+                    cwd: tempDir,
+                    timeout: timeoutMs
+                }
+            );
+
+        const executionTime =
+            Date.now() - start;
+
+        const generatedFiles =
+            collectOutputFiles(
+                tempDir,
+                outputFiles
+            );
+
+        cleanup(tempDir);
+
+        return {
+
+            output:
+                run.stdout,
+
+            error:
+                run.stderr ||
+                run.error?.message ||
+                '',
+
+            executionTime,
+
+            generatedFiles
+        };
 
     } catch (error) {
 
@@ -942,7 +973,9 @@ function writeExtraFiles(
     extraFiles = []
 ) {
 
-    for (const file of extraFiles) {
+    for (
+        const file of extraFiles
+    ) {
 
         if (
             !file ||
@@ -953,15 +986,6 @@ function writeExtraFiles(
 
         try {
 
-            /*
-             * Chặn path traversal:
-             *
-             * ../../file
-             *
-             * sẽ thành:
-             *
-             * file
-             */
             const safeName =
                 path.basename(
                     file.name
@@ -1028,7 +1052,9 @@ function collectOutputFiles(
             ) {
 
                 generatedFiles.push({
-                    name: safeName,
+
+                    name:
+                        safeName,
 
                     content:
                         fs.readFileSync(
@@ -1076,3 +1102,4 @@ function cleanup(dir) {
 module.exports = {
     runCode
 };
+
