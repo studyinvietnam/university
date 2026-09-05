@@ -4,7 +4,7 @@ const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { v4: uuidv4 } = require('uuid');
+const uuid = require('uuid');
 
 // ============================================================
 // ĐƯỜNG DẪN TUYỆT ĐỐI ĐẾN CÁC CÔNG CỤ TRONG THƯ MỤC tools/
