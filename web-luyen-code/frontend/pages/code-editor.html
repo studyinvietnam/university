@@ -1,0 +1,997 @@
+<!-- frontend/pages/code-editor.html -->
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Code Editor - CODE PRACTICE</title>
+
+    <link rel="stylesheet" href="/assets/css/variables.css" />
+    <link rel="stylesheet" href="/assets/css/style.css" />
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+    <style>
+        /* ============================================================
+           Layout
+           ============================================================ */
+
+        .editor-page {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .editor-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Cột code rộng nhưng vẫn chừa nhiều không gian cho đề */
+        .editor-left {
+            flex: 1.35;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            min-width: 0;
+        }
+
+        /* Cột đề bài rộng hơn trước */
+        .editor-right {
+            flex: 1.15;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            padding: 18px;
+            overflow-y: auto;
+            min-width: 360px;
+        }
+
+        /* ============================================================
+           Toolbar
+           ============================================================ */
+
+        .editor-toolbar {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .editor-toolbar select,
+        .editor-toolbar button {
+            padding: 6px 12px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+        }
+
+        .editor-toolbar .btn-run {
+            background: var(--color-primary);
+            color: white;
+            border: none;
+        }
+
+        .editor-toolbar .btn-submit {
+            background: var(--color-success);
+            color: white;
+            border: none;
+        }
+
+        .editor-toolbar .btn-interactive {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+        }
+
+        .editor-toolbar .btn-interactive:hover {
+            background: #7c3aed;
+        }
+
+        .editor-toolbar .btn-stop {
+            background: #ef4444;
+            color: white;
+            border: none;
+        }
+
+        .editor-toolbar .btn-stop:hover {
+            background: #dc2626;
+        }
+
+        .editor-toolbar .ai-select {
+            padding: 6px 12px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            background: white;
+            font-size: 0.9rem;
+        }
+
+        .editor-toolbar .btn-reset-ai {
+            background: white;
+            color: #ef4444;
+            border: 1px solid #ef4444;
+            padding: 6px 12px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+        }
+
+        .editor-toolbar .btn-reset-ai:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* ============================================================
+           AI status
+           ============================================================ */
+
+        .ai-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--bg-secondary);
+        }
+
+        .ai-status .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .ai-status .dot.green {
+            background: #22c55e;
+        }
+
+        .ai-status .dot.red {
+            background: #ef4444;
+        }
+
+        .ai-status .dot.yellow {
+            background: #eab308;
+        }
+
+        /* ============================================================
+           Monaco Editor
+           ============================================================ */
+
+        #monaco-container {
+            flex: 1;
+            min-height: 300px;
+        }
+
+        /* ============================================================
+           ĐỀ BÀI
+           ============================================================ */
+
+        .problem-statement {
+            background: var(--bg-secondary);
+
+            /* Tăng khoảng cách để đề thoáng hơn */
+            padding: 20px;
+
+            border-radius: var(--border-radius);
+            margin-bottom: 18px;
+
+            /* Đề dài có thể cuộn */
+            max-height: 420px;
+            min-height: 280px;
+
+            overflow-y: auto;
+
+            /* Font lớn hơn */
+            font-size: 1.12rem;
+
+            /* Dễ đọc */
+            line-height: 1.8;
+
+            border: 1px solid var(--border-color);
+        }
+
+        .problem-statement h4 {
+            font-size: 1.35rem;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+
+        .problem-statement #statement-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+
+            /* Đề bài to */
+            font-size: 1.15rem;
+
+            /* Khoảng cách dòng rộng */
+            line-height: 1.9;
+        }
+
+        /* Input mẫu / Output mẫu */
+        .problem-statement .sample-data {
+            margin-top: 18px !important;
+            padding-top: 14px;
+
+            border-top: 1px solid var(--border-color);
+
+            font-size: 1rem !important;
+            line-height: 1.7;
+        }
+
+        /* ============================================================
+           File Manager
+           ============================================================ */
+
+        .file-manager {
+            margin: 12px 0;
+        }
+
+        .file-manager .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            padding: 8px 10px;
+
+            background: var(--bg-secondary);
+
+            border-radius: 6px;
+            margin-bottom: 5px;
+
+            min-width: 0;
+        }
+
+        .file-manager .file-item-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding-right: 8px;
+        }
+
+        .file-manager .file-item-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            flex-shrink: 0;
+        }
+
+        .file-manager .file-item button {
+            background: none;
+            border: none;
+
+            cursor: pointer;
+
+            color: var(--color-secondary);
+
+            padding: 5px 7px;
+
+            border-radius: 5px;
+
+            transition: 0.15s ease;
+        }
+
+        .file-manager .file-item button:hover {
+            color: var(--color-primary);
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Nút xóa màu đỏ */
+        .file-manager .file-delete-btn {
+            color: #ef4444 !important;
+        }
+
+        .file-manager .file-delete-btn:hover {
+            background: rgba(239, 68, 68, 0.12) !important;
+            color: #dc2626 !important;
+        }
+
+        /* ============================================================
+           Output
+           ============================================================ */
+
+        .output-area {
+            background: #1e1e1e;
+            color: #d4d4d4;
+
+            padding: 12px;
+
+            border-radius: var(--border-radius);
+
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+
+            white-space: pre-wrap;
+
+            max-height: 250px;
+
+            overflow-y: auto;
+
+            margin-top: 12px;
+        }
+
+        /* ============================================================
+           Terminal
+           ============================================================ */
+
+        .terminal-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+
+            font-family: 'Courier New', monospace;
+
+            padding: 10px;
+
+            border-radius: var(--border-radius);
+
+            max-height: 250px;
+
+            overflow-y: auto;
+
+            margin-top: 8px;
+        }
+
+        .terminal-output {
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            min-height: 40px;
+        }
+
+        .terminal-input-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .terminal-input-line span {
+            color: #22c55e;
+        }
+
+        .terminal-input-line input {
+            flex: 1;
+
+            background: transparent;
+            border: none;
+
+            color: #d4d4d4;
+
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+
+            outline: none;
+
+            padding: 4px 0;
+        }
+
+        /* ============================================================
+           Input
+           ============================================================ */
+
+        .input-area {
+            margin-top: 12px;
+        }
+
+        .input-area textarea {
+            width: 100%;
+
+            padding: 10px;
+
+            border: 1px solid var(--border-color);
+
+            border-radius: var(--border-radius);
+
+            font-family: monospace;
+
+            font-size: 1rem;
+
+            line-height: 1.55;
+
+            resize: vertical;
+
+            min-height: 110px;
+
+            box-sizing: border-box;
+        }
+
+        .input-area .input-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        /* ============================================================
+           Action buttons
+           ============================================================ */
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .back-link {
+            margin-top: 12px;
+            display: inline-block;
+        }
+
+        /* ============================================================
+           Modal
+           ============================================================ */
+
+        .modal-overlay {
+            position: fixed;
+
+            inset: 0;
+
+            background: rgba(0, 0, 0, 0.5);
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            z-index: 1000;
+        }
+
+        .modal-box {
+            background: white;
+
+            border-radius: var(--border-radius);
+
+            padding: 20px;
+
+            width: min(600px, 90vw);
+
+            max-height: 80vh;
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 12px;
+
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-box h4 {
+            margin: 0;
+        }
+
+        .modal-box textarea {
+            flex: 1;
+
+            min-height: 320px;
+
+            font-family: 'Courier New', monospace;
+
+            font-size: 0.9rem;
+
+            padding: 10px;
+
+            border: 1px solid var(--border-color);
+
+            border-radius: var(--border-radius);
+
+            resize: vertical;
+        }
+
+        .modal-actions {
+            display: flex;
+
+            justify-content: flex-end;
+
+            gap: 8px;
+        }
+
+        /* ============================================================
+           Responsive
+           ============================================================ */
+
+        @media (max-width: 1100px) {
+            .editor-main {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+
+            .editor-left {
+                flex: none;
+
+                min-height: 55vh;
+
+                border-right: none;
+
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .editor-right {
+                flex: none;
+
+                min-width: 0;
+            }
+
+            .problem-statement {
+                max-height: 500px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="editor-page">
+
+        <!-- ========================================================
+             Header
+             ======================================================== -->
+
+        <header class="header">
+
+            <h1>⌨️ Code Editor</h1>
+
+            <div class="user-info">
+
+                <span id="user-name">
+                    User
+                </span>
+
+                <button
+                    class="btn btn-danger"
+                    id="logout-btn"
+                >
+                    Đăng xuất
+                </button>
+
+            </div>
+
+        </header>
+
+        <!-- ========================================================
+             Main
+             ======================================================== -->
+
+        <div class="editor-main">
+
+            <!-- ====================================================
+                 Cột trái: Code Editor
+                 ==================================================== -->
+
+            <div class="editor-left">
+
+                <div class="editor-toolbar">
+
+                    <span
+                        style="font-weight:500;"
+                        id="problem-title"
+                    >
+                        Bài tập
+                    </span>
+
+                    <select id="language-select">
+
+                        <option value="c">
+                            C
+                        </option>
+
+                        <option
+                            value="cpp"
+                            selected
+                        >
+                            C++
+                        </option>
+
+                        <option value="java">
+                            Java
+                        </option>
+
+                        <option value="python">
+                            Python
+                        </option>
+
+                    </select>
+
+                    <button
+                        class="btn-run"
+                        id="run-btn"
+                    >
+                        ▶ Run
+                    </button>
+
+                    <button
+                        class="btn-submit"
+                        id="submit-btn"
+                    >
+                        ✅ Submit
+                    </button>
+
+                    <select
+                        id="ai-provider-select"
+                        class="ai-select"
+                    >
+
+                        <option value="gemini">
+                            🧠 Gemini
+                        </option>
+
+                        <option value="openai">
+                            🧠 OpenAI
+                        </option>
+
+                        <option value="deepseek">
+                            🧠 DeepSeek
+                        </option>
+
+                        <option value="claude">
+                            🧠 Claude
+                        </option>
+
+                    </select>
+
+                    <select
+                        id="ai-model-select"
+                        class="ai-select"
+                    >
+                        <!-- Populate bằng JS -->
+                    </select>
+
+                    <span
+                        class="ai-status"
+                        id="ai-status"
+                    >
+
+                        <span
+                            class="dot yellow"
+                            id="ai-status-dot"
+                        ></span>
+
+                        <span id="ai-status-text">
+                            Đang kiểm tra...
+                        </span>
+
+                    </span>
+
+                    <button
+                        class="btn-reset-ai"
+                        id="reset-ai-btn"
+                        title="Đặt lại trạng thái AI và kiểm tra lại kết nối"
+                    >
+                        🔄 Reset AI
+                    </button>
+
+                    <button
+                        class="btn-interactive"
+                        id="run-interactive-btn"
+                    >
+                        ▶ Run Interactive
+                    </button>
+
+                    <button
+                        class="btn-stop"
+                        id="kill-interactive-btn"
+                        style="display:none;"
+                    >
+                        ⏹ Stop
+                    </button>
+
+                    <button
+                        class="btn-outline"
+                        id="save-version-btn"
+                    >
+                        💾 Lưu Version
+                    </button>
+
+                    <button
+                        class="btn-outline"
+                        id="history-btn"
+                    >
+                        📜 Lịch sử
+                    </button>
+
+                    <span
+                        id="run-status"
+                        style="
+                            margin-left:auto;
+                            font-size:0.85rem;
+                            color:var(--text-secondary);
+                        "
+                    ></span>
+
+                </div>
+
+                <div id="monaco-container"></div>
+
+            </div>
+
+            <!-- ====================================================
+                 Cột phải: Đề bài + Input + Output
+                 ==================================================== -->
+
+            <div class="editor-right">
+
+                <!-- ==================================================
+                     Đề bài
+                     ================================================== -->
+
+                <div
+                    class="problem-statement"
+                    id="problem-statement"
+                >
+
+                    <h4>
+                        📖 Đề bài
+                    </h4>
+
+                    <div id="statement-content">
+                        Đang tải...
+                    </div>
+
+                    <div
+                        class="sample-data"
+                        style="
+                            margin-top:8px;
+                            font-size:0.9rem;
+                            color:var(--text-secondary);
+                        "
+                    >
+
+                        <strong>
+                            Input mẫu:
+                        </strong>
+
+                        <span id="sample-input"></span>
+
+                        <br>
+
+                        <strong>
+                            Output mẫu:
+                        </strong>
+
+                        <span id="sample-output"></span>
+
+                    </div>
+
+                </div>
+
+                <!-- ==================================================
+                     File Manager
+                     ================================================== -->
+
+                <div class="file-manager">
+
+                    <h4>
+                        📁 Input / Output
+                    </h4>
+
+                    <div id="file-list"></div>
+
+                    <button
+                        class="btn btn-outline btn-sm"
+                        id="add-input-btn"
+                    >
+                        + Thêm Input
+                    </button>
+
+                    <button
+                        class="btn btn-outline btn-sm"
+                        id="add-output-btn"
+                    >
+                        + Thêm Output
+                    </button>
+
+                </div>
+
+                <!-- ==================================================
+                     Batch Input
+                     ================================================== -->
+
+                <div class="input-area">
+
+                    <label>
+                        <strong>
+                            Input (batch):
+                        </strong>
+                    </label>
+
+                    <textarea
+                        id="input-textarea"
+                        placeholder="Nhập input cho chương trình..."
+                    ></textarea>
+
+                </div>
+
+                <!-- ==================================================
+                     Interactive Terminal
+                     ================================================== -->
+
+                <div class="input-area">
+
+                    <label>
+                        <strong>
+                            Terminal (Interactive):
+                        </strong>
+                    </label>
+
+                    <div
+                        class="terminal-container"
+                        id="terminal-container"
+                    >
+
+                        <div
+                            id="terminal-output"
+                            class="terminal-output"
+                        >
+                            Kết quả sẽ hiển thị ở đây...
+                        </div>
+
+                        <div
+                            class="terminal-input-line"
+                        >
+
+                            <span>
+                                $
+                            </span>
+
+                            <input
+                                type="text"
+                                id="terminal-input"
+                                placeholder="Nhập dữ liệu và bấm Enter..."
+                                disabled
+                            />
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- ==================================================
+                     Output
+                     ================================================== -->
+
+                <div
+                    class="output-area"
+                    id="output-area"
+                >
+                    Kết quả sẽ hiển thị ở đây...
+                </div>
+
+                <!-- ==================================================
+                     History
+                     ================================================== -->
+
+                <div
+                    id="history-panel"
+                    style="
+                        display:none;
+                        margin-top:12px;
+                        background:var(--bg-secondary);
+                        border:1px solid var(--border-color);
+                        border-radius:var(--border-radius);
+                        padding:10px;
+                        max-height:200px;
+                        overflow-y:auto;
+                    "
+                >
+
+                    <h4 style="margin-top:0;">
+                        📜 Lịch sử phiên bản
+                        (lưu cục bộ)
+                    </h4>
+
+                    <div id="history-list"></div>
+
+                </div>
+
+                <!-- ==================================================
+                     Action Buttons
+                     ================================================== -->
+
+                <div class="action-buttons">
+
+                    <button
+                        class="btn btn-primary"
+                        id="run-btn-right"
+                    >
+                        ▶ Run
+                    </button>
+
+                    <button
+                        class="btn btn-success"
+                        id="submit-btn-right"
+                    >
+                        ✅ Submit
+                    </button>
+
+                </div>
+
+                <a
+                    href="#"
+                    id="back-link"
+                    class="back-link"
+                >
+                    ← Quay lại danh sách bài
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+         Modal sửa nội dung file
+         ============================================================ -->
+
+    <div
+        id="file-edit-modal"
+        class="modal-overlay"
+        style="display:none;"
+    >
+
+        <div class="modal-box">
+
+            <h4 id="file-edit-modal-title">
+                Sửa file
+            </h4>
+
+            <textarea
+                id="file-edit-textarea"
+                placeholder="Nội dung file..."
+            ></textarea>
+
+            <div class="modal-actions">
+
+                <button
+                    class="btn btn-outline"
+                    id="file-edit-cancel-btn"
+                >
+                    Hủy
+                </button>
+
+                <button
+                    class="btn btn-primary"
+                    id="file-edit-save-btn"
+                >
+                    💾 Lưu
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+         Monaco Editor CDN
+         ============================================================ -->
+
+    <link
+        rel="stylesheet"
+        data-name="vs/editor/editor.main"
+        href="https://cdn.jsdelivr.net/npm/monaco-editor@0.40.0/min/vs/editor/editor.main.min.css"
+    />
+
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.40.0/min/vs/loader.js"></script>
+
+    <script>
+        require.config({
+            paths: {
+                vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.40.0/min/vs'
+            }
+        });
+    </script>
+
+    <script
+        type="module"
+        src="/assets/js/code-editor.js"
+    ></script>
+
+</body>
+
+</html>
