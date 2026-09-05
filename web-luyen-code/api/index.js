@@ -1,12 +1,15 @@
 const { app } = require('../src/app');
 const connectDB = require('../src/config/database');
 
-let dbPromise;
+let dbPromise = null;
 
 module.exports = async (req, res) => {
     try {
         if (!dbPromise) {
-            dbPromise = connectDB();
+            dbPromise = connectDB().catch((error) => {
+                dbPromise = null;
+                throw error;
+            });
         }
 
         await dbPromise;
@@ -18,9 +21,7 @@ module.exports = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'Internal Server Error',
-            error: process.env.NODE_ENV === 'development'
-                ? error.message
-                : undefined
+            error: error.message
         });
     }
 };
