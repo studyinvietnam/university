@@ -1,29 +1,71 @@
-
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
+const os = require('os');
+const { execFileSync } = require('child_process');
 
-const FILE_ID = '1eSFC7HbonqdCG7-wWaYNmGN5dgvcLpa0';
+// ============================================================
+// CONFIG
+// ============================================================
 
-const DOWNLOAD_URL =
-    `https://drive.usercontent.google.com/download?id=1eSFC7HbonqdCG7-wWaYNmGN5dgvcLpa0&export=download&authuser=0`;
+const PROJECT_ROOT = path.resolve(__dirname, '..');
+const TOOLS_DIR = path.join(PROJECT_ROOT, 'tools');
 
-const target = path.join(
-    __dirname,
-    '..',
-    'tools',
+const IS_WINDOWS = process.platform === 'win32';
+const IS_LINUX = process.platform === 'linux';
+
+// ============================================================
+// WINDOWS JDK MODULES
+// ============================================================
+
+const FILE_ID =
+    '1eSFC7HbonqdCG7-wWaYNmGN5dgvcLpa0';
+
+const WINDOWS_JDK_MODULES_URL =
+    `https://drive.usercontent.google.com/download?id=${FILE_ID}&export=download&authuser=0`;
+
+const WINDOWS_JDK_MODULES_TARGET = path.join(
+    TOOLS_DIR,
     'jdk',
     'lib',
     'modules'
 );
 
-/**
- * Request HTTP/HTTPS
- */
+// ============================================================
+// HELPERS
+// ============================================================
+
+function log(message) {
+    console.log(`[install-tools] ${message}`);
+}
+
+function ensureDir(dir) {
+    fs.mkdirSync(dir, {
+        recursive: true
+    });
+}
+
+function tmpDir() {
+    const dir = path.join(
+        os.tmpdir(),
+        'web-luyen-code-tools'
+    );
+
+    ensureDir(dir);
+
+    return dir;
+}
+
+// ============================================================
+// HTTP / HTTPS REQUEST
+// ============================================================
+
 function request(url, options = {}) {
     return new Promise((resolve, reject) => {
-        const protocol = url.startsWith('https://') ? https : http;
+        const protocol = url.startsWith('https://')
+            ? https
+            : http;
 
         const req = protocol.get(
             url,
@@ -43,41 +85,184 @@ function request(url, options = {}) {
     });
 }
 
-/**
- * Lấy nội dung HTML
- */
-function getText(url) {
+// ============================================================
+// DOWNLOAD FILE
+// ============================================================
+
+async function downloadFile(url, destination) {
+    log(`⬇️ Download: ${url}`);
+
+    let response = await request(url);
+
+    // --------------------------------------------------------
+    // REDIRECT
+    // --------------------------------------------------------
+
+    if (
+        response.statusCode >= 300 &&
+        response.statusCode < 400 &&
+        response.headers.location
+    ) {
+        const redirectUrl = new URL(
+            response.headers.location,
+            url
+        ).toString();
+
+        response.resume();
+
+        log('🔄 Redirect...');
+
+        return downloadFile(
+            redirectUrl,
+            destination
+        );
+    }
+
+    if (response.statusCode !== 200) {
+        response.resume();
+
+        throw new Error(
+            `HTTP ${response.statusCode}: ${url}`
+        );
+    }
+
+    const contentType =
+        response.headers['content-type'] || '';
+
+    // --------------------------------------------------------
+    // GOOGLE DRIVE HTML CONFIRMATION
+    // --------------------------------------------------------
+
+    if (contentType.includes('text/html')) {
+        let html = '';
+
+        response.setEncoding('utf8');
+
+        for await (const chunk of response) {
+            html += chunk;
+        }
+
+        const confirmedUrl =
+            findGoogleDriveDownloadUrl(html);
+
+        if (!confirmedUrl) {
+            throw new Error(
+                'Google Drive trả về HTML nhưng không tìm thấy link download xác nhận.'
+            );
+        }
+
+        log('✅ Đã tìm thấy link Google Drive confirmation.');
+
+        return downloadFile(
+            confirmedUrl,
+            destination
+        );
+    }
+
+    // --------------------------------------------------------
+    // WRITE FILE
+    // --------------------------------------------------------
+
+    ensureDir(path.dirname(destination));
+
+    const totalSize =
+        parseInt(
+            response.headers['content-length'],
+            10
+        ) || 0;
+
+    let downloaded = 0;
+    let lastPercent = -1;
+
+    const file = fs.createWriteStream(
+        destination
+    );
+
     return new Promise((resolve, reject) => {
-        request(url)
-            .then((response) => {
-                let data = '';
 
-                response.setEncoding('utf8');
+        response.on('data', (chunk) => {
+            downloaded += chunk.length;
 
-                response.on('data', (chunk) => {
-                    data += chunk;
-                });
+            if (totalSize > 0) {
+                const percent = Math.floor(
+                    downloaded /
+                    totalSize *
+                    100
+                );
 
-                response.on('end', () => {
-                    resolve({
-                        statusCode: response.statusCode,
-                        headers: response.headers,
-                        body: data
-                    });
-                });
+                if (percent !== lastPercent) {
+                    lastPercent = percent;
 
-                response.on('error', reject);
-            })
-            .catch(reject);
+                    const downloadedMB = (
+                        downloaded /
+                        1024 /
+                        1024
+                    ).toFixed(2);
+
+                    const totalMB = (
+                        totalSize /
+                        1024 /
+                        1024
+                    ).toFixed(2);
+
+                    process.stdout.write(
+                        `\r📥 ${percent}% | ${downloadedMB} MB / ${totalMB} MB`
+                    );
+                }
+            } else {
+                const downloadedMB = (
+                    downloaded /
+                    1024 /
+                    1024
+                ).toFixed(2);
+
+                process.stdout.write(
+                    `\r📥 ${downloadedMB} MB`
+                );
+            }
+        });
+
+        response.pipe(file);
+
+        file.on('finish', () => {
+            file.close();
+
+            console.log('');
+            console.log('✅ Download hoàn tất.');
+
+            resolve();
+        });
+
+        file.on('error', (error) => {
+            file.close();
+
+            try {
+                fs.unlinkSync(destination);
+            } catch (_) {}
+
+            reject(error);
+        });
+
+        response.on('error', (error) => {
+            file.close();
+
+            try {
+                fs.unlinkSync(destination);
+            } catch (_) {}
+
+            reject(error);
+        });
     });
 }
 
-/**
- * Tìm URL download thật trong HTML Google Drive
- */
-function findDownloadUrl(html) {
-    // Google Drive thường chứa form/action hoặc URL xác nhận
+// ============================================================
+// GOOGLE DRIVE DOWNLOAD URL
+// ============================================================
+
+function findGoogleDriveDownloadUrl(html) {
+
     const patterns = [
+
         /href="(https:\/\/drive\.usercontent\.google\.com\/download[^"]+)"/i,
 
         /href="(\/download[^"]+)"/i,
@@ -88,9 +273,11 @@ function findDownloadUrl(html) {
     ];
 
     for (const pattern of patterns) {
+
         const match = html.match(pattern);
 
         if (match && match[1]) {
+
             let url = match[1];
 
             url = url
@@ -108,21 +295,22 @@ function findDownloadUrl(html) {
         }
     }
 
-    // Một số trường hợp Google Drive dùng confirm token
     const tokenPatterns = [
         /confirm=([0-9A-Za-z_-]+)/i,
         /name="confirm"\s+value="([^"]+)"/i
     ];
 
     for (const pattern of tokenPatterns) {
+
         const match = html.match(pattern);
 
         if (match && match[1]) {
+
             return (
-                `https://drive.usercontent.google.com/download` +
+                'https://drive.usercontent.google.com/download' +
                 `?id=${FILE_ID}` +
-                `&export=download` +
-                `&authuser=0` +
+                '&export=download' +
+                '&authuser=0' +
                 `&confirm=${match[1]}`
             );
         }
@@ -131,209 +319,38 @@ function findDownloadUrl(html) {
     return null;
 }
 
-/**
- * Download file
- */
-async function downloadFile(url, destination) {
-    console.log('🌐 Kết nối Google Drive...');
+// ============================================================
+// VALIDATE BINARY
+// ============================================================
 
-    let response = await request(url);
+function validateBinary(filePath, minimumSize = 1024 * 1024) {
 
-    // Xử lý redirect
-    if (
-        response.statusCode >= 300 &&
-        response.statusCode < 400 &&
-        response.headers.location
-    ) {
-        const redirectUrl = new URL(
-            response.headers.location,
-            url
-        ).toString();
-
-        console.log('🔄 Google Drive redirect...');
-
-        return downloadFile(
-            redirectUrl,
-            destination
-        );
-    }
-
-    if (response.statusCode !== 200) {
-        throw new Error(
-            `HTTP ${response.statusCode}`
-        );
-    }
-
-    const contentType =
-        response.headers['content-type'] || '';
-
-    /*
-     * Nếu Google trả HTML thì khả năng cao
-     * đây là trang xác nhận "Download anyway".
-     */
-    if (contentType.includes('text/html')) {
-        console.log(
-            '⚠️ Google Drive yêu cầu xác nhận download...'
-        );
-
-        let html = '';
-
-        response.setEncoding('utf8');
-
-        for await (const chunk of response) {
-            html += chunk;
-        }
-
-        const confirmedUrl =
-            findDownloadUrl(html);
-
-        if (!confirmedUrl) {
-            throw new Error(
-                'Không tìm thấy link download confirmation của Google Drive.'
-            );
-        }
-
-        console.log(
-            '✅ Đã tìm thấy link download xác nhận.'
-        );
-
-        return downloadFile(
-            confirmedUrl,
-            destination
-        );
-    }
-
-    const totalSize =
-        parseInt(
-            response.headers['content-length'],
-            10
-        ) || 0;
-
-    let downloaded = 0;
-    let lastPercent = -1;
-
-    console.log('⬇️ Đang tải JDK modules...');
-
-    const file = fs.createWriteStream(
-        destination
-    );
-
-    return new Promise((resolve, reject) => {
-        response.on('data', (chunk) => {
-            downloaded += chunk.length;
-
-            if (totalSize > 0) {
-                const percent = Math.floor(
-                    (downloaded / totalSize) * 100
-                );
-
-                if (
-                    percent !== lastPercent
-                ) {
-                    lastPercent = percent;
-
-                    const downloadedMB =
-                        (
-                            downloaded /
-                            1024 /
-                            1024
-                        ).toFixed(2);
-
-                    const totalMB =
-                        (
-                            totalSize /
-                            1024 /
-                            1024
-                        ).toFixed(2);
-
-                    process.stdout.write(
-                        `\r📥 ${percent}% | ${downloadedMB} MB / ${totalMB} MB`
-                    );
-                }
-            } else {
-                const downloadedMB =
-                    (
-                        downloaded /
-                        1024 /
-                        1024
-                    ).toFixed(2);
-
-                process.stdout.write(
-                    `\r📥 ${downloadedMB} MB`
-                );
-            }
-        });
-
-        response.pipe(file);
-
-        file.on('finish', () => {
-            file.close();
-
-            console.log('\n✅ Download hoàn tất.');
-
-            resolve();
-        });
-
-        file.on('error', (error) => {
-            file.close();
-
-            fs.unlink(
-                destination,
-                () => {}
-            );
-
-            reject(error);
-        });
-
-        response.on('error', (error) => {
-            file.close();
-
-            fs.unlink(
-                destination,
-                () => {}
-            );
-
-            reject(error);
-        });
-    });
-}
-
-/**
- * Kiểm tra file có thực sự là binary hay không
- */
-function validateDownloadedFile(filePath) {
     if (!fs.existsSync(filePath)) {
         throw new Error(
-            'File không tồn tại sau khi download.'
+            `File không tồn tại: ${filePath}`
         );
     }
 
     const stats =
         fs.statSync(filePath);
 
-    if (stats.size < 1024 * 1024) {
+    if (stats.size < minimumSize) {
         throw new Error(
-            `File tải về quá nhỏ (${stats.size} bytes). Có thể Google Drive trả về HTML thay vì file modules.`
+            `File quá nhỏ: ${stats.size} bytes`
         );
     }
 
-    /*
-     * Đọc một phần đầu file để phát hiện HTML.
-     */
     const buffer =
-        Buffer.alloc(100);
+        Buffer.alloc(256);
 
     const fd =
-        fs.openSync(
-            filePath,
-            'r'
-        );
+        fs.openSync(filePath, 'r');
 
     fs.readSync(
         fd,
         buffer,
         0,
-        100,
+        256,
         0
     );
 
@@ -350,121 +367,1049 @@ function validateDownloadedFile(filePath) {
         header.includes('<head')
     ) {
         throw new Error(
-            'File tải về là HTML, không phải JDK modules.'
+            'File tải về là HTML, không phải binary.'
         );
     }
 
     return true;
 }
 
-/**
- * Main
- */
-async function main() {
-    console.log('');
-    console.log(
-        '========================================'
-    );
-    console.log(
-        '   JDK MODULES INSTALLER'
-    );
-    console.log(
-        '========================================'
-    );
-    console.log('');
+// ============================================================
+// WINDOWS
+// ============================================================
 
-    // Nếu đã tồn tại thì không tải lại
-    if (fs.existsSync(target)) {
+async function installWindowsTools() {
+
+    log('🪟 Windows detected.');
+
+    if (
+        fs.existsSync(
+            WINDOWS_JDK_MODULES_TARGET
+        )
+    ) {
+
         const stats =
-            fs.statSync(target);
+            fs.statSync(
+                WINDOWS_JDK_MODULES_TARGET
+            );
 
-        console.log(
-            '✅ JDK modules đã tồn tại.'
-        );
-
-        console.log(
-            `📦 Size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`
-        );
-
-        console.log(
-            `📁 ${target}`
+        log(
+            `✅ Windows JDK modules đã tồn tại (${(
+                stats.size /
+                1024 /
+                1024
+            ).toFixed(2)} MB)`
         );
 
         return;
     }
 
-    const targetDir =
-        path.dirname(target);
+    ensureDir(
+        path.dirname(
+            WINDOWS_JDK_MODULES_TARGET
+        )
+    );
 
-    // Tạo thư mục
-    fs.mkdirSync(
-        targetDir,
+    log('📦 Windows JDK modules');
+    log(
+        `📁 ${WINDOWS_JDK_MODULES_TARGET}`
+    );
+
+    await downloadFile(
+        WINDOWS_JDK_MODULES_URL,
+        WINDOWS_JDK_MODULES_TARGET
+    );
+
+    validateBinary(
+        WINDOWS_JDK_MODULES_TARGET
+    );
+
+    log('✅ Windows JDK modules hoàn tất.');
+}
+
+// ============================================================
+// TAR EXTRACTION
+// ============================================================
+
+function extractTarGz(
+    archive,
+    destination
+) {
+
+    ensureDir(destination);
+
+    execFileSync(
+        'tar',
+        [
+            '-xzf',
+            archive,
+            '-C',
+            destination
+        ],
+        {
+            stdio: 'inherit'
+        }
+    );
+}
+
+function extractTarXz(
+    archive,
+    destination
+) {
+
+    ensureDir(destination);
+
+    execFileSync(
+        'tar',
+        [
+            '-xJf',
+            archive,
+            '-C',
+            destination
+        ],
+        {
+            stdio: 'inherit'
+        }
+    );
+}
+
+// ============================================================
+// CHMOD
+// ============================================================
+
+function chmodRecursive(dir) {
+
+    if (!fs.existsSync(dir)) {
+        return;
+    }
+
+    const entries =
+        fs.readdirSync(
+            dir,
+            {
+                withFileTypes: true
+            }
+        );
+
+    for (const entry of entries) {
+
+        const fullPath =
+            path.join(
+                dir,
+                entry.name
+            );
+
+        if (entry.isDirectory()) {
+
+            chmodRecursive(
+                fullPath
+            );
+
+        } else {
+
+            try {
+                fs.chmodSync(
+                    fullPath,
+                    0o755
+                );
+            } catch (_) {}
+        }
+    }
+}
+
+// ============================================================
+// FIND FILE
+// ============================================================
+
+function findFile(
+    root,
+    fileName
+) {
+
+    if (!fs.existsSync(root)) {
+        return null;
+    }
+
+    const entries =
+        fs.readdirSync(
+            root,
+            {
+                withFileTypes: true
+            }
+        );
+
+    for (const entry of entries) {
+
+        const fullPath =
+            path.join(
+                root,
+                entry.name
+            );
+
+        if (
+            entry.isFile() &&
+            entry.name === fileName
+        ) {
+            return fullPath;
+        }
+
+        if (entry.isDirectory()) {
+
+            const result =
+                findFile(
+                    fullPath,
+                    fileName
+                );
+
+            if (result) {
+                return result;
+            }
+        }
+    }
+
+    return null;
+}
+
+// ============================================================
+// FIND DIRECTORY CONTAINING bin/
+// ============================================================
+
+function findRootWithBin(root) {
+
+    if (!fs.existsSync(root)) {
+        return null;
+    }
+
+    const entries =
+        fs.readdirSync(
+            root,
+            {
+                withFileTypes: true
+            }
+        );
+
+    for (const entry of entries) {
+
+        if (!entry.isDirectory()) {
+            continue;
+        }
+
+        const candidate =
+            path.join(
+                root,
+                entry.name
+            );
+
+        const binDir =
+            path.join(
+                candidate,
+                'bin'
+            );
+
+        if (fs.existsSync(binDir)) {
+            return candidate;
+        }
+
+        const nested =
+            findRootWithBin(
+                candidate
+            );
+
+        if (nested) {
+            return nested;
+        }
+    }
+
+    return null;
+}
+
+// ============================================================
+// FIND JDK
+// ============================================================
+
+function findJdkRoot(root) {
+
+    if (!fs.existsSync(root)) {
+        return null;
+    }
+
+    const entries =
+        fs.readdirSync(
+            root,
+            {
+                withFileTypes: true
+            }
+        );
+
+    for (const entry of entries) {
+
+        if (!entry.isDirectory()) {
+            continue;
+        }
+
+        const candidate =
+            path.join(
+                root,
+                entry.name
+            );
+
+        const java =
+            path.join(
+                candidate,
+                'bin',
+                'java'
+            );
+
+        const javac =
+            path.join(
+                candidate,
+                'bin',
+                'javac'
+            );
+
+        if (
+            fs.existsSync(java) &&
+            fs.existsSync(javac)
+        ) {
+            return candidate;
+        }
+
+        const nested =
+            findJdkRoot(
+                candidate
+            );
+
+        if (nested) {
+            return nested;
+        }
+    }
+
+    return null;
+}
+
+// ============================================================
+// INSTALL LINUX GCC / G++
+// ============================================================
+
+async function installLinuxGcc() {
+
+    const linuxDir =
+        path.join(
+            TOOLS_DIR,
+            'linux'
+        );
+
+    const gccDir =
+        path.join(
+            linuxDir,
+            'gcc'
+        );
+
+    const gcc =
+        path.join(
+            gccDir,
+            'bin',
+            'gcc'
+        );
+
+    const gpp =
+        path.join(
+            gccDir,
+            'bin',
+            'g++'
+        );
+
+    if (
+        fs.existsSync(gcc) &&
+        fs.existsSync(gpp)
+    ) {
+
+        log(
+            '✅ Linux GCC/G++ đã tồn tại.'
+        );
+
+        return;
+    }
+
+    ensureDir(gccDir);
+
+    const archive =
+        path.join(
+            tmpDir(),
+            'linux-gcc.tar.xz'
+        );
+
+    /*
+     * Toolchain musl x86_64.
+     *
+     * Asset này chứa compiler,
+     * binutils, headers và libraries.
+     */
+    const url =
+        'https://github.com/76-eddge/musl-cross/releases/latest/download/x86_64-linux-musl.tar.xz';
+
+    await downloadFile(
+        url,
+        archive
+    );
+
+    const extractDir =
+        path.join(
+            tmpDir(),
+            'gcc-extract'
+        );
+
+    fs.rmSync(
+        extractDir,
+        {
+            recursive: true,
+            force: true
+        }
+    );
+
+    ensureDir(extractDir);
+
+    log(
+        '📦 Giải nén Linux GCC...'
+    );
+
+    extractTarXz(
+        archive,
+        extractDir
+    );
+
+    const compilerGcc =
+        findFile(
+            extractDir,
+            'x86_64-linux-musl-gcc'
+        );
+
+    const compilerGpp =
+        findFile(
+            extractDir,
+            'x86_64-linux-musl-g++'
+        );
+
+    if (
+        !compilerGcc ||
+        !compilerGpp
+    ) {
+
+        throw new Error(
+            'Không tìm thấy x86_64-linux-musl-gcc/g++.'
+        );
+    }
+
+    const toolchainRoot =
+        findRootWithBin(
+            extractDir
+        );
+
+    if (!toolchainRoot) {
+
+        throw new Error(
+            'Không tìm thấy Linux GCC toolchain.'
+        );
+    }
+
+    /*
+     * Copy nguyên toolchain.
+     */
+    fs.rmSync(
+        gccDir,
+        {
+            recursive: true,
+            force: true
+        }
+    );
+
+    fs.cpSync(
+        toolchainRoot,
+        gccDir,
         {
             recursive: true
         }
     );
 
-    console.log(
-        `📦 File ID: ${FILE_ID}`
+    /*
+     * Tạo gcc/g++ wrapper.
+     *
+     * codeRunnerService.js sẽ gọi:
+     *
+     * tools/linux/gcc/bin/gcc
+     * tools/linux/gcc/bin/g++
+     */
+
+    const binDir =
+        path.join(
+            gccDir,
+            'bin'
+        );
+
+    const targetGcc =
+        path.join(
+            binDir,
+            'x86_64-linux-musl-gcc'
+        );
+
+    const targetGpp =
+        path.join(
+            binDir,
+            'x86_64-linux-musl-g++'
+        );
+
+    if (
+        fs.existsSync(targetGcc) &&
+        !fs.existsSync(gcc)
+    ) {
+
+        fs.symlinkSync(
+            'x86_64-linux-musl-gcc',
+            gcc
+        );
+    }
+
+    if (
+        fs.existsSync(targetGpp) &&
+        !fs.existsSync(gpp)
+    ) {
+
+        fs.symlinkSync(
+            'x86_64-linux-musl-g++',
+            gpp
+        );
+    }
+
+    chmodRecursive(
+        gccDir
     );
 
+    try {
+        fs.rmSync(
+            archive,
+            {
+                force: true
+            }
+        );
+
+        fs.rmSync(
+            extractDir,
+            {
+                recursive: true,
+                force: true
+            }
+        );
+    } catch (_) {}
+
+    log(
+        '✅ Linux GCC/G++ đã cài.'
+    );
+}
+
+// ============================================================
+// INSTALL LINUX PYTHON
+// ============================================================
+
+async function installLinuxPython() {
+
+    const pythonDir =
+        path.join(
+            TOOLS_DIR,
+            'linux',
+            'python'
+        );
+
+    const python =
+        path.join(
+            pythonDir,
+            'bin',
+            'python3'
+        );
+
+    if (fs.existsSync(python)) {
+
+        log(
+            '✅ Linux Python đã tồn tại.'
+        );
+
+        return;
+    }
+
+    ensureDir(pythonDir);
+
+    /*
+     * Lấy release mới nhất từ GitHub API.
+     */
+    const releaseInfo =
+        await getJson(
+            'https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest'
+        );
+
+    const asset =
+        releaseInfo.assets.find(
+            (item) =>
+                /cpython-3\.13\..*-x86_64-unknown-linux-gnu-install_only_stripped\.tar\.gz$/i
+                    .test(item.name)
+        );
+
+    if (!asset) {
+
+        throw new Error(
+            'Không tìm thấy Python x86_64 Linux package.'
+        );
+    }
+
+    const archive =
+        path.join(
+            tmpDir(),
+            'python-linux.tar.gz'
+        );
+
+    await downloadFile(
+        asset.browser_download_url,
+        archive
+    );
+
+    const extractDir =
+        path.join(
+            tmpDir(),
+            'python-extract'
+        );
+
+    fs.rmSync(
+        extractDir,
+        {
+            recursive: true,
+            force: true
+        }
+    );
+
+    ensureDir(extractDir);
+
+    log(
+        `📦 Python: ${asset.name}`
+    );
+
+    extractTarGz(
+        archive,
+        extractDir
+    );
+
+    const pythonRoot =
+        findPythonRoot(
+            extractDir
+        );
+
+    if (!pythonRoot) {
+
+        throw new Error(
+            'Không tìm thấy Python installation.'
+        );
+    }
+
+    fs.rmSync(
+        pythonDir,
+        {
+            recursive: true,
+            force: true
+        }
+    );
+
+    fs.cpSync(
+        pythonRoot,
+        pythonDir,
+        {
+            recursive: true
+        }
+    );
+
+    chmodRecursive(
+        pythonDir
+    );
+
+    fs.rmSync(
+        archive,
+        {
+            force: true
+        }
+    );
+
+    fs.rmSync(
+        extractDir,
+        {
+            recursive: true,
+            force: true
+        }
+    );
+
+    log(
+        '✅ Linux Python đã cài.'
+    );
+}
+
+function findPythonRoot(root) {
+
+    if (!fs.existsSync(root)) {
+        return null;
+    }
+
+    const entries =
+        fs.readdirSync(
+            root,
+            {
+                withFileTypes: true
+            }
+        );
+
+    for (const entry of entries) {
+
+        if (!entry.isDirectory()) {
+            continue;
+        }
+
+        const candidate =
+            path.join(
+                root,
+                entry.name
+            );
+
+        const python =
+            path.join(
+                candidate,
+                'bin',
+                'python3'
+            );
+
+        if (fs.existsSync(python)) {
+            return candidate;
+        }
+
+        const nested =
+            findPythonRoot(
+                candidate
+            );
+
+        if (nested) {
+            return nested;
+        }
+    }
+
+    return null;
+}
+
+// ============================================================
+// INSTALL LINUX JDK 21
+// ============================================================
+
+async function installLinuxJdk() {
+
+    const jdkDir =
+        path.join(
+            TOOLS_DIR,
+            'linux',
+            'jdk'
+        );
+
+    const java =
+        path.join(
+            jdkDir,
+            'bin',
+            'java'
+        );
+
+    const javac =
+        path.join(
+            jdkDir,
+            'bin',
+            'javac'
+        );
+
+    if (
+        fs.existsSync(java) &&
+        fs.existsSync(javac)
+    ) {
+
+        log(
+            '✅ Linux JDK đã tồn tại.'
+        );
+
+        return;
+    }
+
+    ensureDir(jdkDir);
+
+    const archive =
+        path.join(
+            tmpDir(),
+            'jdk-linux.tar.gz'
+        );
+
+    /*
+     * Eclipse Temurin JDK 21.
+     *
+     * API sẽ redirect về file tar.gz.
+     */
+    const url =
+        'https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse';
+
+    await downloadFile(
+        url,
+        archive
+    );
+
+    const extractDir =
+        path.join(
+            tmpDir(),
+            'jdk-extract'
+        );
+
+    fs.rmSync(
+        extractDir,
+        {
+            recursive: true,
+            force: true
+        }
+    );
+
+    ensureDir(extractDir);
+
+    log(
+        '📦 Giải nén Linux JDK 21...'
+    );
+
+    extractTarGz(
+        archive,
+        extractDir
+    );
+
+    const jdkRoot =
+        findJdkRoot(
+            extractDir
+        );
+
+    if (!jdkRoot) {
+
+        throw new Error(
+            'Không tìm thấy Linux JDK.'
+        );
+    }
+
+    fs.rmSync(
+        jdkDir,
+        {
+            recursive: true,
+            force: true
+        }
+    );
+
+    fs.cpSync(
+        jdkRoot,
+        jdkDir,
+        {
+            recursive: true
+        }
+    );
+
+    chmodRecursive(
+        jdkDir
+    );
+
+    fs.rmSync(
+        archive,
+        {
+            force: true
+        }
+    );
+
+    fs.rmSync(
+        extractDir,
+        {
+            recursive: true,
+            force: true
+        }
+    );
+
+    log(
+        '✅ Linux JDK 21 đã cài.'
+    );
+}
+
+// ============================================================
+// GET JSON
+// ============================================================
+
+function getJson(url) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            request(
+                url,
+                {
+                    headers: {
+                        Accept:
+                            'application/vnd.github+json'
+                    }
+                }
+            )
+                .then(
+                    (response) => {
+
+                        let data = '';
+
+                        response.setEncoding(
+                            'utf8'
+                        );
+
+                        response.on(
+                            'data',
+                            (chunk) => {
+                                data += chunk;
+                            }
+                        );
+
+                        response.on(
+                            'end',
+                            () => {
+
+                                if (
+                                    response.statusCode !== 200
+                                ) {
+
+                                    return reject(
+                                        new Error(
+                                            `HTTP ${response.statusCode}: ${url}`
+                                        )
+                                    );
+                                }
+
+                                try {
+
+                                    resolve(
+                                        JSON.parse(data)
+                                    );
+
+                                } catch (error) {
+
+                                    reject(
+                                        error
+                                    );
+                                }
+                            }
+                        );
+
+                        response.on(
+                            'error',
+                            reject
+                        );
+                    }
+                )
+                .catch(reject);
+        }
+    );
+}
+
+// ============================================================
+// LINUX
+// ============================================================
+
+async function installLinuxTools() {
+
+    log('🐧 Linux detected.');
+    log(
+        '➡️ Vercel/Linux: bắt đầu tải Linux tools...'
+    );
+
+    await installLinuxGcc();
+
+    await installLinuxPython();
+
+    await installLinuxJdk();
+
+    log('');
+    log(
+        '=========================================='
+    );
+    log(
+        '🎉 LINUX TOOLS INSTALLATION COMPLETE'
+    );
+    log(
+        '=========================================='
+    );
+}
+
+// ============================================================
+// MAIN
+// ============================================================
+
+async function main() {
+
+    console.log('');
     console.log(
-        `📁 Destination: ${target}`
+        '=========================================='
+    );
+    console.log(
+        '       WEB LUYEN CODE - TOOLS INSTALLER'
+    );
+    console.log(
+        '=========================================='
+    );
+
+    log(
+        `Platform: ${process.platform}`
+    );
+
+    log(
+        `Architecture: ${process.arch}`
+    );
+
+    log(
+        `Project: ${PROJECT_ROOT}`
+    );
+
+    log(
+        `Tools: ${TOOLS_DIR}`
     );
 
     console.log('');
 
     try {
-        await downloadFile(
-            DOWNLOAD_URL,
-            target
-        );
 
-        validateDownloadedFile(
-            target
-        );
+        if (IS_WINDOWS) {
 
-        const stats =
-            fs.statSync(target);
+            await installWindowsTools();
 
-        console.log('');
-        console.log(
-            '========================================'
-        );
-        console.log(
-            '🎉 JDK MODULES ĐÃ ĐƯỢC CÀI ĐẶT!'
-        );
-        console.log(
-            '========================================'
-        );
+        } else if (IS_LINUX) {
 
-        console.log(
-            `📦 Size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`
-        );
+            await installLinuxTools();
 
-        console.log(
-            `📁 ${target}`
-        );
+        } else {
+
+            throw new Error(
+                `OS chưa được hỗ trợ: ${process.platform}`
+            );
+        }
 
         console.log('');
+        log(
+            '✅ POSTINSTALL HOÀN TẤT.'
+        );
+        console.log('');
+
     } catch (error) {
+
         console.error('');
         console.error(
-            '❌ Không thể tải JDK modules.'
+            '❌ INSTALL TOOLS ERROR'
         );
 
         console.error(
-            `💥 ${error.message}`
+            error.stack ||
+            error.message
         );
-
-        // Xóa file lỗi
-        if (fs.existsSync(target)) {
-            fs.unlinkSync(target);
-        }
 
         process.exit(1);
     }
 }
 
 main();
-
