@@ -1,0 +1,119 @@
+<!-- frontend/pages/problems.html -->
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài tập - CODE PRACTICE</title>
+    <link rel="stylesheet" href="/assets/css/variables.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        .problem-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .problem-table th, .problem-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .problem-table th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+        }
+        .problem-table tr:hover {
+            background: var(--bg-secondary);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>📝 Bài tập</h1>
+        <div class="user-info">
+            <span id="user-name">User</span>
+            <button class="btn btn-danger" id="logout-btn">Đăng xuất</button>
+        </div>
+    </header>
+
+    <div class="container mt-2">
+        <h2 id="chapter-title">Chương</h2>
+        <table class="problem-table" id="problem-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Tên bài</th>
+                    <th>Điểm</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="problem-body">
+                <!-- Load từ API -->
+            </tbody>
+        </table>
+        <a href="#" id="back-link" class="back-link">← Quay lại chương</a>
+    </div>
+
+    <script type="module">
+        import { chapterAPI } from '/assets/js/api-client.js';
+
+        // Kiểm tra đăng nhập
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/pages/login.html';
+        }
+
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        document.getElementById('user-name').textContent = user.name || 'User';
+
+        const params = new URLSearchParams(window.location.search);
+        const chapterId = params.get('chapterId');
+
+        if (!chapterId) {
+            alert('Thiếu chapterId');
+            window.location.href = '/pages/dashboard.html';
+        }
+
+        async function loadProblems() {
+            try {
+                const problems = await chapterAPI.getProblems(chapterId);
+                const tbody = document.getElementById('problem-body');
+                if (problems.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có bài tập nào.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = problems.map((p, index) => `
+                    <tr>
+                        <td>${String(index+1).padStart(2,'0')}</td>
+                        <td>${p.name}</td>
+                        <td>${p.score || '-'}</td>
+                        <td><button class="btn btn-primary" data-problem-id="${p._id}">Làm bài</button></td>
+                    </tr>
+                `).join('');
+
+                document.querySelectorAll('[data-problem-id]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const problemId = btn.dataset.problemId;
+                        window.location.href = `/pages/code-editor.html?problemId=${problemId}`;
+                    });
+                });
+            } catch (err) {
+                console.error(err);
+                document.getElementById('problem-body').innerHTML = `
+                    <tr><td colspan="4" style="color:var(--color-danger);text-align:center;">Lỗi tải bài tập</td></tr>
+                `;
+            }
+        }
+        loadProblems();
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = '/pages/login.html';
+        });
+    </script>
+</body>
+</html>
