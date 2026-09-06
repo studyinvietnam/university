@@ -1,4 +1,4 @@
-# Cấu Trúc Dữ Liệu Và Giải Thuật 28tech (T4.2024)
+# Cấu Trúc Dữ Liệu Và Giải Thuật 28tech
 
 Khóa học cung cấp kiến thức về **Cấu trúc dữ liệu và Giải thuật**, phục vụ học tập tại đại học, thi lập trình, học sinh giỏi và phỏng vấn xin việc.
 
@@ -8,7 +8,12 @@ Khóa học cung cấp kiến thức về **Cấu trúc dữ liệu và Giải t
 
 ## Nội dung khóa học
 
-- [Phần 1](https://www.youtube.com/watch?v=QSIIKqJQYqU)
-- [Phần 2](https://www.youtube.com/watch?v=HkLITpBifW4)
-- [Phần 3](https://www.youtube.com/watch?v=moHhYGmrxso)
-- [Phần 4](https://www.youtube.com/watch?v=kpUH6eWb1Mg)
+- [Phần 1 (T4.2024)](https://www.youtube.com/watch?v=QSIIKqJQYqU)
+- [Phần 2 (T4.2024)](https://www.youtube.com/watch?v=HkLITpBifW4)
+- [Phần 3 (T4.2024)](https://www.youtube.com/watch?v=moHhYGmrxso)
+- [Phần 4 (T4.2024)](https://www.youtube.com/watch?v=kpUH6eWb1Mg)
+
+- [Phần 1 (T3.2023)](https://www.youtube.com/watch?v=tbmBzincGqE)
+- [Phần 2 (T3.2023)](https://www.youtube.com/watch?v=5ZsID4K9jxo)
+- [Phần 3 (T3.2023)](https://www.youtube.com/watch?v=ddpJpb1OBh8)
+- [Phần 4 (T3.2023)](https://www.youtube.com/watch?v=AfhMkr8Kk3s)
