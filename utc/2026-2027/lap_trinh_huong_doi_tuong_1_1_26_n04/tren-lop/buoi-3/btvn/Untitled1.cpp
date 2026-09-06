@@ -44,6 +44,24 @@ class PhanSo {
 	    void xuat() {
 	        cout << endl << tuso << "/" << mauso;
 	    }
+	    // Hàm so sánh phân số với 1
+	    void soSanhVoi1(){
+	        // Chuẩn hóa mẫu số dương để so sánh chính xác
+	        int tu = tuso;
+	        int mau = mauso;
+	        if (mau < 0) {
+	            tu = -tu;
+	            mau = -mau;
+	        }
+	    	// So sánh tử và mẫu sau khi đã chuẩn hóa
+	        if (tu > mau) {
+	            cout << "Phan so lon hon 1 (tu > mau)" << endl;
+	        } else if (tu < mau) {
+	            cout << "Phan so nho hon 1 (tu < mau)" << endl;
+	        } else {
+	            cout << "Phan so bang 1 (tu = mau)" << endl;
+	        }
+		}
 	    //Cộng 2 phân số (cách 1)
 	    // Hàm tong() là phương thức của lớp PhanSo
 	    // Phân số hiện tại là phân số đứng trước dấu chấm
@@ -76,6 +94,15 @@ class PhanSo {
 	    int getMS() {
 	    	return mauso;
 		}
+	    // Phương thức trả về phân số nghịch đảo
+	    // Nếu tử số bằng 0, in thông báo và trả về phân số (0,1)
+	    PhanSo nghichDao() {
+	        if (tuso == 0) {
+	            cout << "Khong the nghich dao vi tu so = 0" << endl;
+	            return PhanSo(0, 1); // trả về phân số mặc định
+	        }
+	        return PhanSo(mauso, tuso);
+	    }
 };
 
 
@@ -110,6 +137,11 @@ PhanSo nhanPhanSo(PhanSo ps1, PhanSo ps2) {
 PhanSo chiaPhanSo(PhanSo ps1, PhanSo ps2) {
     int ts = ps1.getTS() * ps2.getMS();
     int ms = ps1.getMS() * ps2.getTS();
+    return PhanSo(ts, ms);
+}
+PhanSo congPSVoi1DV(PhanSo ps1, int dv) {
+    int ts = ps1.getTS() + dv * ps1.getMS();
+    int ms = ps1.getMS();
     return PhanSo(ts, ms);
 }
 
@@ -236,6 +268,7 @@ int main(){
     //
     // Kết quả:
     // 5/7
+    cout << "Phan so 1 = ";
     ps1.xuat();
     // ==========================================
     // BƯỚC 4: NHẬP PHÂN SỐ THỨ HAI
@@ -249,16 +282,17 @@ int main(){
     //
     // Sau khi nhập:
     // ps2 = 3/4
+    cout << endl;
     ps2.nhap();
     // ==========================================
     // BƯỚC 5: XUẤT PHÂN SỐ THỨ HAI
     // ==========================================
     // In phân số ps2 vừa nhập
+    cout << endl << "Phan so 2 = ";
     ps2.xuat();
     // ==========================================
     // BƯỚC 6: CỘNG 2 PHÂN SỐ - CÁCH 1
     // ==========================================
-
     // Gọi phương thức tong() của ps1
     //
     // ps1.tong(ps2)
@@ -277,7 +311,7 @@ int main(){
     // = 41/28
     PhanSo ps3 = ps1.tong(ps2);
     // In kết quả tổng
-    cout << endl << "Tong: ";
+    cout << endl << endl << "Tong (Phan so 3): ";
     ps3.xuat();
     // ==========================================
     // BƯỚC 7: CỘNG 2 PHÂN SỐ - CÁCH 2
@@ -292,7 +326,7 @@ int main(){
     // => trả về một đối tượng PhanSo
     PhanSo ps4 = congPhanSo(ps1, ps2);
     // In kết quả tổng bằng hàm tự do
-    cout << endl << "Tong (ham tu do): ";
+    cout << endl << "Tong (ham tu do) (Phan so 4): ";
     ps4.xuat();
     // ==========================================
     // BƯỚC 8: TRỪ 2 PHÂN SỐ
@@ -300,26 +334,54 @@ int main(){
     PhanSo ps5 = truPhanSo(ps1, ps2);
     PhanSo ps6 = truPhanSo(ps2, ps1);
     // In kết quả tổng bằng hàm tự do
-    cout << endl << "Hieu ham tu do ps1-ps2: ";
+    cout << endl << endl << "Hieu ham tu do ps1-ps2 (Phan so 5): ";
     ps5.xuat();
-    cout << endl << "Hieu ham tu do ps2-ps1: ";
+    cout << endl << "Hieu ham tu do ps2-ps1 (Phan so 6): ";
     ps6.xuat();
+    // ==========================================
+    // SO SANH VOI 1
+    // ==========================================
+	//
+	// Tạo mảng chứa hai phân số
+	PhanSo ps[] = {ps1, ps2, ps3, ps4, ps5, ps6};   // hoặc vector<PhanSo> ps = {ps1, ps2};
+	cout << endl << endl;
+	for (int i = 0; i < 6; i++) {
+//	    cout << "=> Phan so " << i + 1 << ": ";
+//		ps[i].soSanhVoi1();
+		if (i == 2 || i == 3){
+			cout << "=> Phan so " << i + 1 << ": ";
+			ps[i].soSanhVoi1();
+		}
+	}
+    // ==========================================
+    // NGHỊCH ĐẢO TỔNG
+    // ==========================================
+	//
+    // Thử nghịch đảo ps3 (sẽ báo lỗi)
+    PhanSo ps12 = ps3.nghichDao();
+    cout << endl << "Nghich dao cua ps3 (Phan so 12) = ";
+    ps12.xuat();
+    // ==========================================
+    // SO SÁNH TU MAU VOI PHAN SO NGHICH DAO
+    // ==========================================
+	cout << endl << endl << "=> Phan so 12: ";
+	ps12.soSanhVoi1();
     // ==========================================
     // BƯỚC 9: RÚT GỌN TRỪ 2 PHÂN SỐ
     // ==========================================
     PhanSo ps7 = rutGon(ps5.getTS(), ps5.getMS());
     PhanSo ps8 = rutGon(ps6.getTS(), ps6.getMS());
     // In kết quả tổng bằng hàm tự do
-    cout << endl << "Rut gon ham tu do ps1-ps2: ";
+    cout << endl << endl << "Rut gon ham tu do ps1-ps2 (Phan so 7): ";
     ps7.xuat();
-    cout << endl << "Rut gon ham tu do ps2-ps1: ";
+    cout << endl << "Rut gon ham tu do ps2-ps1 (Phan so 8): ";
     ps8.xuat();
     // ==========================================
     // BƯỚC 10: NHÂN 2 PHÂN SỐ
     // ==========================================
     PhanSo ps9 = nhanPhanSo(ps1, ps2);
     // In kết quả tổng bằng hàm tự do
-    cout << endl << "Nhan ham tu do ps1*ps2 = p2*ps1: ";
+    cout << endl << endl << "Nhan ham tu do ps1*ps2 = p2*ps1 (Phan so 9): ";
     ps9.xuat();
     // ==========================================
     // BƯỚC 11: CHIA 2 PHÂN SỐ
@@ -327,13 +389,23 @@ int main(){
     PhanSo ps10 = chiaPhanSo(ps1, ps2);
     PhanSo ps11 = chiaPhanSo(ps2, ps1);
     // In kết quả tổng bằng hàm tự do
-    cout << endl << "Hieu ham tu do ps1-ps2: ";
+    cout << endl << endl << "Chia ham tu do ps1-ps2 (Phan so 10): ";
     ps10.xuat();
-    cout << endl << "Hieu ham tu do ps2-ps1: ";
+    cout << endl << "Chia ham tu do ps2-ps1 (Phan so 11): ";
     ps11.xuat();
-    
-    
-    
+    // ==========================================
+	// BƯỚC 12: CỘNG PHÂN SỐ TỔNG VỚI 1 ĐƠN VỊ
+    // ==========================================
+    //
+    // Có ps12 rồi
+    //
+    int dv;
+    cout << endl << endl << "Nhap don vi: "; cin >> dv;
+	PhanSo ps13 = congPSVoi1DV(ps3, dv);
+	// Rút gọn kết quả ps13
+	PhanSo ps14 = rutGon(ps13.getTS(), ps13.getMS());
+    cout << endl << "Tong phan so tong voi 1 don vi (Phan so 13) = ";
+    ps14.xuat();
     // ==========================================
     // KẾT THÚC CHƯƠNG TRÌNH
     // ==========================================
