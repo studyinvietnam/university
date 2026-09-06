@@ -33,6 +33,22 @@ const WINDOWS_JDK_MODULES_TARGET = path.join(
 );
 
 // ============================================================
+// PYTHON FALLBACK (pinned release)
+//
+// Dùng khi không gọi được api.github.com/.../releases/latest
+// (ví dụ bị 403 do rate-limit IP trên Vercel). Đây là link tải
+// trực tiếp (github.com/.../releases/download/...), không đi qua
+// API nên không bị tính vào rate-limit của API.
+// Cập nhật giá trị này khi muốn nâng cấp version Python cố định.
+// ============================================================
+
+const PYTHON_FALLBACK_URL =
+    'https://github.com/astral-sh/python-build-standalone/releases/download/20251202/cpython-3.13.10+20251202-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz';
+
+const PYTHON_FALLBACK_NAME =
+    'cpython-3.13.10+20251202-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz';
+
+// ============================================================
 // HELPERS
 // ============================================================
 
@@ -67,12 +83,26 @@ function request(url, options = {}) {
             ? https
             : http;
 
+        const isGithubApi = /^https:\/\/api\.github\.com\//.test(url);
+
+        const authHeaders = {};
+
+        // GitHub API giới hạn 60 request/giờ theo IP nếu không xác thực.
+        // Vercel dùng chung dải IP build cho rất nhiều dự án nên rất dễ
+        // bị 403 do hết quota dù bản thân dự án gọi rất ít. Nếu có
+        // GITHUB_TOKEN (set trong Vercel > Project Settings > Environment
+        // Variables) thì gắn vào để tăng giới hạn lên 5000 request/giờ.
+        if (isGithubApi && process.env.GITHUB_TOKEN) {
+            authHeaders.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+        }
+
         const req = protocol.get(
             url,
             {
                 headers: {
                     'User-Agent':
                         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36',
+                    ...authHeaders,
                     ...options.headers
                 }
             },
@@ -938,25 +968,45 @@ async function installLinuxPython() {
     ensureDir(pythonDir);
 
     /*
-     * Lấy release mới nhất từ GitHub API.
+     * Lấy release mới nhất từ GitHub API. Nếu gọi API lỗi (ví dụ
+     * bị 403 do rate-limit IP dùng chung trên Vercel), rơi về một
+     * bản đã ghim sẵn (PYTHON_FALLBACK_URL) để build không bị fail.
      */
-    const releaseInfo =
-        await getJson(
-            'https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest'
+    let downloadUrl;
+    let assetName;
+
+    try {
+
+        const releaseInfo =
+            await getJson(
+                'https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest'
+            );
+
+        const asset =
+            releaseInfo.assets.find(
+                (item) =>
+                    /cpython-3\.13\..*-x86_64-unknown-linux-gnu-install_only_stripped\.tar\.gz$/i
+                        .test(item.name)
+            );
+
+        if (!asset) {
+
+            throw new Error(
+                'Không tìm thấy Python x86_64 Linux package.'
+            );
+        }
+
+        downloadUrl = asset.browser_download_url;
+        assetName = asset.name;
+
+    } catch (error) {
+
+        log(
+            `⚠️ Không lấy được release mới nhất từ GitHub API (${error.message}). Dùng bản ghim sẵn.`
         );
 
-    const asset =
-        releaseInfo.assets.find(
-            (item) =>
-                /cpython-3\.13\..*-x86_64-unknown-linux-gnu-install_only_stripped\.tar\.gz$/i
-                    .test(item.name)
-        );
-
-    if (!asset) {
-
-        throw new Error(
-            'Không tìm thấy Python x86_64 Linux package.'
-        );
+        downloadUrl = PYTHON_FALLBACK_URL;
+        assetName = PYTHON_FALLBACK_NAME;
     }
 
     const archive =
@@ -966,7 +1016,7 @@ async function installLinuxPython() {
         );
 
     await downloadFile(
-        asset.browser_download_url,
+        downloadUrl,
         archive
     );
 
@@ -987,7 +1037,7 @@ async function installLinuxPython() {
     ensureDir(extractDir);
 
     log(
-        `📦 Python: ${asset.name}`
+        `📦 Python: ${assetName}`
     );
 
     extractTarGz(
