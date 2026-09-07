@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chương 1 & 2 — Tối ưu hóa tổng quát, Tập lồi và Hàm lồi</title>
+
+    <!-- HTML và style.css đặt cùng một thư mục -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- MathJax: cần thiết để render các công thức $...$ / $$...$$ trong toàn bộ slide.
+         File gốc chưa khai báo thư viện này nên mọi công thức LaTeX chỉ hiện ra chữ thô. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+</head>
+
+<body>
+
+<!-- SLIDE 1 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">CHƯƠNG 1</div>
+        <h1 class="slide-title">Bài toán tối ưu hóa tổng quát</h1>
+
+        <div class="grid-2" style="margin-top:25px;">
+            <div style="flex:1;">
+                <div class="highlight-card">
+                    <div style="font-size:13px;font-weight:800;letter-spacing:1px;">
+                        CHỦ ĐỀ
+                    </div>
+                    <div style="font-size:23px;font-weight:800;margin-top:9px;">
+                        Mô hình hóa toán học
+                    </div>
+                    <div style="margin-top:10px;line-height:1.7;">
+                        Từ bài toán thực tế → mô hình toán học → phương pháp giải
+                        → phân tích và kiểm tra.
+                    </div>
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <ul class="content-list">
+                    <li>Bài toán lập kế hoạch sản xuất</li>
+                    <li>Bài toán vận tải</li>
+                    <li>Bài toán tối ưu tổng quát</li>
+                    <li>Định lý Weierstrass</li>
+                    <li>Tập lồi, hàm lồi và tiêu chuẩn Hessian</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 1 — Bài toán tối ưu hóa tổng quát</span>
+        <span>1</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 2 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">1.1 MÔ HÌNH HÓA TOÁN HỌC</div>
+        <h1 class="slide-title">Ví dụ minh họa — Bài toán lập kế hoạch sản xuất</h1>
+
+        <p style="font-size:14px;line-height:1.65;color:#475569;margin:8px 0 12px;">
+            Công ty sản xuất 2 sản phẩm A, B từ 3 loại vật tư I, II, III.
+            Lãi của 1 đơn vị A là 4, 1 đơn vị B là 5. Hãy lập kế hoạch sản xuất
+            để tổng lợi nhuận lớn nhất.
+        </p>
+
+        <div class="grid-2">
+            <div style="flex:1;">
+                <div class="highlight-card">
+                    <div style="font-weight:800;margin-bottom:8px;">Dữ liệu vật tư</div>
+
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <tr>
+                            <th style="padding:7px;text-align:left;">Vật tư</th>
+                            <th style="padding:7px;">A</th>
+                            <th style="padding:7px;">B</th>
+                            <th style="padding:7px;">Dự trữ</th>
+                        </tr>
+                        <tr>
+                            <td style="padding:7px;">I</td>
+                            <td style="padding:7px;">2</td>
+                            <td style="padding:7px;">1</td>
+                            <td style="padding:7px;">8</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:7px;">II</td>
+                            <td style="padding:7px;">1</td>
+                            <td style="padding:7px;">2</td>
+                            <td style="padding:7px;">7</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:7px;">III</td>
+                            <td style="padding:7px;">0</td>
+                            <td style="padding:7px;">1</td>
+                            <td style="padding:7px;">3</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">
+                    Biến quyết định
+                </div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:20px;line-height:1.8;margin-top:8px;">
+                    x₁ = số sản phẩm A
+                    <br>
+                    x₂ = số sản phẩm B
+                </div>
+
+                <div style="margin-top:10px;padding:12px 15px;background:#f1f5f9;border-radius:8px;color:#475569;">
+                    Mục tiêu: tối đa hóa tổng lợi nhuận.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 1 — Mô hình hóa toán học</span>
+        <span>2</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 3 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">1.1 MÔ HÌNH HÓA TOÁN HỌC</div>
+        <h1 class="slide-title">Mô hình bài toán lập kế hoạch sản xuất</h1>
+
+        <div class="highlight-card" style="margin-top:10px;background:#334155;">
+            <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:24px;text-align:center;">
+                max &nbsp; 4x₁ + 5x₂
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:18px;">
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">Các ràng buộc</div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:20px;line-height:1.9;margin-top:8px;">
+                    2x₁ + x₂ ≤ 8
+                    <br>
+                    x₁ + 2x₂ ≤ 7
+                    <br>
+                    x₂ ≤ 3
+                    <br>
+                    x₁, x₂ ≥ 0
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">Miền biến</div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:20px;line-height:1.8;margin-top:8px;">
+                    x₁, x₂ ∈ ℕ
+                </div>
+
+                <div style="margin-top:12px;padding:14px 16px;background:#f1f5f9;border-radius:8px;color:#475569;line-height:1.7;">
+                    Mỗi ràng buộc mô tả giới hạn tài nguyên hoặc điều kiện sản xuất.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 1 — Mô hình hóa toán học</span>
+        <span>3</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 4 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">1.1 MÔ HÌNH HÓA TOÁN HỌC</div>
+        <h1 class="slide-title">Bài toán vận tải</h1>
+
+        <div class="grid-2" style="margin-top:10px;">
+            <div style="flex:1;">
+                <div class="highlight-card">
+                    <div style="font-size:17px;font-weight:800;">Các thành phần</div>
+                    <ul style="margin:10px 0 0 18px;line-height:1.75;">
+                        <li>m kho hàng, kho i có lượng hàng aᵢ</li>
+                        <li>n điểm tiêu thụ, điểm j có nhu cầu bⱼ</li>
+                        <li>Chi phí chở 1 đơn vị từ i đến j là cᵢⱼ</li>
+                        <li>Giả thiết tổng lượng phát = tổng lượng thu</li>
+                        <li>Mục tiêu: đáp ứng nhu cầu với tổng chi phí nhỏ nhất</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">
+                    Mô hình toán học
+                </div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:18px;line-height:1.9;margin-top:8px;">
+                    xᵢⱼ = lượng hàng chuyển từ i đến j
+                    <br>
+                    <b>min</b> Σ cᵢⱼxᵢⱼ
+                    <br>
+                    Σ<sub>j</sub>xᵢⱼ = aᵢ
+                    <br>
+                    Σ<sub>i</sub>xᵢⱼ = bⱼ
+                    <br>
+                    Σ<sub>i</sub>aᵢ = Σ<sub>j</sub>bⱼ
+                    <br>
+                    xᵢⱼ ≥ 0, &nbsp; xᵢⱼ ∈ ℤ
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 1 — Mô hình hóa toán học</span>
+        <span>4</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 5 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">1.1 MÔ HÌNH HÓA TOÁN HỌC</div>
+        <h1 class="slide-title">Bài toán tối ưu tổng quát</h1>
+
+        <div class="highlight-card" style="margin-top:10px;background:#334155;">
+            <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:22px;text-align:center;">
+                Tìm max (hoặc min) f(x)
+            </div>
+            <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:18px;text-align:center;margin-top:10px;">
+                với gᵢ(x) ≤, =, ≥ bᵢ, &nbsp; i = 1,...,m, &nbsp; x ∈ ℝⁿ
+            </div>
+        </div>
+
+        <div class="grid-3" style="margin-top:20px;">
+            <div class="highlight-card" style="flex:1;">
+                <b>f(x)</b>
+                <div style="margin-top:7px;">Hàm mục tiêu cần tối ưu.</div>
+            </div>
+
+            <div class="highlight-card" style="flex:1;">
+                <b>gᵢ(x)</b>
+                <div style="margin-top:7px;">Hàm ràng buộc phải thỏa mãn.</div>
+            </div>
+
+            <div class="highlight-card" style="flex:1;">
+                <b>D</b>
+                <div style="margin-top:7px;">Miền ràng buộc / miền khả thi.</div>
+            </div>
+        </div>
+
+        <div style="margin-top:17px;font-size:14px;color:#475569;line-height:1.7;">
+            <b>x ∈ D:</b> phương án khả thi.
+            &nbsp;&nbsp; <b>x*</b>: phương án tối ưu cho f(x) đạt giá trị tốt nhất.
+            &nbsp;&nbsp; <b>m</b>: số ràng buộc, <b>n</b>: số biến.
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 1 — Mô hình hóa toán học</span>
+        <span>5</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 6 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">1.1 MÔ HÌNH HÓA TOÁN HỌC</div>
+        <h1 class="slide-title">Định lý Weierstrass</h1>
+
+        <div class="highlight-card" style="margin-top:10px;background:#334155;">
+            <div style="font-size:17px;font-weight:800;">Định lý</div>
+            <div style="margin-top:8px;line-height:1.8;">
+                Cho f : Ω → ℝ liên tục, Ω ⊂ ℝⁿ compact.
+                Khi đó tồn tại x* ∈ Ω sao cho
+                <span style="font-family:'Cambria Math','Times New Roman',serif;font-size:19px;">
+                    f(x*) ≤ f(x), ∀x ∈ Ω
+                </span>.
+                Nghĩa là f đạt cực tiểu trên Ω.
+            </div>
+        </div>
+
+        <div class="grid-3" style="margin-top:18px;">
+            <div class="highlight-card" style="flex:1;">
+                <b>Đóng</b>
+                <div style="margin-top:7px;">Chứa các điểm biên của nó.</div>
+            </div>
+            <div class="highlight-card" style="flex:1;">
+                <b>Bị chặn</b>
+                <div style="margin-top:7px;">Nằm trong một hình cầu có bán kính hữu hạn.</div>
+            </div>
+            <div class="highlight-card" style="flex:1;">
+                <b>Compact</b>
+                <div style="margin-top:7px;">Đóng và bị chặn đồng thời.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 1 — Định lý Weierstrass</span>
+        <span>6</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 7 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">1.1 MÔ HÌNH HÓA TOÁN HỌC</div>
+        <h1 class="slide-title">Ví dụ về điều kiện compact</h1>
+
+        <div class="grid-2" style="margin-top:12px;">
+            <div style="flex:1;">
+                <div class="highlight-card">
+                    <div style="font-size:17px;font-weight:800;">
+                        f(x) = x², &nbsp; x ∈ [0,5]
+                    </div>
+                    <ul style="margin:10px 0 0 18px;line-height:1.75;">
+                        <li>[0,5] đóng và bị chặn</li>
+                        <li>⇒ [0,5] compact</li>
+                        <li>f liên tục</li>
+                        <li>Cực tiểu tại x* = 0</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div class="highlight-card" style="background:#475569;">
+                    <div style="font-size:17px;font-weight:800;">
+                        f(x) = 1/x, &nbsp; x ∈ (0,1)
+                    </div>
+                    <ul style="margin:10px 0 0 18px;line-height:1.75;">
+                        <li>(0,1) không đóng</li>
+                        <li>⇒ không compact</li>
+                        <li>Khi x → 0⁺ thì f(x) → ∞</li>
+                        <li>Không có phương án tối ưu trong miền này</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 1 — Định lý Weierstrass</span>
+        <span>7</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 8 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">1.2 QUY TRÌNH MÔ HÌNH HÓA</div>
+        <h1 class="slide-title">4 bước xây dựng mô hình toán học</h1>
+
+        <div class="grid-2" style="margin-top:10px;">
+            <div style="flex:1;">
+                <div class="highlight-card" style="margin-bottom:12px;">
+                    <b>1. Mô hình định tính</b>
+                    <div style="margin-top:6px;">
+                        Nêu tất cả các yếu tố cơ bản và quy luật, chưa dùng ký hiệu toán học.
+                    </div>
+                </div>
+
+                <div class="highlight-card">
+                    <b>2. Mô hình toán học</b>
+                    <div style="margin-top:6px;">
+                        Xây dựng hàm mục tiêu, sau đó các ràng buộc p₁, p₂,...
+                    </div>
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div class="highlight-card" style="margin-bottom:12px;">
+                    <b>3. Tìm phương pháp giải</b>
+                    <div style="margin-top:6px;">
+                        Chọn thuật toán / phương pháp phù hợp với lớp bài toán.
+                    </div>
+                </div>
+
+                <div class="highlight-card">
+                    <b>4. Phân tích & kiểm tra</b>
+                    <div style="margin-top:6px;">
+                        Đối chiếu kết quả với thực tế. Nếu chưa phù hợp, quay lại bước 1 hoặc 2.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:17px;padding:14px 17px;border-left:5px solid #e11d48;background:#fff1f2;border-radius:8px;color:#475569;">
+            <b>Vòng lặp:</b> phát hiện sai lệch → quay lại bước 1 hoặc 2 → hiệu chỉnh mô hình.
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 1 — Quy trình mô hình hóa</span>
+        <span>8</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 9 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">CHƯƠNG 2</div>
+        <h1 class="slide-title">Tập lồi và hàm lồi</h1>
+
+        <div class="highlight-card" style="margin-top:25px;background:#334155;">
+            <div style="font-size:13px;font-weight:800;letter-spacing:1px;">
+                NỘI DUNG CHƯƠNG
+            </div>
+            <div style="font-size:24px;font-weight:800;margin-top:10px;">
+                Tập lồi → Hàm lồi → Tiêu chuẩn Hessian
+            </div>
+            <div style="margin-top:12px;line-height:1.8;">
+                Khái niệm tập lồi, các tính chất của tập lồi,
+                hàm lồi/hàm lõm, cực trị và tiêu chuẩn Hessian để kiểm tra tính lồi.
+            </div>
+        </div>
+
+        <div class="grid-3" style="margin-top:20px;">
+            <div class="highlight-card" style="flex:1;">
+                <b>2.1 Tập lồi</b>
+                <div style="margin-top:7px;">Định nghĩa, đoạn thẳng, siêu phẳng và tập lồi đa diện.</div>
+            </div>
+            <div class="highlight-card" style="flex:1;">
+                <b>2.2 Hàm lồi</b>
+                <div style="margin-top:7px;">Hàm lồi, hàm lõm, phép toán bảo toàn tính lồi và cực trị.</div>
+            </div>
+            <div class="highlight-card" style="flex:1;">
+                <b>2.3 Hessian</b>
+                <div style="margin-top:7px;">Tiêu chuẩn Hessian và các ví dụ kiểm tra tính lồi.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 2 — Tập lồi và hàm lồi</span>
+        <span>9</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 10 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">2.1 TẬP LỒI</div>
+        <h1 class="slide-title">Định nghĩa tập lồi</h1>
+
+        <div class="highlight-card" style="margin-top:10px;background:#334155;">
+            <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:20px;line-height:1.8;text-align:center;">
+                C ⊂ ℝⁿ là tập lồi nếu
+                ∀x₁,x₂ ∈ C, ∀λ ∈ [0,1]:
+                <br>
+                <b>λx₁ + (1−λ)x₂ ∈ C</b>
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:20px;">
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">Ý nghĩa hình học</div>
+                <ul class="content-list" style="margin-top:7px;">
+                    <li>Lấy bất kỳ hai điểm trong C.</li>
+                    <li>Nối hai điểm bằng một đoạn thẳng.</li>
+                    <li>Nếu toàn bộ đoạn thẳng nằm trong C ⇒ C lồi.</li>
+                </ul>
+            </div>
+
+            <div style="flex:1;">
+                <div class="highlight-card">
+                    <div style="font-weight:800;">Đoạn thẳng nối hai điểm</div>
+                    <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:20px;margin-top:9px;">
+                        x = λx₁ + (1−λ)x₂
+                    </div>
+                    <div style="margin-top:7px;">0 ≤ λ ≤ 1</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 2 — Tập lồi</span>
+        <span>10</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 11 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">2.1 TẬP LỒI</div>
+        <h1 class="slide-title">Đoạn thẳng & siêu phẳng</h1>
+
+        <div class="grid-2" style="margin-top:10px;">
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">
+                    Đoạn thẳng qua a, b
+                </div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:20px;line-height:1.8;margin-top:8px;">
+                    x = λa + (1−λ)b
+                    <br>
+                    λ ∈ ℝ
+                </div>
+
+                <div style="margin-top:10px;padding:13px 15px;background:#f1f5f9;border-radius:8px;color:#475569;">
+                    Với 0 ≤ λ ≤ 1, ta thu được đoạn thẳng nối a và b.
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div class="highlight-card">
+                    <div style="font-size:16px;font-weight:800;">
+                        Siêu phẳng
+                    </div>
+                    <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:18px;line-height:1.8;margin-top:8px;">
+                        a₁x₁ + a₂x₂ + ... + aₙxₙ = β
+                    </div>
+                    <div style="margin-top:7px;">
+                        Trong n = 2: siêu phẳng là đường thẳng.
+                        <br>
+                        Trong n = 3: siêu phẳng là mặt phẳng.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 2 — Tập lồi</span>
+        <span>11</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 12 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">2.1 TẬP LỒI</div>
+        <h1 class="slide-title">Tập lồi đa diện</h1>
+
+        <div class="grid-2" style="margin-top:10px;">
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">
+                    Miền nghiệm của hệ bất phương trình tuyến tính
+                </div>
+
+                <div class="highlight-card" style="margin-top:10px;">
+                    <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:18px;line-height:1.9;">
+                        a₁x₁ + a₂x₂ + ... + aₙxₙ ≤ bᵢ
+                        <br>
+                        i = 1,...,m
+                    </div>
+                    <div style="margin-top:7px;">
+                        Là một tập lồi đa diện.
+                    </div>
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">
+                    Ví dụ
+                </div>
+
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:20px;line-height:1.9;margin-top:8px;">
+                    x₁ ≥ 0
+                    <br>
+                    x₂ ≥ 0
+                    <br>
+                    x₁ + x₂ ≤ 4
+                </div>
+
+                <div style="margin-top:10px;padding:13px 15px;background:#f1f5f9;border-radius:8px;color:#475569;line-height:1.7;">
+                    Miền nghiệm là giao của các nửa không gian.
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:14px;color:#475569;font-size:14px;">
+            Trong bài toán QHTT, miền ràng buộc là tập lồi đa diện.
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 2 — Tập lồi</span>
+        <span>12</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 13 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">2.1 TẬP LỒI</div>
+        <h1 class="slide-title">Tính chất của tập lồi</h1>
+
+        <div class="highlight-card" style="margin-top:10px;">
+            <div style="font-size:17px;font-weight:800;">Giao của các tập lồi là tập lồi</div>
+            <div style="margin-top:8px;line-height:1.75;">
+                Nếu C₁, C₂,... là các tập lồi thì
+                C₁ ∩ C₂ ∩ ... cũng là tập lồi.
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:18px;">
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">Chứng minh ý tưởng</div>
+                <div style="font-size:14px;line-height:1.8;color:#475569;margin-top:7px;">
+                    Lấy x₁, x₂ thuộc giao. Vì từng Cᵢ đều lồi nên
+                    λx₁+(1−λ)x₂ thuộc mọi Cᵢ. Do đó nó thuộc giao.
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">Ứng dụng</div>
+                <ul class="content-list" style="margin-top:7px;">
+                    <li>Nửa không gian là tập lồi.</li>
+                    <li>Giao hữu hạn các nửa không gian vẫn lồi.</li>
+                    <li>Miền khả thi của hệ ràng buộc tuyến tính là lồi.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 2 — Tập lồi</span>
+        <span>13</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 14 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">2.2 HÀM LỒI</div>
+        <h1 class="slide-title">Định nghĩa hàm lồi và hàm lõm</h1>
+
+        <div class="grid-2" style="margin-top:12px;">
+            <div style="flex:1;">
+                <div class="highlight-card">
+                    <div style="font-size:17px;font-weight:800;">Hàm lồi</div>
+                    <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:17px;line-height:1.8;margin-top:9px;">
+                        f(λx₁+(1−λ)x₂)
+                        ≤
+                        λf(x₁)+(1−λ)f(x₂)
+                    </div>
+                    <div style="margin-top:7px;font-size:13px;">
+                        ∀x₁,x₂ ∈ C, &nbsp; 0 ≤ λ ≤ 1
+                    </div>
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div class="highlight-card" style="background:#475569;">
+                    <div style="font-size:17px;font-weight:800;">Hàm lõm</div>
+                    <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:17px;line-height:1.8;margin-top:9px;">
+                        f(λx₁+(1−λ)x₂)
+                        ≥
+                        λf(x₁)+(1−λ)f(x₂)
+                    </div>
+                    <div style="margin-top:7px;font-size:13px;">
+                        f lõm ⇔ −f lồi
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:18px;padding:14px 17px;background:#f1f5f9;border-left:5px solid #64748b;border-radius:8px;color:#475569;line-height:1.7;">
+            <b>Hàm lồi chặt:</b> bất đẳng thức trở thành dấu “&lt;”
+            với x₁ ≠ x₂ và 0 &lt; λ &lt; 1.
+        </div>
+
+        <div style="margin-top:10px;font-size:13px;color:#64748b;font-style:italic;">
+            Ý nghĩa hình học: đồ thị của hàm lồi nằm không cao hơn dây cung nối hai điểm trên đồ thị.
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 2 — Hàm lồi</span>
+        <span>14</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 15 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">2.2 HÀM LỒI</div>
+        <h1 class="slide-title">Các phép toán bảo toàn tính lồi</h1>
+
+        <div class="grid-3" style="margin-top:18px;">
+            <div class="highlight-card" style="flex:1;">
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:20px;">
+                    f + g
+                </div>
+                <div style="margin-top:8px;">
+                    Nếu f, g lồi thì f + g vẫn lồi.
+                </div>
+            </div>
+
+            <div class="highlight-card" style="flex:1;">
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:20px;">
+                    αf, &nbsp; α ≥ 0
+                </div>
+                <div style="margin-top:8px;">
+                    Nhân hàm lồi với số không âm vẫn giữ tính lồi.
+                </div>
+            </div>
+
+            <div class="highlight-card" style="flex:1;">
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:20px;">
+                    max(f,g)
+                </div>
+                <div style="margin-top:8px;">
+                    Max của hai hàm lồi vẫn là hàm lồi.
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:18px;padding:14px 17px;background:#f1f5f9;border-radius:8px;color:#475569;line-height:1.75;">
+            <b>Ghi nhớ:</b> các phép toán trên giúp tạo ra hàm lồi mới từ những hàm lồi đã biết.
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 2 — Hàm lồi</span>
+        <span>15</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 16 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">2.2 HÀM LỒI</div>
+        <h1 class="slide-title">Cực trị địa phương và cực trị toàn cục</h1>
+
+        <div class="grid-2" style="margin-top:12px;">
+            <div style="flex:1;">
+                <div class="highlight-card">
+                    <div style="font-size:17px;font-weight:800;">Cực tiểu địa phương</div>
+                    <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:16px;line-height:1.7;margin-top:9px;">
+                        f(x*) ≤ f(x)
+                    </div>
+                    <div style="font-size:13px;margin-top:5px;">
+                        với x trong một lân cận của x*.
+                    </div>
+                </div>
+
+                <div class="highlight-card" style="margin-top:14px;">
+                    <div style="font-size:17px;font-weight:800;">Cực tiểu toàn cục</div>
+                    <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:16px;line-height:1.7;margin-top:9px;">
+                        f(x*) ≤ f(x), &nbsp; ∀x ∈ C
+                    </div>
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">
+                    Đạo hàm theo hướng
+                </div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:18px;line-height:1.8;margin-top:9px;">
+                    f'(x;d)
+                    =
+                    lim<sub>t→0⁺</sub>
+                    [f(x+td) − f(x)] / t
+                </div>
+
+                <div style="margin-top:13px;padding:14px 16px;background:#f1f5f9;border-radius:8px;color:#475569;line-height:1.7;">
+                    Dùng để xét sự thay đổi của hàm khi đi từ x theo hướng d.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 2 — Hàm lồi</span>
+        <span>16</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 17 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">2.3 TIÊU CHUẨN HESSIAN</div>
+        <h1 class="slide-title">Ma trận Hessian và tiêu chuẩn lồi</h1>
+
+        <div class="grid-2" style="margin-top:10px;">
+            <div style="flex:1;">
+                <div class="highlight-card">
+                    <div style="font-size:16px;font-weight:800;">Ma trận Hessian</div>
+                    <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:19px;text-align:center;margin-top:12px;">
+                        H(x) =
+                        [ ∂²f / ∂xᵢ∂xⱼ ]<sub>n×n</sub>
+                    </div>
+                </div>
+
+                <div style="margin-top:14px;font-size:14px;line-height:1.75;color:#475569;">
+                    <b>Định lý:</b> f lồi trên C ⇔ H(x) xác định bán dương trên C.
+                    Nếu H xác định dương trên C ⇒ f lồi chặt.
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:800;color:#1e293b;">
+                    Bảng kiểm tra nhanh
+                </div>
+
+                <ul class="content-list" style="margin-top:8px;">
+                    <li>H xác định dương → hàm lồi chặt.</li>
+                    <li>H xác định âm → hàm lõm chặt.</li>
+                    <li>H bán xác định dương → hàm lồi.</li>
+                    <li>Có thể xét trị riêng hoặc định thức.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 2 — Tiêu chuẩn Hessian</span>
+        <span>17</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 18 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">2.3 TIÊU CHUẨN HESSIAN</div>
+        <h1 class="slide-title">Ví dụ 1 — f(x₁,x₂) = x₁² + x₂²</h1>
+
+        <div class="grid-2" style="margin-top:12px;">
+            <div style="flex:1;">
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:21px;line-height:1.9;">
+                    f(x₁,x₂) = x₁² + x₂²
+                    <br>
+                    ∇f = (2x₁, 2x₂)
+                    <br>
+                    H =
+                    [ 2 &nbsp; 0 ; &nbsp; 0 &nbsp; 2 ]
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div class="highlight-card">
+                    <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:19px;">
+                        λ₁ = λ₂ = 2 &gt; 0
+                    </div>
+                    <div style="margin-top:10px;line-height:1.8;">
+                        H xác định dương
+                        <br>
+                        ⇒ f <b>lồi chặt</b> trên ℝ².
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:16px;padding:13px 16px;background:#f1f5f9;border-radius:8px;color:#475569;">
+            Điểm cực tiểu của hàm xảy ra tại x* = (0,0).
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 2 — Tiêu chuẩn Hessian</span>
+        <span>18</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 19 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">2.3 TIÊU CHUẨN HESSIAN</div>
+        <h1 class="slide-title">Ví dụ 2 — Kiểm tra Hessian 2×2</h1>
+
+        <div class="grid-2" style="margin-top:10px;">
+            <div style="flex:1;">
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:20px;line-height:1.9;">
+                    f(x₁,x₂) = x₁² + 2x₂² − x₁x₂
+                    <br>
+                    H =
+                    [ 2 &nbsp; −1 ; &nbsp; −1 &nbsp; 4 ]
+                </div>
+
+                <div style="margin-top:12px;padding:14px 16px;background:#f1f5f9;border-radius:8px;color:#475569;">
+                    Với ma trận 2×2:
+                    <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:18px;margin-top:7px;">
+                        D₁ = 2 &gt; 0
+                        <br>
+                        D₂ = 2·4 − (−1)² = 7 &gt; 0
+                    </div>
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div class="highlight-card">
+                    <div style="font-size:18px;font-weight:800;">Kết luận</div>
+                    <div style="margin-top:10px;line-height:1.8;">
+                        H xác định dương
+                        <br>
+                        ⇒ f <b>lồi chặt</b>.
+                    </div>
+                </div>
+
+                <div style="margin-top:14px;padding:13px 16px;border-left:5px solid #e11d48;background:#fff1f2;border-radius:8px;color:#475569;line-height:1.7;">
+                    Đối chiếu:
+                    f(x) = −x² có H = −2 &lt; 0
+                    ⇒ hàm lõm, không lồi.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 2 — Tiêu chuẩn Hessian</span>
+        <span>19</span>
+    </div>
+</div>
+
+<!-- SLIDE 20: BÀI 1 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">PHẦN C — BÀI TẬP TÍNH TOÁN</div>
+        <h1 class="slide-title">Bài 1 — Miền nghiệm & Tập lồi đa diện</h1>
+
+        <div class="highlight-card" style="margin-top:10px;background:#334155;">
+            <div style="font-weight:800;margin-bottom:6px;">ĐỀ BÀI</div>
+            <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:18px;">
+                Xét hệ bất phương trình: x₁ ≥ 0, x₂ ≥ 0, x₁ + x₂ ≤ 4.
+            </div>
+            <div style="margin-top:6px;font-size:13.5px;line-height:1.6;">
+                a) Chứng minh miền nghiệm D là một tập lồi.
+                <br>
+                b) D có phải là đa diện lồi (giới nội) không? Giải thích.
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:16px;">
+            <div style="flex:1;">
+                <div style="font-size:15px;font-weight:800;color:#1e293b;">a) Chứng minh D lồi</div>
+                <div style="font-size:13px;line-height:1.7;color:#475569;margin-top:6px;">
+                    • Mỗi BPT xác định một <b>nửa không gian đóng</b> (là tập lồi).
+                    <br>
+                    • D là giao của 3 nửa không gian đóng.
+                    <br>
+                    • Giao của các tập lồi là tập lồi $\Rightarrow$ <b>D là tập lồi</b>.
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="font-size:15px;font-weight:800;color:#1e293b;">b) Xét tính đa diện lồi</div>
+                <div style="font-size:13px;line-height:1.7;color:#475569;margin-top:6px;">
+                    • D là hình tam giác giới hạn bởi các đỉnh (0,0), (4,0), (0,4).
+                    <br>
+                    • D bị chặn (nằm hoàn toàn trong hình cầu bán kính R = 4).
+                    <br>
+                    $\Rightarrow$ <b>D là đa diện lồi</b>.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Bài tập tính toán — Bài 1</span>
+        <span>20</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 21: BÀI 2 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">PHẦN C — BÀI TẬP TÍNH TOÁN</div>
+        <h1 class="slide-title">Bài 2 — Xét tính lồi/lõm của hàm 2 biến</h1>
+
+        <div class="highlight-card" style="margin-top:10px;background:#334155;">
+            <div style="font-weight:800;margin-bottom:6px;">ĐỀ BÀI</div>
+            <div style="font-size:13.5px;line-height:1.6;">
+                Dùng tiêu chuẩn Hessian, xét tính lồi/lõm của các hàm sau trên ℝ²:
+                <br>
+                a) $f(x_1, x_2) = 3x_1^2 + x_2^2 - 2x_1x_2$
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                b) $g(x_1, x_2) = -2x_1^2 - 3x_2^2$
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:16px;">
+            <div style="flex:1;">
+                <div style="font-size:15px;font-weight:800;color:#1e293b;">a) Lời giải $f(x_1, x_2)$</div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:14px;line-height:1.75;color:#475569;margin-top:6px;">
+                    Ma trận Hessian:
+                    $H_f = \begin{bmatrix} 6 & -2 \\ -2 & 2 \end{bmatrix}$
+                    <br>
+                    • $D_1 = 6 > 0$
+                    <br>
+                    • $D_2 = 6 \cdot 2 - (-2)^2 = 8 > 0$
+                    <br>
+                    $\Rightarrow H_f$ xác định dương $\Rightarrow$ <b>$f$ lồi chặt</b>.
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="font-size:15px;font-weight:800;color:#1e293b;">b) Lời giải $g(x_1, x_2)$</div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:14px;line-height:1.75;color:#475569;margin-top:6px;">
+                    Ma trận Hessian:
+                    $H_g = \begin{bmatrix} -4 & 0 \\ 0 & -6 \end{bmatrix}$
+                    <br>
+                    • Trị riêng: $\lambda_1 = -4 < 0, \lambda_2 = -6 < 0$
+                    <br>
+                    $\Rightarrow H_g$ xác định âm $\Rightarrow$ <b>$g$ lõm chặt</b>.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Bài tập tính toán — Bài 2</span>
+        <span>21</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 22: BÀI 3 -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">PHẦN C — BÀI TẬP TÍNH TOÁN</div>
+        <h1 class="slide-title">Bài 3 — Xét tính lồi của hàm 3 biến</h1>
+
+        <div class="highlight-card" style="margin-top:10px;background:#334155;">
+            <div style="font-weight:800;margin-bottom:6px;">ĐỀ BÀI</div>
+            <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:17px;">
+                Cho $f(x_1, x_2, x_3) = x_1^2 + 2x_2^2 + 3x_3^2 + 2x_1x_2$.
+            </div>
+            <div style="margin-top:6px;font-size:13.5px;">
+                Lập ma trận Hessian và kết luận về tính lồi của $f$ trên ℝ³.
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:16px;">
+            <div style="flex:1;">
+                <div style="font-size:15px;font-weight:800;color:#1e293b;">1. Lập ma trận Hessian</div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:15px;line-height:1.8;color:#475569;margin-top:6px;">
+                    $H(x) = \begin{bmatrix} 2 & 2 & 0 \\ 2 & 4 & 0 \\ 0 & 0 & 6 \end{bmatrix}$
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="font-size:15px;font-weight:800;color:#1e293b;">2. Kiểm tra định thức con chính</div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:14px;line-height:1.75;color:#475569;margin-top:6px;">
+                    • $D_1 = 2 > 0$
+                    <br>
+                    • $D_2 = 2 \cdot 4 - 2^2 = 4 > 0$
+                    <br>
+                    • $D_3 = \det(H) = 6 \cdot D_2 = 24 > 0$
+                    <br>
+                    $\Rightarrow H$ xác định dương $\Rightarrow$ <b>$f$ lồi chặt trên ℝ³</b>.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Bài tập tính toán — Bài 3</span>
+        <span>22</span>
+    </div>
+</div>
+
+<!-- SLIDE 23: LỜI GIẢI BÀI 1 (TỪ ẢNH 1) -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">LỜI GIẢI CHI TIẾT — BÀI 1</div>
+        <h1 class="slide-title">Chứng minh miền nghiệm D là tập lồi & đa diện lồi</h1>
+
+        <div style="display: flex; gap: 16px; margin-top: 10px; align-items: stretch;">
+            <!-- Cột trái: Lời giải toán học -->
+            <div style="flex: 1.2; display: flex; flex-direction: column; gap: 10px;">
+                <div class="highlight-card" style="padding: 12px 16px;">
+                    <div style="font-weight:800; margin-bottom:4px; font-size:14px;">a) Chứng minh D là tập lồi bằng định nghĩa</div>
+                    <div style="font-size:12px; line-height:1.5; color:#cbd5e1;">
+                        • Lấy hai điểm bất kỳ $a(a_1, a_2) \in D$ và $b(b_1, b_2) \in D$.<br>
+                        • Xét $z(z_1, z_2) = \lambda a + (1-\lambda)b$ với $0 \le \lambda \le 1$:<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;$z_1 = \lambda a_1 + (1-\lambda)b_1 \ge 0$, &nbsp;&nbsp;$z_2 = \lambda a_2 + (1-\lambda)b_2 \ge 0$<br>
+                        • Xét $z_1 + z_2 = \lambda(a_1 + a_2) + (1-\lambda)(b_1 + b_2)$<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;$\le \lambda \cdot 4 + (1-\lambda) \cdot 4 = 4(\lambda + 1 - \lambda) = 4$.<br>
+                        $\Rightarrow z \in D \Rightarrow$ <b>Miền D là tập lồi (ĐPCM)</b>.
+                    </div>
+                </div>
+
+                <div class="highlight-card" style="background:#334155; padding: 12px 16px;">
+                    <div style="font-weight:800; margin-bottom:4px; font-size:14px;">b) Giới hạn & Đa diện lồi</div>
+                    <div style="font-size:12px; line-height:1.5; color:#cbd5e1;">
+                        • Tọa độ $(x_1, x_2) \in D$ bị chặn: $0 \le x_1 \le 4$, $0 \le x_2 \le 4$.<br>
+                        • Do đó, miền $D$ bị chặn (giới nội).<br>
+                        $\Rightarrow$ <b>Miền D là một đa diện lồi</b>.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Trực quan hóa hình học qua SVG -->
+            <div style="flex: 0.8; background: #0f172a; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #334155;">
+                <div style="font-size:12px; font-weight:700; color:#94a3b8; margin-bottom:6px;">Mô phỏng hình học miền nghiệm D</div>
+                <svg viewBox="0 0 240 220" style="width: 100%; max-height: 210px;">
+                    <defs>
+                        <!-- Pattern gạch sọc cho phần miền nghiệm D -->
+                        <pattern id="hatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                            <line x1="0" y1="0" x2="0" y2="8" stroke="#38bdf8" stroke-width="2.5" />
+                        </pattern>
+                    </defs>
+
+                    <!-- Trục tọa độ -->
+                    <line x1="30" y1="180" x2="210" y2="180" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="none"/>
+                    <line x1="50" y1="200" x2="50" y2="20" stroke="#94a3b8" stroke-width="1.5" />
+
+                    <!-- Mũi tên trục -->
+                    <polygon points="210,177 217,180 210,183" fill="#94a3b8" />
+                    <polygon points="47,20 50,13 53,20" fill="#94a3b8" />
+                    <text x="212" y="195" fill="#94a3b8" font-size="11" font-weight="bold">x₁</text>
+                    <text x="35" y="20" fill="#94a3b8" font-size="11" font-weight="bold">x₂</text>
+
+                    <!-- Đường thẳng x1 + x2 = 4: đi đúng qua 2 đỉnh (4,0)→(170,180) và (0,4)→(50,60),
+                         kéo dài nhẹ về hai phía để thấy đây là một đường thẳng trọn vẹn -->
+                    <line x1="35" y1="45" x2="195" y2="205" stroke="#f43f5e" stroke-width="2" />
+                    <text x="132" y="118" fill="#f43f5e" font-size="10" font-weight="bold" text-anchor="middle" transform="rotate(45 132 118)">x₁ + x₂ = 4</text>
+
+                    <!-- Miền nghiệm D (Tam giác lồi), đúng 3 đỉnh O(0,0), (4,0), (0,4) -->
+                    <polygon points="50,180 170,180 50,60" fill="url(#hatch)" stroke="#38bdf8" stroke-width="2" />
+
+                    <!-- Vạch chia & Nhãn giá trị -->
+                    <circle cx="50" cy="180" r="3" fill="#ffffff" />
+                    <text x="38" y="193" fill="#cbd5e1" font-size="10">O</text>
+
+                    <line x1="170" y1="177" x2="170" y2="183" stroke="#ffffff" stroke-width="1.5"/>
+                    <text x="166" y="195" fill="#38bdf8" font-size="11" font-weight="bold">4</text>
+
+                    <line x1="47" y1="60" x2="53" y2="60" stroke="#ffffff" stroke-width="1.5"/>
+                    <text x="35" y="64" fill="#38bdf8" font-size="11" font-weight="bold">4</text>
+
+                    <!-- Tên miền D -->
+                    <text x="80" y="145" fill="#ffffff" font-size="13" font-weight="bold">D</text>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Lời giải bài tập bảng — Bài 1</span>
+        <span>23</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 24: LỜI GIẢI BÀI 2 & BÀI 3 (TỪ ẢNH 2) -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">LỜI GIẢI CHI TIẾT — BÀI 2 & 3</div>
+        <h1 class="slide-title">Trình bày chi tiết ma trận Hessian & Xét tính lồi/lõm</h1>
+
+        <div class="grid-2" style="margin-top:10px;">
+            <div style="flex:1;">
+                <div style="font-size:15px;font-weight:800;color:#1e293b;">Bài 2: Tính đạo hàm cấp hai & Hessian</div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:13px;line-height:1.65;color:#475569;margin-top:6px;">
+                    <b>a) $f(x_1, x_2) = 3x_1^2 + x_2^2 - 2x_1x_2$:</b>
+                    <br>
+                    • $f'_{x_1} = 6x_1 - 2x_2 \Rightarrow f''_{x_1^2} = 6, f''_{x_1x_2} = -2$
+                    <br>
+                    • $f'_{x_2} = -2x_1 + 2x_2 \Rightarrow f''_{x_2^2} = 2, f''_{x_2x_1} = -2$
+                    <br>
+                    $\Rightarrow H = \begin{bmatrix} 6 & -2 \\ -2 & 2 \end{bmatrix} \Rightarrow D_1 = 6 > 0, D_2 = 6(2) - (-2)^2 = 8 > 0$
+                    <br>
+                    $\Rightarrow H$ xác định dương $\Rightarrow$ <b>$f(x_1, x_2)$ lồi chặt</b>.
+                    <br><br>
+                    <b>b) $g(x_1, x_2) = -2x_1^2 - 3x_2^2$:</b>
+                    <br>
+                    • $g'_{x_1} = -4x_1 \Rightarrow g''_{x_1^2} = -4, g''_{x_1x_2} = 0$
+                    <br>
+                    • $g'_{x_2} = -6x_2 \Rightarrow g''_{x_2^2} = -6, g''_{x_2x_1} = 0$
+                    <br>
+                    $\Rightarrow H = \begin{bmatrix} -4 & 0 \\ 0 & -6 \end{bmatrix} \Rightarrow D_1 = -4 < 0, D_2 = 24 > 0$
+                    <br>
+                    $\Rightarrow H$ xác định âm $\Rightarrow$ <b>$g(x_1, x_2)$ lõm chặt</b>.
+                </div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="font-size:15px;font-weight:800;color:#1e293b;">Bài 3: Hàm 3 biến $f(x_1, x_2, x_3)$</div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif;font-size:13px;line-height:1.65;color:#475569;margin-top:6px;">
+                    • Đạo hàm bậc 1: $f'_{x_1} = 2x_1 + 2x_2, \ f'_{x_2} = 4x_2 + 2x_1, \ f'_{x_3} = 6x_3$
+                    <br>
+                    • Lập ma trận Hessian:
+                    $$H = \begin{bmatrix} 2 & 2 & 0 \\ 2 & 4 & 0 \\ 0 & 0 & 6 \end{bmatrix}$$
+                    • Xét các định thức con chính:
+                    <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;$D_1 = 2 > 0$
+                    <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;$D_2 = \begin{vmatrix} 2 & 2 \\ 2 & 4 \end{vmatrix} = 4 > 0$
+                    <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;$D_3 = \begin{vmatrix} 2 & 2 & 0 \\ 2 & 4 & 0 \\ 0 & 0 & 6 \end{vmatrix} = 24 > 0$
+                    <br>
+                    $\Rightarrow H$ xác định dương $\Rightarrow$ <b>$f$ là hàm lồi chặt</b>.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Lời giải bài tập bảng — Bài 2 & 3</span>
+        <span>24</span>
+    </div>
+</div>
+
+</body>
+</html>
