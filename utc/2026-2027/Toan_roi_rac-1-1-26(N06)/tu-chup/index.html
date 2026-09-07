@@ -1411,5 +1411,634 @@
         <div class="slide-number">26</div>
     </div>
 
+    <!-- SLIDE 27: Vị từ và các lượng tử -->
+    <div class="slide-container">
+        <div>
+            <h1 class="slide-title">2.6. Vị từ và các lượng tử</h1>
+            <p style="font-size:15px; color:#475569; margin-top:-10px; margin-bottom:15px; font-style:italic;">
+                Mở rộng logic mệnh đề sang câu có biến
+            </p>
+        </div>
+    </div>
+
+    <!-- SLIDE 28: Vị từ và lượng từ -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">2.6</div>
+            <h1 class="slide-title">Vị từ, ∀ và ∃</h1>
+
+            <div style="font-size:14px; line-height:1.7; color:#334155; margin-top:8px;">
+                <p style="margin:4px 0;">
+                    <b>Vị từ (predicate)</b> là một câu chứa biến, giá trị chân lý phụ thuộc vào giá trị gán cho biến đó.
+                    Ký hiệu <span style="font-family:'Cambria Math',serif;">P(x)</span> giá trị chân lý của <span style="font-family:'Cambria Math',serif;">P</span> tại <span style="font-family:'Cambria Math',serif;">x</span>.
+                </p>
+                <p style="margin:4px 0;">
+                    <b>Lượng từ (quantifier)</b> biến một vị từ thành một mệnh đề bằng cách chỉ rõ nó đúng với mọi phần tử hay tồn tại phần tử của một miền xác định (domain).
+                </p>
+            </div>
+
+            <!-- Bảng -->
+            <div style="margin-top:12px; overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th style="padding:10px 12px; text-align:center; font-weight:700; border-bottom:2px solid #cbd5e1; color:#1e293b; width:20%;">Ký hiệu</th>
+                            <th style="padding:10px 12px; text-align:center; font-weight:700; border-bottom:2px solid #cbd5e1; color:#1e293b; width:25%;">Tên gọi</th>
+                            <th style="padding:10px 12px; text-align:center; font-weight:700; border-bottom:2px solid #cbd5e1; color:#1e293b; width:55%;">Ý nghĩa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:10px 12px; text-align:center; font-family:'Cambria Math',serif; font-size:16px; color:#1e293b;">
+                                ∀x P(x)
+                            </td>
+                            <td style="padding:10px 12px; text-align:center; color:#334155;">
+                                Lượng từ phổ dụng
+                            </td>
+                            <td style="padding:10px 12px; color:#475569;">
+                                P(x) đúng với <b>Mọi</b> x trong miền xác định
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:10px 12px; text-align:center; font-family:'Cambria Math',serif; font-size:16px; color:#1e293b;">
+                                ∃x P(x)
+                            </td>
+                            <td style="padding:10px 12px; text-align:center; color:#334155;">
+                                Lượng từ tồn tại
+                            </td>
+                            <td style="padding:10px 12px; color:#475569;">
+                                <b>TỒN TẠI</b> ít nhất một x làm P(x) đúng
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Vị từ và lượng từ</span>
+            <span>28</span>
+        </div>
+    </div>
+
+    <!-- SLIDE 29: Ví dụ dịch ngôn ngữ tự nhiên ⇔ vị từ -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">2.6 · Ví dụ</div>
+            <h1 class="slide-title">Dịch ngôn ngữ tự nhiên ⇔ vị từ</h1>
+
+            <div style="margin-top:12px; overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th style="padding:10px 14px; text-align:left; font-weight:700; border-bottom:2px solid #cbd5e1; color:#1e293b; width:45%;">Câu tự nhiên</th>
+                            <th style="padding:10px 14px; text-align:left; font-weight:700; border-bottom:2px solid #cbd5e1; color:#1e293b; width:55%;">Ký hiệu vị từ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:10px 14px; color:#334155; line-height:1.5;">
+                                "Mọi số nguyên bình phương đều không âm"
+                            </td>
+                            <td style="padding:10px 14px; font-family:'Cambria Math','Times New Roman',serif; color:#1e293b; font-size:16px;">
+                                ∀x ∈ ℤ, x² ≥ 0
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:10px 14px; color:#334155; line-height:1.5;">
+                                "Tồn tại số nguyên có bình phương bằng 4"
+                            </td>
+                            <td style="padding:10px 14px; font-family:'Cambria Math','Times New Roman',serif; color:#1e293b; font-size:16px;">
+                                ∃x ∈ ℤ, x² = 4
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Vị từ và lượng từ — Ví dụ</span>
+            <span>29</span>
+        </div>
+    </div>
+
+    <!-- SLIDE 30: Biến tự do & biến ràng buộc -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">2.7</div>
+            <h1 class="slide-title">Biến tự do & biến ràng buộc</h1>
+            <p style="font-size:16px; color:#475569; margin-top:8px;">Điều kiện để một biểu thức là mệnh đề</p>
+        </div>
+
+        <div class="slide-footer">
+            <span>Biến tự do và biến ràng buộc</span>
+            <span>30</span>
+        </div>
+    </div>
+
+    <!-- SLIDE 31: Phân biệt biến tự do / ràng buộc -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">2.7</div>
+            <h1 class="slide-title">Phân biệt biến tự do / ràng buộc</h1>
+
+            <!-- Khái niệm -->
+            <div class="highlight-card" style="margin-top:12px; background:#ffffff;">
+                <div style="font-size:14px; line-height:1.7; color:#334155;">
+                    Trong một biểu thức vị từ, một biến <b>bị ràng buộc</b> (bound) nếu nó nằm trong phạm vi tác động của một lượng từ (∀ hoặc ∃) gắn với chính biến đó; ngược lại, biến đó là <b>biến tự do</b> (free).
+                </div>
+            </div>
+
+            <!-- Ví dụ -->
+            <div class="grid-2" style="margin-top:14px;">
+                <!-- Ví dụ 1 -->
+                <div style="flex:1;">
+                    <div class="highlight-card" style="padding:14px; background:#ffffff;">
+                        <div style="font-family:'Cambria Math','Times New Roman',serif; font-size:18px; text-align:center; color:#1e293b;">
+                            ∀x ∃y (x + y = 0)
+                        </div>
+                        <ul style="margin:8px 0 0 18px; font-size:13px; line-height:1.7; color:#334155;">
+                            <li>Cả x và y đều bị <b>RÀNG BUỘC</b></li>
+                            <li>→ Toàn bộ biểu thức là một <b>MỆNH ĐỀ</b> hoàn chỉnh</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Ví dụ 2 -->
+                <div style="flex:1;">
+                    <div class="highlight-card" style="padding:14px; background:#ffffff;">
+                        <div style="font-family:'Cambria Math','Times New Roman',serif; font-size:18px; text-align:center; color:#1e293b;">
+                            ∃y (x + y = 0)
+                        </div>
+                        <ul style="margin:8px 0 0 18px; font-size:13px; line-height:1.7; color:#334155;">
+                            <li>y bị ràng buộc, nhưng x <b>TỰ DO</b></li>
+                            <li>→ Đây vẫn là một <b>VỊ TỪ</b> theo biến x</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Biến tự do và biến ràng buộc</span>
+            <span>31</span>
+        </div>
+    </div>
+
+    <!-- SLIDE 32: Luật tương đương trong logic vị từ -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">2.8</div>
+            <h1 class="slide-title">Luật tương đương trong logic vị từ</h1>
+            <p style="font-size:16px; color:#475569; margin-top:8px;">Phủ định lượng từ lồng nhau</p>
+
+            <!-- Các luật cơ bản -->
+            <div class="grid-2" style="margin-top:12px;">
+                <div style="flex:1;">
+                    <div class="highlight-card" style="background:#ffffff; padding:14px;">
+                        <div style="font-family:'Cambria Math','Times New Roman',serif; font-size:17px; text-align:center; color:#1e293b;">
+                            ¬∀x P(x) ≡ ∃x ¬P(x)
+                        </div>
+                        <div style="font-size:13px; text-align:center; color:#475569; margin-top:4px;">
+                            Phủ định của "mọi" là "tồn tại phủ định"
+                        </div>
+                    </div>
+                </div>
+                <div style="flex:1;">
+                    <div class="highlight-card" style="background:#ffffff; padding:14px;">
+                        <div style="font-family:'Cambria Math','Times New Roman',serif; font-size:17px; text-align:center; color:#1e293b;">
+                            ¬∃x P(x) ≡ ∀x ¬P(x)
+                        </div>
+                        <div style="font-size:13px; text-align:center; color:#475569; margin-top:4px;">
+                            Phủ định của "tồn tại" là "mọi phủ định"
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phủ định lượng từ lồng nhau -->
+            <div style="margin-top:14px;">
+                <div class="highlight-card" style="background:#ffffff; padding:14px;">
+                    <div style="font-size:15px; font-weight:700; color:#1e293b; margin-bottom:6px;">📌 Phủ định lượng từ lồng nhau</div>
+                    <div style="font-family:'Cambria Math','Times New Roman',serif; font-size:18px; text-align:center; color:#1e293b;">
+                        ¬∀x∃y P(x,y) ≡ ∃x∀y ¬P(x,y)
+                    </div>
+                    <div style="font-size:13px; text-align:center; color:#475569; margin-top:6px;">
+                        Đưa dấu phủ định vào bên trong, đổi ∀ thành ∃ và ngược lại
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Luật tương đương — Phủ định lượng từ</span>
+            <span>32</span>
+        </div>
+    </div>
+
+    <!-- SLIDE 33: Luật tương đương trong logic vị tử -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">2.8</div>
+            <h1 class="slide-title">Luật tương đương trong logic vị tử</h1>
+            <p style="font-size:16px; color:#475569; margin-top:8px;">Phủ định lượng tử lồng nhau</p>
+        </div>
+
+        <div class="slide-footer">
+            <span>Luật tương đương — Phủ định lượng tử</span>
+            <span>33</span>
+        </div>
+    </div>
+
+    <!-- SLIDE 34: De Morgan cho lượng từ -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">2.8</div>
+            <h1 class="slide-title">De Morgan cho lượng từ</h1>
+
+            <div style="margin-top:14px; overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:15px; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th style="padding:12px 16px; text-align:center; font-weight:700; border-bottom:2px solid #cbd5e1; color:#1e293b; width:30%;">Phủ định</th>
+                            <th style="padding:12px 16px; text-align:center; font-weight:700; border-bottom:2px solid #cbd5e1; color:#1e293b; width:70%;">Tương đương với</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:12px 16px; text-align:center; font-family:'Cambria Math','Times New Roman',serif; font-size:18px; color:#1e293b;">
+                                ¬∀x P(x)
+                            </td>
+                            <td style="padding:12px 16px; text-align:center; font-family:'Cambria Math','Times New Roman',serif; font-size:18px; color:#1e293b;">
+                                ∃x ¬P(x)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:12px 16px; text-align:center; font-family:'Cambria Math','Times New Roman',serif; font-size:18px; color:#1e293b;">
+                                ¬∃x P(x)
+                            </td>
+                            <td style="padding:12px 16px; text-align:center; font-family:'Cambria Math','Times New Roman',serif; font-size:18px; color:#1e293b;">
+                                ∀x ¬P(x)
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Ghi chú đóng bảng -->
+            <div style="margin-top:10px; text-align:right; font-size:13px; color:#94a3b8; font-style:italic;">
+                Đóng bảng
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>De Morgan cho lượng từ</span>
+            <span>33</span>
+        </div>
+    </div>
+
+    <!-- SLIDE 35: Ví dụ phủ định lượng từ lồng nhau -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">2.8 - Ví dụ</div>
+            <h1 class="slide-title">Ví dụ: phủ định lượng từ lồng nhau</h1>
+
+            <div style="margin-top:12px;">
+                <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:12px;">
+
+                    <!-- Bước 1 -->
+                    <div style="display:flex; align-items:baseline; gap:16px; padding:4px 0;">
+                        <div style="flex:0 0 55%; font-size:18px; color:#1e293b; text-align:right; font-family:'Cambria Math','Times New Roman',serif;">
+                            \[ \neg \forall x\,\exists y\,(xy=1) \]
+                        </div>
+                        <div style="flex:1; font-size:13px; color:#64748b; text-align:left;">
+                            Biểu thức ban đầu
+                        </div>
+                    </div>
+
+                    <!-- Bước 2 -->
+                    <div style="display:flex; align-items:baseline; gap:16px; padding:4px 0;">
+                        <div style="flex:0 0 55%; font-size:17px; color:#1e293b; text-align:right; font-family:'Cambria Math','Times New Roman',serif;">
+                            \[ \neg \forall x\,\exists y\,(xy=1) \equiv \exists x\,\neg\exists y\,(xy=1) \]
+                        </div>
+                        <div style="flex:1; font-size:13px; color:#64748b; text-align:left;">
+                            De Morgan lớp ngoài: \(\forall \to \exists\)
+                        </div>
+                    </div>
+
+                    <!-- Bước 3 -->
+                    <div style="display:flex; align-items:baseline; gap:16px; padding:4px 0;">
+                        <div style="flex:0 0 55%; font-size:17px; color:#1e293b; text-align:right; font-family:'Cambria Math','Times New Roman',serif;">
+                            \[ \equiv \exists x\,\forall y\,\neg(xy=1) \]
+                        </div>
+                        <div style="flex:1; font-size:13px; color:#64748b; text-align:left;">
+                            De Morgan lớp trong: \(\exists \to \forall\)
+                        </div>
+                    </div>
+
+                    <!-- Bước 4 -->
+                    <div style="display:flex; align-items:baseline; gap:16px; padding:4px 0;">
+                        <div style="flex:0 0 55%; font-size:17px; color:#1e293b; text-align:right; font-family:'Cambria Math','Times New Roman',serif;">
+                            \[ \equiv \exists x\,\forall y\,(xy\neq1) \]
+                        </div>
+                        <div style="flex:1; font-size:13px; color:#64748b; text-align:left;">
+                            Rút gọn phủ định: \(\neg(xy=1)\equiv(xy\neq1)\)
+                        </div>
+                    </div>
+
+                    <!-- Ghi chú -->
+                    <div style="margin-top:14px; padding:10px 12px; background:#f8fafc; border-radius:8px; font-size:14px; color:#475569; line-height:1.6; text-align:center;">
+                        ✓ Mỗi bước chỉ đổi <b>một lớp lượng từ</b> — không nhảy cóc.
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Ví dụ — Phủ định lượng từ lồng nhau</span>
+            <span>35</span>
+        </div>
+    </div>
+
+    <!-- SLIDE 36: Luật suy diễn (Rules of Inference) -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">Luật suy diễn</div>
+            <h1 class="slide-title">Luật suy diễn (Rules of Inference)</h1>
+
+            <div style="font-size:14px; line-height:1.7; color:#475569; margin-top:8px;">
+                Suy luận (argument) trong logic mệnh đề là một dãy mệnh đề, trong đó các mệnh đề đứng trước gọi là tiền đề (premises), mệnh đề cuối là kết luận (conclusion).<br>
+                Suy luận hợp lệ (valid) khi: nếu tất cả tiền đề đúng thì kết luận chắc chắn đúng.
+            </div>
+
+            <!-- Bảng luật -->
+            <div style="margin-top:12px; overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden;">
+                    <thead>
+                        <tr style="background:#8ea6c9;">
+                            <th style="padding:10px 14px; text-align:center; font-weight:700; border-bottom:2px solid #cbd5e1; color:#ffffff; width:20%;">Luật</th>
+                            <th style="padding:10px 14px; text-align:center; font-weight:700; border-bottom:2px solid #cbd5e1; color:#ffffff; width:40%;">Dạng</th>
+                            <th style="padding:10px 14px; text-align:center; font-weight:700; border-bottom:2px solid #cbd5e1; color:#ffffff; width:40%;">Ý nghĩa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:10px 14px; text-align:center; color:#1e293b; font-weight:600;">Modus ponens</td>
+                            <td style="padding:10px 14px; font-family:'Courier New',monospace; color:#334155; text-align:center;">p; p&rarr;q &there4; q</td>
+                            <td style="padding:10px 14px; color:#475569; text-align:center;">Từ p và p&rarr;q suy ra q</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:10px 14px; text-align:center; color:#1e293b; font-weight:600;">Modus tollens</td>
+                            <td style="padding:10px 14px; font-family:'Courier New',monospace; color:#334155; text-align:center;">&not;q; p&rarr;q &there4; &not;p</td>
+                            <td style="padding:10px 14px; color:#475569; text-align:center;">Từ &not;q và p&rarr;q suy ra &not;p</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:10px 14px; text-align:center; color:#1e293b; font-weight:600;">Tam đoạn luận giả định</td>
+                            <td style="padding:10px 14px; font-family:'Courier New',monospace; color:#334155; text-align:center;">p&rarr;q; q&rarr;r &there4; p&rarr;r</td>
+                            <td style="padding:10px 14px; color:#475569; text-align:center;">Bắc cầu qua 2 phép kéo theo</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:10px 14px; text-align:center; color:#1e293b; font-weight:600;">Tam đoạn luận tuyển</td>
+                            <td style="padding:10px 14px; font-family:'Courier New',monospace; color:#334155; text-align:center;">p&or;q; &not;p &there4; q</td>
+                            <td style="padding:10px 14px; color:#475569; text-align:center;">Loại trừ 1 khả năng</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:10px 14px; text-align:center; color:#1e293b; font-weight:600;">Luật cộng</td>
+                            <td style="padding:10px 14px; font-family:'Courier New',monospace; color:#334155; text-align:center;">p &there4; p&or;q</td>
+                            <td style="padding:10px 14px; color:#475569; text-align:center;">Mở rộng bằng tuyển</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:10px 14px; text-align:center; color:#1e293b; font-weight:600;">Luật rút gọn</td>
+                            <td style="padding:10px 14px; font-family:'Courier New',monospace; color:#334155; text-align:center;">p&and;q &there4; p</td>
+                            <td style="padding:10px 14px; color:#475569; text-align:center;">Trích 1 thành phần từ hội</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Luật suy diễn — Rules of Inference</span>
+            <span>36</span>
+        </div>
+    </div>
+
+    <!-- SLIDE 37: Ví dụ chứng minh từng bước -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">2.9 - VÍ DỤ</div>
+            <h1 class="slide-title">Ví dụ: chứng minh từng bước</h1>
+
+            <div style="display: flex; gap: 40px; margin-top: 24px; color: #334155; font-size: 15px; line-height: 1.6;">
+                
+                <!-- Cột bên trái: Đề bài, Lời giải & Đặt biến -->
+                <div style="flex: 1.2;">
+                    <!-- Đề bài -->
+                    <div style="margin-bottom: 16px;">
+                        <p style="margin: 0 0 4px 0;">Từ các tiên đề:</p>
+                        <p style="margin: 0 0 2px 0;"><i>"Trời không nắng chiều nay và trời lạnh hơn hôm qua"</i>,</p>
+                        <p style="margin: 0 0 2px 0;"><i>"Chúng ta sẽ đi bơi chỉ khi trời nắng"</i>,</p>
+                        <p style="margin: 0 0 2px 0;"><i>"Nếu không đi bơi thì sẽ đi chèo thuyền"</i>,</p>
+                        <p style="margin: 0 0 6px 0;"><i>"Nếu đi chèo thuyền thì sẽ về nhà trước khi mặt trời lặn"</i>.</p>
+                        <p style="margin: 0;">Hãy chứng minh kết luận <b>"Sẽ về nhà trước khi mặt trời lặn"</b>.</p>
+                    </div>
+
+                    <!-- Lời giải -->
+                    <div>
+                        <p style="margin: 0 0 6px 0; font-weight: 700;">Lời giải</p>
+                        <p style="margin: 0 0 2px 0;">Đặt <i>p</i>: "trời nắng chiều nay",</p>
+                        <p style="margin: 0 0 2px 0;"><i>q</i>: "trời lạnh hơn hôm qua",</p>
+                        <p style="margin: 0 0 2px 0;"><i>r</i>: "đi bơi",</p>
+                        <p style="margin: 0 0 2px 0;"><i>s</i>: "đi chèo thuyền",</p>
+                        <p style="margin: 0;"><i>t</i>: "về nhà trước khi mặt trời lặn".</p>
+                    </div>
+                </div>
+
+                <!-- Cột bên phải: Tiền đề & Kết luận -->
+                <div style="flex: 0.8; padding-top: 4px;">
+                    <p style="margin: 0 0 10px 0; font-weight: 600; font-size: 16px;">Tiền đề:</p>
+                    
+                    <div style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 18px; color: #1e293b; padding-left: 28px; line-height: 2;">
+                        <div>\(\neg p \land q;\)</div>
+                        <div>\(r \to p;\)</div>
+                        <div>\(\neg r \to s;\)</div>
+                        <div>\(s \to t.\)</div>
+                    </div>
+
+                    <div style="margin-top: 12px; font-size: 16px;">
+                        <span style="font-weight: 600;">Kết luận:</span> 
+                        <span style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 18px; font-style: italic; margin-left: 6px;">t.</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Ví dụ — Chứng minh từng bước</span>
+            <span>37</span>
+        </div>
+    </div>
+
+    <!-- SLIDE 38: Ví dụ chứng minh từng bước -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">2.9 - VÍ DỤ</div>
+            <h1 class="slide-title">Ví dụ: chứng minh từng bước</h1>
+
+            <div style="display: flex; gap: 40px; margin-top: 24px; color: #334155; font-size: 15px;">
+                
+                <!-- Cột bên trái: Bảng chứng minh từng bước -->
+                <div style="flex: 1.3;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: center;">
+                        <thead>
+                            <tr style="background-color: #93c5fd; color: #1e3a8a; font-weight: 600;">
+                                <th style="padding: 8px 12px; width: 15%;">Bước</th>
+                                <th style="padding: 8px 12px; width: 35%;">Mệnh đề</th>
+                                <th style="padding: 8px 12px; width: 50%;">Lý do</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size: 14px; line-height: 1.8;">
+                            <tr>
+                                <td style="padding: 6px;">1</td>
+                                <td style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 16px;">\(\neg p \land q\)</td>
+                                <td>Tiền đề</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px;">2</td>
+                                <td style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 16px;">\(\neg p\)</td>
+                                <td>Rút gọn từ (1)</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px;">3</td>
+                                <td style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 16px;">\(r \to p\)</td>
+                                <td>Tiền đề</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px;">4</td>
+                                <td style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 16px;">\(\neg r\)</td>
+                                <td>Modus tollens từ (2),(3)</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px;">5</td>
+                                <td style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 16px;">\(\neg r \to s\)</td>
+                                <td>Tiền đề</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px;">6</td>
+                                <td style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 16px;">\(s\)</td>
+                                <td>Modus ponens từ (4),(5)</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px;">7</td>
+                                <td style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 16px;">\(s \to t\)</td>
+                                <td>Tiền đề</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px;">8</td>
+                                <td style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 16px;">\(t \quad \checkmark \text{Kết luận}\)</td>
+                                <td>Modus ponens từ (6),(7)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Cột bên phải: Tiền đề & Kết luận -->
+                <div style="flex: 0.7; padding-top: 10px;">
+                    <p style="margin: 0 0 10px 0; font-weight: 600; font-size: 16px;">Tiền đề:</p>
+                    
+                    <div style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 18px; color: #1e293b; padding-left: 28px; line-height: 2;">
+                        <div>\(\neg p \land q;\)</div>
+                        <div>\(r \to p;\)</div>
+                        <div>\(\neg r \to s;\)</div>
+                        <div>\(s \to t.\)</div>
+                    </div>
+
+                    <div style="margin-top: 16px; font-size: 16px;">
+                        <span style="font-weight: 600;">Kết luận:</span> 
+                        <span style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 18px; font-style: italic; margin-left: 6px;">t.</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Ví dụ — Chứng minh từng bước</span>
+            <span>38</span>
+        </div>
+    </div>
+
+    <!-- SLIDE 39: Ngụy biện thường gặp -->
+    <div class="slide-container">
+        <div>
+            <div class="top-tag">2.9 - LƯU Ý</div>
+            <h1 class="slide-title">Ngụy biện thường gặp</h1>
+
+            <div style="display: flex; gap: 40px; margin-top: 36px;">
+                
+                <!-- Cột trái: Khẳng định vế sau -->
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                        <span style="color: #f87171; font-size: 24px; font-weight: bold;">✕</span>
+                        <h2 style="font-size: 22px; font-weight: 700; color: #1e293b; margin: 0;">Khẳng định vế sau</h2>
+                    </div>
+
+                    <ul style="list-style-type: disc; padding-left: 24px; color: #475569; font-size: 16px; line-height: 1.8;">
+                        <li style="margin-bottom: 12px;">
+                            <span style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 18px;">
+                                \(p \to q; \quad q \quad \therefore p\)
+                            </span>
+                        </li>
+                        <li>
+                            <b>KHÔNG HỢP LỆ</b> — dễ nhầm với modus ponens
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Cột phải: Phủ định vế trước -->
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                        <span style="color: #f87171; font-size: 24px; font-weight: bold;">✕</span>
+                        <h2 style="font-size: 22px; font-weight: 700; color: #1e293b; margin: 0;">Phủ định vế trước</h2>
+                    </div>
+
+                    <ul style="list-style-type: disc; padding-left: 24px; color: #475569; font-size: 16px; line-height: 1.8;">
+                        <li style="margin-bottom: 12px;">
+                            <span style="font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 18px;">
+                                \(p \to q; \quad \neg p \quad \therefore \neg q\)
+                            </span>
+                        </li>
+                        <li>
+                            <b>KHÔNG HỢP LỆ</b> — dễ nhầm với modus tollens
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Ngụy biện thường gặp</span>
+            <span>39</span>
+        </div>
+    </div>
+
 </body>
+<!-- MATHJAX: đặt trước </body> nếu file chưa có --> 
+ <script> 
+    window.MathJax = { 
+        tex: { 
+            inlineMath: [['\\(', '\\)']], 
+            displayMath: [['\\[', '\\]']], 
+            processEscapes: true 
+            }, 
+            svg: { 
+                fontCache: 'global' 
+                } 
+                }; 
+    </script> 
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </html>

@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chương 2 - Cấu trúc hệ điều hành</title>
+    <link rel="stylesheet" href="css.css" />
+</head>
+
+<body>
+
+    <div class="exam-page">
+
+        <!-- =========================================================
+        EXAM INFO BAR
+        ========================================================== -->
+        <section class="exam-bar">
+            <div class="student-info">
+                <strong>THÍ SINH</strong>
+                <span>Môn: NGUYÊN LÝ HỆ ĐIỀU HÀNH</span>
+                <span>Chương: 02</span>
+            </div>
+
+            <div class="exam-status">
+                <div class="timer-wrap">
+                    <span class="timer-icon">◷</span>
+                    <span id="timer">75:05</span>   <!-- sửa thành 75:05 -->
+                </div>
+
+                <span id="connectionDot" class="connection-dot"></span>
+                <span class="connection-text">Đang làm bài</span>
+
+                <button class="submit-top" id="submitTop">NỘP BÀI</button>
+                <button class="fullscreen-btn" id="fullscreenBtn" title="Toàn màn hình">⛶</button>
+            </div>
+        </section>
+
+        <!-- =========================================================
+        TOOLBAR
+        ========================================================== -->
+        <div class="toolbar">
+            <button class="tool-btn" id="prevBtn">← Câu trước</button>
+            <button class="tool-btn primary" id="nextBtn">Câu tiếp theo →</button>
+
+            <div class="progress-info">
+                <span>Số câu đã trả lời:</span>
+                <strong id="answeredCount">0</strong>
+                <span>/ 50</span>
+            </div>
+
+            <button class="tool-btn save" id="saveBtn">Lưu bài</button>
+        </div>
+
+        <!-- =========================================================
+        MAIN EXAM
+        ========================================================== -->
+        <main class="exam-content">
+
+            <!-- LEFT PANEL -->
+            <aside class="chapter-panel">
+
+                <div class="panel-heading">
+                    <span>CHƯƠNG 2</span>
+                    <small>CẤU TRÚC HỆ ĐIỀU HÀNH</small>
+                </div>
+
+                <div class="chapter-summary">
+                    <h3>Nội dung trọng tâm</h3>
+
+                    <div class="summary-item">
+                        <span>01</span>
+                        <p>Tiến trình và Quản lý tiến trình</p>
+                    </div>
+
+                    <div class="summary-item">
+                        <span>02</span>
+                        <p>Quản lý bộ nhớ và Hệ thống tệp</p>
+                    </div>
+
+                    <div class="summary-item">
+                        <span>03</span>
+                        <p>Quản lý I/O và thiết bị</p>
+                    </div>
+
+                    <div class="summary-item">
+                        <span>04</span>
+                        <p>Dịch vụ HĐH, System Call, API</p>
+                    </div>
+
+                    <div class="summary-item">
+                        <span>05</span>
+                        <p>Cấu trúc nhân: Đơn khối, Vi nhân, Lai</p>
+                    </div>
+                </div>
+
+                <div class="exam-note">
+                    <h3>Hướng dẫn</h3>
+                    <ul>
+                        <li>Chọn <b>một</b> đáp án đúng cho mỗi câu.</li>
+                        <li>Có thể chuyển câu bằng nút hoặc số câu phía dưới.</li>
+                        <li>Sau khi nộp bài, hệ thống sẽ hiện đáp án và giải thích.</li>
+                        <li>Điểm được quy đổi theo thang <b>10</b>.</li>
+                    </ul>
+                </div>
+
+                <div class="left-progress">
+                    <div class="progress-title">
+                        <span>TIẾN ĐỘ</span>
+                        <b id="progressPercent">0%</b>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- RIGHT PANEL -->
+            <section class="question-panel">
+
+                <div class="question-top">
+                    <div>
+                        <span class="question-label">CÂU HỎI</span>
+                        <strong id="questionNumber">1 / 50</strong>
+                    </div>
+
+                    <button class="flag-btn" id="flagBtn">⚑ Đánh dấu</button>
+                </div>
+
+                <div id="questionContainer"></div>
+
+            </section>
+
+        </main>
+
+        <!-- =========================================================
+        QUESTION NAVIGATION
+        ========================================================== -->
+        <section class="question-nav">
+            <div class="nav-title">
+                <strong>DANH SÁCH CÂU HỎI</strong>
+                <span>● Đã chọn &nbsp;&nbsp; ○ Chưa chọn &nbsp;&nbsp; ⚑ Đánh dấu</span>
+            </div>
+
+            <div class="question-numbers" id="questionNumbers"></div>
+        </section>
+
+        <!-- =========================================================
+        SUBMIT AREA
+        ========================================================== -->
+        <section class="submit-area">
+            <div>
+                <h3>Đã hoàn thành bài?</h3>
+                <p>Kiểm tra lại các câu chưa trả lời trước khi nộp.</p>
+            </div>
+
+            <button class="submit-main" id="submitMain">NỘP BÀI &amp; XEM KẾT QUẢ</button>
+        </section>
+
+        <!-- =========================================================
+        RESULT
+        ========================================================== -->
+        <section class="result-section hidden" id="resultSection">
+
+            <div class="result-header">
+                <div>
+                    <span class="result-kicker">KẾT QUẢ BÀI LÀM</span>
+                    <h2>Chương 2: Cấu trúc hệ điều hành</h2>
+                </div>
+
+                <div class="score-box">
+                    <span>ĐIỂM</span>
+                    <strong id="score10">0.0</strong>
+                    <small>/ 10</small>
+                </div>
+            </div>
+
+            <div class="result-stats">
+                <div class="stat correct">
+                    <span>Đúng</span>
+                    <strong id="correctCount">0</strong>
+                </div>
+
+                <div class="stat wrong">
+                    <span>Sai</span>
+                    <strong id="wrongCount">0</strong>
+                </div>
+
+                <div class="stat unanswered">
+                    <span>Chưa trả lời</span>
+                    <strong id="unansweredCount">0</strong>
+                </div>
+
+                <div class="stat percent">
+                    <span>Tỷ lệ đúng</span>
+                    <strong id="resultPercent">0%</strong>
+                </div>
+            </div>
+
+            <div class="result-message" id="resultMessage"></div>
+
+            <div class="review-heading">
+                <h3>ĐÁP ÁN &amp; GIẢI THÍCH</h3>
+                <p>Đáp án đúng được tô xanh; đáp án bạn chọn sai được tô đỏ.</p>
+            </div>
+
+            <div class="review-list" id="reviewList"></div>
+
+            <button class="retry-btn" id="retryBtn">LÀM LẠI BÀI</button>
+        </section>
+
+        <footer class="footer">
+            <span>NGUYÊN LÝ HỆ ĐIỀU HÀNH</span>
+            <span>•</span>
+            <span>CHƯƠNG 2 - CẤU TRÚC HỆ ĐIỀU HÀNH</span>
+        </footer>
+
+    </div>
+
+    <!-- =========================================================
+    JAVASCRIPT
+    ========================================================== -->
+    <script>
+        // =============================================================
+        // DỮ LIỆU 50 CÂU HỎI CHƯƠNG 2
+        // =============================================================
+        const questions = [{
+            q: "Tiến trình (Process) được định nghĩa là gì?",
+            options: [
+                "Một chương trình lưu trữ cố định trên đĩa cứng",
+                "Một đơn vị phần cứng trong CPU",
+                "Một chương trình đang thực thi và mang trạng thái riêng",
+                "Một tệp dữ liệu được chia sẻ giữa các người dùng"
+            ],
+            answer: 2,
+            explanation: "Chương trình lưu trên đĩa là một tập tệp thụ động (passive), trong khi Tiến trình (Process) là chương trình đang được nạp vào bộ nhớ và chạy (active), có không gian địa chỉ, thanh ghi và trạng thái hoạt động riêng."
+        }, {
+            q: "Khi một tiến trình kết thúc, hệ điều hành sẽ thực hiện công việc nào sau đây?",
+            options: [
+                "Xóa toàn bộ dữ liệu trên đĩa cứng",
+                "Thu hồi các tài nguyên có thể tái sử dụng",
+                "Tắt toàn bộ hệ thống máy tính",
+                "Chuyển hệ điều hành sang chế độ an toàn (Safe Mode)"
+            ],
+            answer: 1,
+            explanation: "Khi tiến trình kết thúc (exit/terminate), HĐH giải phóng bộ nhớ RAM, đóng tệp tin, hủy các hàng đợi I/O để trả tài nguyên lại cho hệ thống cấp phát cho tiến trình khác."
+        }, {
+            q: "Nhiệm vụ nào sau đây KHÔNG thuộc về Quản lý tiến trình?",
+            options: [
+                "Tạo và xóa tiến trình",
+                "Tạm dừng và tiếp tục tiến trình",
+                "Định dạng vật lý đĩa cứng (Format disk)",
+                "Phòng ngừa và xử lý bế tắc (Deadlock)"
+            ],
+            answer: 2,
+            explanation: "Định dạng vật lý đĩa cứng (Format/Low-level formatting) thuộc nhiệm vụ của Quản lý lưu trữ/hệ thống tệp hoặc công cụ bảo trì ổ đĩa, không thuộc quản lý tiến trình (vốn tập trung vào lập lịch, tạo/xóa, đồng bộ và deadlock)."
+        }, {
+            q: "Quản lý bộ nhớ trong hệ điều hành đóng vai trò nền tảng cho khái niệm nào?",
+            options: [
+                "Đa chương trình, cách ly tiến trình và bộ nhớ ảo",
+                "Tăng tốc độ giao tiếp qua mạng internet",
+                "Quản lý quyền truy cập tệp tin người dùng",
+                "Tự động sửa lỗi phần cứng CPU"
+            ],
+            answer: 0,
+            explanation: "Quản lý bộ nhớ giúp phân chia không gian nhớ an toàn cho nhiều tiến trình cùng chạy đồng thời (multiprogramming), đảm bảo tiến trình này không truy cập trái phép bộ nhớ của tiến trình khác (isolation) và cung cấp bộ nhớ ảo (virtual memory)."
+        }, {
+            q: "Thành phần nào chịu trách nhiệm gắn cấu trúc logic của tệp với khối dữ liệu trên thiết bị lưu trữ vật lý?",
+            options: [
+                "Quản lý tiến trình",
+                "Quản lý hệ thống tệp và lưu trữ",
+                "Trình điều khiển thiết bị I/O",
+                "Bộ điều phối CPU"
+            ],
+            answer: 1,
+            explanation: "Hệ thống tệp (File System) chịu trách nhiệm ánh xạ (map) các khái niệm tệp tin/thư mục logic trực quan sang các sector/block lưu trữ vật lý trên đĩa."
+        }, {
+            q: "Mục tiêu chính của Quản lý vào/ra (I/O) và thiết bị là gì?",
+            options: [
+                "Tăng dung lượng lưu trữ của ổ đĩa",
+                "Che giấu sự đa dạng thiết bị, tăng hiệu năng và ngăn truy cập phần cứng tùy tiện",
+                "Thay thế vai trò của bộ vi xử lý CPU",
+                "Mã hóa toàn bộ dữ liệu truyền qua mạng"
+            ],
+            answer: 1,
+            explanation: "Hệ thống I/O trừu tượng hóa sự khác biệt giữa vô số phần cứng khác nhau (chuột, bàn phím, đĩa, card mạng), tối ưu hóa tốc độ bằng cơ chế đệm (buffering/caching) và quản lý quyền truy cập đặc quyền."
+        }, {
+            q: "Trình điều khiển thiết bị (Device Driver) có vai trò nào sau đây?",
+            options: [
+                "Soạn thảo văn bản và gửi email",
+                "Chuyển yêu cầu chung thành lệnh đặc thù và xử lý ngắt, bộ đệm, hàng đợi I/O",
+                "Cung cấp giao diện đồ họa GUI cho người dùng",
+                "Quản lý danh sách người dùng trong hệ thống"
+            ],
+            answer: 1,
+            explanation: "Device Driver đóng vai trò cầu nối, nhận các lệnh chuẩn hóa từ HĐH và dịch thành các câu lệnh điều khiển vi mạch đặc thù của từng phần cứng cụ thể."
+        }, {
+            q: "Sự khác biệt cơ bản giữa 'Bảo vệ' (Protection) và 'Bảo mật' (Security) là gì?",
+            options: [
+                "Bảo vệ kiểm soát truy cập nội bộ; Bảo mật chống truy cập/phá hoại trái phép từ bên trong và bên ngoài",
+                "Bảo vệ dành cho phần cứng; Bảo mật dành cho phần mềm",
+                "Bảo vệ chỉ áp dụng cho mạng; Bảo mật áp dụng cho đĩa cứng",
+                "Hai khái niệm này hoàn toàn giống nhau về mặt kĩ thuật"
+            ],
+            answer: 0,
+            explanation: "Bảo vệ (Protection): Kiểm soát việc các tiến trình/người dùng truy cập tài nguyên nội bộ hệ thống. Bảo mật (Security): Ngăn ngừa các mối đe dọa, tấn công, phá hoại từ cả bên trong lẫn bên ngoài (virus, hacker, giả mạo...)."
+        }, {
+            q: "Dịch vụ hệ điều hành hướng đến người dùng bao gồm những gì?",
+            options: [
+                "Cấp phát tài nguyên, Kế toán, Bảo vệ",
+                "Giao diện người dùng (UI), Thực thi chương trình, Thao tác Tệp và Vào/Ra",
+                "Quản lý điện năng, Kiểm thử vi mạch, Biên dịch mã nguồn",
+                "Tạo tiến trình con, Xử lý ngắt cứng, Lập lịch CPU"
+            ],
+            answer: 1,
+            explanation: "Đây là nhóm dịch vụ hỗ trợ trực tiếp người dùng và chương trình ứng dụng hoàn thành nhiệm vụ tính toán hằng ngày."
+        }, {
+            q: "Nhóm dịch vụ hệ điều hành giúp 'hệ thống vận hành hiệu quả' bao gồm:",
+            options: [
+                "GUI, CLI và Batch",
+                "Soạn thảo tệp, Biên dịch và Trình duyệt",
+                "Cấp phát tài nguyên, Kế toán, Bảo vệ và bảo mật",
+                "Tạo tệp, Đọc tệp và Đóng tệp"
+            ],
+            answer: 2,
+            explanation: "Nhóm dịch vụ nền tảng giúp hệ thống phân chia CPU/RAM công bằng (Resource Allocation), ghi chép lưu lượng sử dụng (Accounting) và đảm bảo an toàn hệ thống (Protection & Security)."
+        }, {
+            q: "Môi trường giao diện lệnh nào cho phép thực thi một chuỗi lệnh chuẩn bị trước mà không cần tương tác liên tục?",
+            options: [
+                "GUI (Graphical User Interface)",
+                "CLI (Command Line Interface)",
+                "Batch (Xử lý theo lô)",
+                "API (Application Programming Interface)"
+            ],
+            answer: 2,
+            explanation: "Xử lý theo lô (Batch Processing) gom nhóm các câu lệnh hoặc tệp kịch bản (script) lại để hệ thống tự động thực hiện từ đầu đến cuối mà không cần người dùng tương tác trực tiếp từng bước."
+        }, {
+            q: "Ưu điểm của giao diện dòng lệnh (CLI) so với giao diện đồ họa (GUI) là gì?",
+            options: [
+                "Dễ sử dụng hơn cho người dùng phổ thông",
+                "Thực hiện thao tác nhanh, có thể tạo script và phù hợp cho quản trị hệ thống",
+                "Đẹp mắt và hiển thị nhiều hình ảnh sinh động",
+                "Không tóm tắt mã lỗi khi lệnh thất bại"
+            ],
+            answer: 1,
+            explanation: "Giao diện dòng lệnh (CLI) tiêu tốn ít tài nguyên, cho phép viết script tự động hóa chuỗi công việc phức tạp, là công cụ tối ưu cho các quản trị viên hệ thống."
+        }, {
+            q: "Lời gọi hệ thống (System Call) là gì?",
+            options: [
+                "Giao diện lập trình cho phép chương trình yêu cầu dịch vụ của nhân hệ điều hành",
+                "Lệnh phần cứng để bật/tắt máy tính",
+                "Thư viện đồ họa nâng cao dành cho game",
+                "Phần mềm ứng dụng do người dùng tự cài đặt"
+            ],
+            answer: 0,
+            explanation: "System Call là cổng giao tiếp duy nhất để ứng dụng ở User Mode gửi yêu cầu đến Kernel thực thi các tác vụ đặc quyền (như đọc/ghi tệp, tạo tiến trình)."
+        }, {
+            q: "Tại sao ứng dụng thường gọi API thay vì trực tiếp gọi Lời gọi hệ thống (System Call)?",
+            options: [
+                "API giúp tạo giao diện thuận tiện, nhất quán và tăng tính khả chuyển của chương trình",
+                "System Call không thể thực thi được trên CPU",
+                "Lời gọi hệ thống không thể làm việc với bộ nhớ RAM",
+                "API chạy hoàn toàn trong Kernel Mode nên nhanh hơn"
+            ],
+            answer: 0,
+            explanation: "Lập trình viên gọi API (như POSIX, Win32) vì API che giấu sự phức tạp của System Call, giúp mã nguồn dễ viết hơn và có thể chạy trên nhiều nền tảng khác nhau mà không phải viết lại."
+        }, {
+            q: "Cơ chế nào giúp CPU chuyển từ Chế độ người dùng (User Mode) sang Chế độ nhân (Kernel Mode) khi có lời gọi hệ thống?",
+            options: [
+                "Ngắt mềm / Lệnh Trap (Syscall instruction)",
+                "Bật lại nguồn máy tính (Reboot)",
+                "Chuyển đổi công tắc phần cứng trên Mainboard",
+                "Gửi thông điệp qua mạng Ethernet"
+            ],
+            answer: 0,
+            explanation: "Ngắt mềm (Software Interrupt / Trap) là cơ chế phần cứng/phần mềm kích hoạt CPU chuyển đổi chế độ làm việc từ User Mode sang Kernel Mode một cách an toàn và có kiểm soát."
+        }, {
+            q: "Khi chương trình ứng dụng chạy ở Chế độ người dùng (User Mode), nó bị hạn chế điều gì?",
+            options: [
+                "Không thể thực hiện các phép tính cộng, trừ cơ bản",
+                "Không được tự do thực hiện các chỉ thị đặc quyền và truy cập trực tiếp phần cứng",
+                "Không thể sử dụng bộ nhớ RAM",
+                "Không thể đọc dữ liệu từ thanh ghi CPU"
+            ],
+            answer: 1,
+            explanation: "User Mode ngăn chương trình ứng dụng can thiệp trực tiếp vào phần cứng hoặc vùng nhớ của hệ thống nhằm tránh làm đổ vỡ (crash) toàn bộ hệ máy tính."
+        }, {
+            q: "Phương pháp truyền tham số cho lời gọi hệ thống bằng 'Thanh ghi' (Registers) có ưu/nhược điểm gì?",
+            options: [
+                "Dung lượng lưu trữ không giới hạn nhưng tốc độ rất chậm",
+                "Nhanh và đơn giản, nhưng bị giới hạn bởi số lượng và kích thước thanh ghi",
+                "An toàn tuyệt đối nhưng chỉ dùng được trên hệ điều hành Windows",
+                "Cần cấu hình phần cứng bổ sung mới sử dụng được"
+            ],
+            answer: 1,
+            explanation: "Ghi trực tiếp tham số vào thanh ghi (Registers) có tốc độ truy xuất cực nhanh nhưng chỉ truyền được ít dữ liệu do số lượng thanh ghi trên CPU có hạn."
+        }, {
+            q: "Khi cần truyền một số lượng lớn tham số cho lời gọi hệ thống, người ta thường dùng phương pháp nào?",
+            options: [
+                "Đẩy toàn bộ vào đĩa cứng",
+                "Đặt tham số vào khối nhớ (hoặc bảng) rồi truyền địa chỉ qua thanh ghi, hoặc dùng Ngăn xếp (Stack)",
+                "Gửi qua kết nối mạng Socket",
+                "In tham số ra màn hình để người dùng nhập lại"
+            ],
+            answer: 1,
+            explanation: "Khi tham số quá nhiều hoặc quá lớn, chương trình ghi dữ liệu vào một vùng nhớ (block/table) rồi chỉ cần truyền địa chỉ của khối nhớ đó vào thanh ghi, hoặc đẩy (push) tham số vào Stack."
+        }, {
+            q: "Lời gọi hệ thống thuộc nhóm 'Quản lý tiến trình' trong UNIX/Linux bao gồm những ví dụ nào?",
+            options: [
+                "open(), read(), write()",
+                "fork(), exec(), exit(), wait()",
+                "chmod(), setuid()",
+                "ioctl(), getpid()"
+            ],
+            answer: 1,
+            explanation: "fork(): Tạo tiến trình con. exec(): Nạp và chạy chương trình mới. exit(): Kết thúc tiến trình. wait(): Chờ tiến trình con kết thúc."
+        }, {
+            q: "Lời gọi hệ thống nào được dùng để thay đổi quyền truy cập tệp tin trong nhóm 'Bảo vệ'?",
+            options: [
+                "fork()",
+                "chmod()",
+                "read()",
+                "ioctl()"
+            ],
+            answer: 1,
+            explanation: "chmod() (Change Mode) là Lời gọi hệ thống dùng để thay đổi quyền đọc/ghi/thực thi (Read/Write/Execute) của tệp tin, thuộc nhóm Bảo vệ (Protection)."
+        }, {
+            q: "Trong ví dụ chuỗi lời gọi hệ thống khi sao chép tệp, thứ tự các bước chính diễn ra như thế nào?",
+            options: [
+                "close() -> open() -> read/write -> create()",
+                "Nhập tên tệp -> open() tệp nguồn -> create()/open() tệp đích -> vòng lặp read()/write() -> close()",
+                "read() -> write() -> open() -> exit()",
+                "create() -> close() -> open() -> read()"
+            ],
+            answer: 1,
+            explanation: "Quy trình chuẩn khi sao chép tệp: Lấy tên tệp -> Mở tệp nguồn -> Tạo/Mở tệp đích -> Đọc từ nguồn ghi sang đích theo vòng lặp -> Đóng cả hai tệp."
+        }, {
+            q: "Chuẩn API phổ biến trên các hệ điều hành họ UNIX / Linux là gì?",
+            options: [
+                "Win32 API",
+                "POSIX API",
+                "Java API",
+                "Cocoa API"
+            ],
+            answer: 1,
+            explanation: "POSIX (Portable Operating System Interface) là chuẩn giao diện lập trình phổ biến được áp dụng trên các hệ điều hành họ UNIX, Linux, macOS."
+        }, {
+            q: "Chuẩn Win32 API cung cấp hàm nào sau đây tương đương với hàm open() trong POSIX?",
+            options: [
+                "CreateFile()",
+                "ReadFile()",
+                "CreateProcess()",
+                "CloseHandle()"
+            ],
+            answer: 0,
+            explanation: "Trong Win32 API, hàm CreateFile() được dùng cho cả việc tạo mới lẫn mở một tệp tin hiện có (tương đương open() trong POSIX)."
+        }, {
+            q: "Chương trình hệ thống (System Program) đóng vai trò gì trong kiến trúc HĐH?",
+            options: [
+                "Biến các dịch vụ nhân (Kernel) thành các công cụ, tiện ích thuận tiện sử dụng hằng ngày",
+                "Trực tiếp điều khiển các linh kiện bán dẫn trên chip",
+                "Thay thế hoàn toàn vai trò của nhân HĐH",
+                "Chạy trực tiếp dưới dạng phần cứng chuyên dụng"
+            ],
+            answer: 0,
+            explanation: "Chương trình hệ thống đóng vai trò như lớp vỏ bao bọc, cung cấp môi trường thuận tiện để người dùng kích hoạt các dịch vụ của nhân mà không cần tự viết mã system call."
+        }, {
+            q: "Nhóm chương trình hệ thống bao gồm các công cụ nào sau đây?",
+            options: [
+                "CPU, RAM, Đĩa cứng, Card màn hình",
+                "Quản lý tệp, Trình biên dịch (Compiler), Shell, Dịch vụ nền (Daemon)",
+                "Game, Phần mềm kế toán, Photoshop",
+                "Bảng mạch chính, Nguồn điện, Quạt tản nhiệt"
+            ],
+            answer: 1,
+            explanation: "Đây là các tiện ích phần mềm thuộc hệ thống (System Programs/Utilities) đi kèm với HĐH."
+        }, {
+            q: "Có mấy cách cài đặt trình thông dịch lệnh (Shell) phổ biến?",
+            options: [
+                "1 cách: Tất cả lệnh đều tích hợp sẵn trong kernel",
+                "2 cách: Lệnh tích hợp trong Shell và Lệnh là các chương trình độc lập",
+                "3 cách: Chỉ dùng GUI, chỉ dùng Batch, dùng phím tắt",
+                "4 cách: Phân theo dung lượng bộ nhớ"
+            ],
+            answer: 1,
+            explanation: "Trình thông dịch lệnh có thể cài đặt theo 2 dạng: Internal commands: Lệnh được viết trực tiếp bên trong mã nguồn của Shell. External commands: Mỗi lệnh là một file chương trình riêng biệt trên đĩa (ví dụ UNIX/Linux)."
+        }, {
+            q: "Ưu điểm của cách cài đặt lệnh shell dưới dạng 'Chương trình riêng' (như trong UNIX) là gì?",
+            options: [
+                "Giúp Shell nhỏ gọn, dễ dàng thêm lệnh mới mà không cần sửa mã nguồn trình thông dịch",
+                "Tốc độ thực thi nhanh hơn gấp 100 lần",
+                "Không tốn dung lượng bộ nhớ RAM",
+                "Không cần kiểm tra quyền truy cập của người dùng"
+            ],
+            answer: 0,
+            explanation: "Tách lệnh thành file chương trình riêng giúp Shell giữ dung lượng nhẹ; khi muốn bổ sung lệnh mới chỉ cần thêm file thực thi vào thư mục hệ thống mà không phải biên dịch lại mã nguồn Shell."
+        }, {
+            q: "Sự khác biệt chính giữa Chương trình hệ thống và Chương trình ứng dụng là gì?",
+            options: [
+                "Chương trình hệ thống hỗ trợ vận hành và phát triển hệ thống; Chương trình ứng dụng giải quyết bài toán cụ thể của người dùng",
+                "Chương trình hệ thống viết bằng C; Chương trình ứng dụng viết bằng Python",
+                "Chương trình hệ thống không có giao diện; Chương trình ứng dụng bắt buộc có GUI",
+                "Ranh giới giữa hai loại này luôn tuyệt đối và không bao giờ chồng lấp"
+            ],
+            answer: 0,
+            explanation: "Chương trình hệ thống phục vụ công tác quản trị và làm nền tảng cho máy tính; Chương trình ứng dụng (như Word, Excel, Chrome) phục vụ nhu cầu nghiệp vụ cụ thể của người dùng."
+        }, {
+            q: "Dịch vụ nền (Daemon hoặc Service) là gì?",
+            options: [
+                "Chương trình chạy ẩn trong chế độ nền để thực hiện các nhiệm vụ hệ thống liên tục",
+                "Trò chơi điện tử chạy trực tuyến",
+                "Trình duyệt web do người dùng mở",
+                "Một loại phần cứng máy tính"
+            ],
+            answer: 0,
+            explanation: "Daemon (trên Linux) hoặc Service (trên Windows) là các tiến trình khởi động cùng hệ thống, chạy ngầm để lắng nghe kết nối mạng, quản lý in ấn, theo dõi hệ thống..."
+        }, {
+            q: "Đâu là nguyên tắc quan trọng trong thiết kế hệ điều hành để đảm bảo tính linh hoạt?",
+            options: [
+                "Tách biệt Cơ chế (Mechanism) khỏi Chính sách (Policy)",
+                "Gộp chung tất cả chức năng vào một chương trình duy nhất",
+                "Cố định mã nguồn trong chip ROM không cho nâng cấp",
+                "Chỉ hỗ trợ một người dùng tại một thời điểm"
+            ],
+            answer: 0,
+            explanation: "Đây là nguyên tắc thiết kế tối quan trọng. Giúp HĐH linh hoạt thay đổi quy tắc quản lý mà không cần phải thay đổi hoặc viết lại cấu trúc phần cứng/phần mềm bên dưới."
+        }, {
+            q: "Trong nguyên tắc thiết kế HĐH, 'Cơ chế' (Mechanism) trả lời cho câu hỏi nào?",
+            options: [
+                "Làm điều đó NHƯ THẾ NÀO? (How to do)",
+                "SẼ LÀM CÁI GÌ? (What to do)",
+                "AI sẽ là người trả tiền?",
+                "KHI NÀO thì dừng hệ thống?"
+            ],
+            answer: 0,
+            explanation: "Mechanism (Cơ chế) quy định các công cụ, phương thức kĩ thuật để thực hiện tác vụ (Ví dụ: Cơ chế chuyển đổi ngữ cảnh CPU)."
+        }, {
+            q: "Trong nguyên tắc thiết kế HĐH, 'Chính sách' (Policy) trả lời cho câu hỏi nào?",
+            options: [
+                "Làm điều đó NHƯ THẾ NÀO?",
+                "SẼ LÀM CÁI GÌ? (What will be done)",
+                "Chạy trên CPU nào?",
+                "Tốc độ truyền dữ liệu là bao nhiêu?"
+            ],
+            answer: 1,
+            explanation: "Policy (Chính sách) quyết định quyết định và mục tiêu sẽ áp dụng (Ví dụ: Tiến trình nào sẽ được ưu tiên cấp CPU tiếp theo)."
+        }, {
+            q: "Cấu trúc Nhân đơn khối (Monolithic Kernel) có đặc điểm nổi bật nào?",
+            options: [
+                "Tất cả các dịch vụ hệ thống (tiến trình, bộ nhớ, tệp, I/O) cùng nằm chung trong không gian nhân",
+                "Mỗi dịch vụ chạy như một tiến trình riêng ở User Mode",
+                "Không hỗ trợ lời gọi hệ thống",
+                "Toàn bộ hệ điều hành được viết bằng Java"
+            ],
+            answer: 0,
+            explanation: "Kiến trúc Monolithic gộp tất cả các thành phần HĐH vào chung một không gian địa chỉ duy nhất chạy ở Kernel Mode."
+        }, {
+            q: "Nhược điểm lớn nhất của Cấu trúc Nhân đơn khối là gì?",
+            options: [
+                "Hiệu năng quá thấp",
+                "Khó phân tách ranh giới lỗi; một lỗi nhỏ trong module nhân có thể làm hỏng toàn bộ hệ thống (Crash)",
+                "Không tương thích với phần cứng x86",
+                "Tốn quá nhiều dung lượng đĩa cứng"
+            ],
+            answer: 1,
+            explanation: "Vì tất cả thành phần dùng chung không gian nhớ ở Kernel Mode, một lỗi treo/tràn bộ nhớ ở driver nhỏ cũng có thể làm sập toàn bộ hệ điều hành (màn hình xanh/kernel panic)."
+        }, {
+            q: "Ưu điểm của Cấu trúc Phân tầng (Layered Approach) là gì?",
+            options: [
+                "Tốc độ thực thi đạt mức tối đa",
+                "Dễ dàng thiết kế, kiểm thử và gỡ lỗi (debug) vì mỗi tầng chỉ sử dụng dịch vụ của tầng bên dưới",
+                "Không tốn bộ nhớ RAM",
+                "Loại bỏ hoàn toàn sự phụ thuộc vào phần cứng"
+            ],
+            answer: 1,
+            explanation: "Cấu trúc phân tầng (Layered) chia hệ thống thành các lớp từ 0 đến N. Lớp trên chỉ gọi dịch vụ của lớp ngay bên dưới, giúp việc gỡ lỗi từng tầng cực kỳ rõ ràng."
+        }, {
+            q: "Trong cấu trúc phân tầng điển hình, Tầng 0 đại diện cho thành phần nào?",
+            options: [
+                "Giao diện người dùng",
+                "Phần cứng (Hardware)",
+                "Trình biên dịch",
+                "Hệ thống tệp"
+            ],
+            answer: 1,
+            explanation: "Trong mô hình phân tầng lý thuyết, Tầng 0 (Layer 0) luôn là phần cứng thấp nhất, và Tầng N (Layer N) là giao diện người dùng."
+        }, {
+            q: "Khái niệm Cấu trúc Vi nhân (Microkernel) là gì?",
+            options: [
+                "Thu nhỏ nhân bằng cách chuyển hầu hết các dịch vụ không thiết yếu ra Chế độ người dùng (User Mode) dưới dạng Server",
+                "Nhân chỉ dành cho các máy tính siêu nhỏ (IoT)",
+                "Nhúng toàn bộ HĐH vào một vi mạch duy nhất",
+                "Không sử dụng bộ nhớ ảo"
+            ],
+            answer: 0,
+            explanation: "Microkernel đẩy các dịch vụ như File System, Device Driver... ra khỏi nhân để chạy như các tiến trình người dùng (User Servers), giữ nhân gọn nhẹ nhất có thể."
+        }, {
+            q: "Các thành phần tối thiểu giữ lại bên trong Vi nhân (Microkernel) bao gồm:",
+            options: [
+                "Hệ thống tệp, Trình duyệt web, Compiler",
+                "IPC (Giao tiếp liên tiến trình), Lập lịch cơ bản và Quản lý bộ nhớ/ngắt cơ bản",
+                "GUI, CLI, Shell",
+                "Trình điều khiển đồ họa 3D, MySQL, Apache"
+            ],
+            answer: 1,
+            explanation: "Vi nhân chỉ giữ lại các chức năng tối thiểu cốt lõi: Quản lý bộ nhớ tối thiểu, Lập lịch tiến trình đơn giản và Cơ chế truyền thông báo (IPC) để các Server giao tiếp."
+        }, {
+            q: "Ưu điểm chính của Cấu trúc Vi nhân là gì?",
+            options: [
+                "Đạt tốc độ thực thi cao hơn Nhân đơn khối",
+                "Dễ mở rộng, an toàn và độ tin cậy cao (lỗi ở một service không làm sập toàn bộ nhân)",
+                "Không cần cơ chế truyền thông báo IPC",
+                "Giảm số lần chuyển đổi ngữ cảnh CPU"
+            ],
+            answer: 1,
+            explanation: "Nếu một dịch vụ (như File Server) bị lỗi ngưng hoạt động, nó chỉ làm sập tiến trình đó ở User Mode chứ không ảnh hưởng đến Kernel, giúp hệ thống không bị crash."
+        }, {
+            q: "Nhược điểm phổ biến của Cấu trúc Vi nhân là gì?",
+            options: [
+                "Khó bảo mật",
+                "Chi phí hiệu năng cao do tốn công giao tiếp IPC và chuyển đổi ngữ cảnh (Context switch) giữa các tầng",
+                "Không thể nâng cấp hệ thống",
+                "Không hỗ trợ đa nhiệm"
+            ],
+            answer: 1,
+            explanation: "Việc liên tục phải gửi thông điệp IPC và chuyển đổi giữa User Mode và Kernel Mode khiến vi nhân tốn nhiều thời gian xử lý phụ (overhead), làm giảm hiệu năng."
+        }, {
+            q: "Khái niệm 'Mô-đun nạp động' (Loadable Kernel Modules - LKM) mang lại lợi ích gì?",
+            options: [
+                "Cho phép mở rộng tính năng của nhân tại thời điểm chạy (runtime) mà không cần biên dịch lại toàn bộ nhân",
+                "Biến HĐH thành ứng dụng web",
+                "Giảm dung lượng RAM về 0",
+                "Thay thế hoàn toàn phần cứng đĩa cứng"
+            ],
+            answer: 0,
+            explanation: "LKM (Loadable Kernel Modules) cho phép nạp/hủy các module (như driver thiết bị mới) trực tiếp vào bộ nhớ nhân khi máy đang chạy mà không cần khởi động lại hay biên dịch lại nhân."
+        }, {
+            q: "Đâu là sự đánh đổi (trade-off) quan trọng nhất khi lựa chọn giữa Cấu trúc Đơn khối và Cấu trúc Vi nhân?",
+            options: [
+                "Đơn khối ưu tiên Hiệu năng; Vi nhân ưu tiên Độ tin cậy và Khả năng mở rộng",
+                "Đơn khối dành cho điện thoại; Vi nhân dành cho máy tính bảng",
+                "Đơn khối không an toàn; Vi nhân không thể lập trình",
+                "Đơn khối chạy chậm hơn Vi nhân trong mọi trường hợp"
+            ],
+            answer: 0,
+            explanation: "Monolithic chạy nhanh hơn vì gọi hàm trực tiếp trong nhân, Microkernel an toàn và mô-đun hóa tốt hơn nhưng đánh đổi bằng hiệu năng."
+        }, {
+            q: "Cơ chế truyền thông báo (Message Passing) được sử dụng chủ yếu trong cấu trúc nào để các Server giao tiếp với nhau?",
+            options: [
+                "Cấu trúc Vi nhân (Microkernel)",
+                "Cấu trúc Đơn khối thuần túy",
+                "Cấu trúc Đơn tầng",
+                "Cấu trúc không nhân"
+            ],
+            answer: 0,
+            explanation: "Vì các dịch vụ trong Microkernel chạy tách biệt ở User Mode, chúng buộc phải dùng cơ chế truyền thông báo (Message Passing / IPC) để yêu cầu dữ liệu từ nhau."
+        }, {
+            q: "'Shell' trong hệ điều hành UNIX/Linux thuộc loại thành phần nào?",
+            options: [
+                "Kernel Mode Service",
+                "Trình thông dịch lệnh / Chương trình hệ thống ở User Mode",
+                "Trình điều khiển thiết bị phần cứng",
+                "Bộ nhớ đệm RAM"
+            ],
+            answer: 1,
+            explanation: "Shell (như bash, zsh) hoàn toàn là một chương trình ứng dụng hệ thống chạy ở User Mode, không nằm bên trong Kernel."
+        }, {
+            q: "Một thao tác đọc tệp đơn giản từ ứng dụng sẽ đi qua các thành phần nào theo thứ tự?",
+            options: [
+                "Ứng dụng -> Quản lý tiến trình -> Quản lý bộ nhớ -> Hệ thống tệp -> Điều khiển I/O -> Phần cứng",
+                "Phần cứng -> Hệ thống tệp -> Ứng dụng",
+                "Quản lý bộ nhớ -> Ứng dụng -> Phần cứng",
+                "Điều khiển I/O -> Quản lý tiến trình -> Ứng dụng"
+            ],
+            answer: 0,
+            explanation: "Luồng xử lý đi từ tầng cao nhất (Ứng dụng người dùng) qua các lớp quản lý logic của HĐH và cuối cùng xuống trình điều khiển I/O để can thiệp vào Phần cứng vật lý."
+        }, {
+            q: "Trong các phương pháp truyền tham số cho system call, phương pháp 'Ngăn xếp' (Stack) hoạt động như thế nào?",
+            options: [
+                "Chương trình đẩy (push) tham số vào stack, nhân hệ điều hành sẽ lấy (pop) ra",
+                "Dữ liệu được ghi trực tiếp vào đĩa cứng",
+                "Tham số gửi qua sóng Bluetooth",
+                "Nhân hệ điều hành tự đoán tham số mà không cần chương trình truyền vào"
+            ],
+            answer: 0,
+            explanation: "Đây là cơ chế truyền tham số chuẩn thông qua bộ nhớ Ngăn xếp (Stack) khi thực hiện lời gọi hàm/lời gọi hệ thống."
+        }, {
+            q: "Khái niệm 'Tách biệt mạnh' (Strong Isolation) thường liên quan đến cấu trúc hệ thống nào?",
+            options: [
+                "Cấu trúc Phân tầng và Vi nhân",
+                "Cấu trúc Đơn khối",
+                "Cấu trúc Cổ điển",
+                "Cấu trúc Đơn giản MS-DOS"
+            ],
+            answer: 0,
+            explanation: "Cả hai cấu trúc này đều phân chia ranh giới rõ ràng giữa các thành phần/tầng, giúp cô lập lỗi và tăng tính an toàn bảo mật (Strong Isolation)."
+        }, {
+            q: "Lý do chính khiến nhiều HĐH hiện đại (như Windows, macOS, Linux) áp dụng Cấu trúc Lai (Hybrid Architecture) là gì?",
+            options: [
+                "Để kết hợp ưu điểm hiệu năng của Nhân đơn khối và tính linh hoạt/mô-đun của Vi nhân",
+                "Vì không thể lập trình được Cấu trúc Vi nhân",
+                "Để giảm chi phí bản quyền phần mềm",
+                "Bắt buộc theo quy định quốc tế"
+            ],
+            answer: 0,
+            explanation: "Các HĐH thực tế áp dụng cấu trúc lai (Hybrid) nhằm giữ lại tốc độ xử lý của Nhân đơn khối cho các tác vụ quan trọng, đồng thời tận dụng tính mô-đun linh hoạt của Vi nhân."
+        }, {
+            q: "Thuật ngữ 'Kernel' trong Hệ điều hành dùng để chỉ phần nào?",
+            options: [
+                "Trình duyệt web mặc định của hệ thống",
+                "Phần lõi trung tâm của HĐH, chạy ở chế độ đặc quyền (Kernel Mode) và quản lý tài nguyên",
+                "Toàn bộ đĩa cứng của máy tính",
+                "Giao diện màn hình nền (Desktop)"
+            ],
+            answer: 1,
+            explanation: "Kernel chính là phần cốt lõi luôn luôn nằm trong RAM từ khi khởi động máy, trực tiếp điều phối CPU, bộ nhớ và thiết bị phần cứng."
+        }, {
+            q: "Nhóm dịch vụ HĐH nào có vai trò 'Kế toán' (Accounting)?",
+            options: [
+                "Theo dõi và ghi lại thống kê mức sử dụng tài nguyên của các người dùng/tiến trình",
+                "Tính toán thu thuế tự động cho doanh nghiệp",
+                "Quản lý tài khoản ngân hàng của người dùng",
+                "Tự động chuyển tiền khi mua phần mềm"
+            ],
+            answer: 0,
+            explanation: "Dịch vụ Kế toán (Accounting) trong HĐH có chức năng đo lường, lưu vết thời gian dùng CPU, dung lượng bộ nhớ, lưu lượng mạng... của từng user/process để phục vụ mục đích thống kê hoặc tính phí."
+        }];
+
+        // =============================================================
+        // TRẠNG THÁI & LOGIC
+        // =============================================================
+        const state = {
+            current: 0,
+            answers: Array(questions.length).fill(null),
+            flagged: Array(questions.length).fill(false),
+            submitted: false,
+            remainingSeconds: 75 * 60 + 5,   // 75 phút 5 giây = 4505 giây
+            timerId: null
+        };
+
+        const letters = ["A", "B", "C", "D"];
+
+        const questionContainer = document.getElementById("questionContainer");
+        const questionNumber = document.getElementById("questionNumber");
+        const questionNumbers = document.getElementById("questionNumbers");
+        const answeredCount = document.getElementById("answeredCount");
+        const progressPercent = document.getElementById("progressPercent");
+        const progressFill = document.getElementById("progressFill");
+        const timerElement = document.getElementById("timer");
+        const flagBtn = document.getElementById("flagBtn");
+
+        function renderQuestion() {
+            const item = questions[state.current];
+            const selected = state.answers[state.current];
+
+            questionNumber.textContent = `${state.current + 1} / ${questions.length}`;
+
+            questionContainer.innerHTML = `
+                <article class="question-card">
+                    <div class="question-title">
+                        <span class="q-number">${state.current + 1}</span>
+                        <h2>${escapeHtml(item.q)}</h2>
+                    </div>
+
+                    <div class="options">
+                        ${item.options.map((option, index) => `
+                            <label class="option ${selected === index ? "selected" : ""}">
+                                <input
+                                    type="radio"
+                                    name="question-${state.current}"
+                                    value="${index}"
+                                    ${selected === index ? "checked" : ""}
+                                >
+                                <span class="option-letter">${letters[index]}</span>
+                                <span class="option-text">${escapeHtml(option)}</span>
+                            </label>
+                        `).join("")}
+                    </div>
+                </article>
+            `;
+
+            questionContainer.querySelectorAll('input[type="radio"]').forEach(input => {
+                input.addEventListener("change", () => {
+                    state.answers[state.current] = Number(input.value);
+                    renderQuestion();
+                    updateProgress();
+                    renderQuestionNumbers();
+                });
+            });
+
+            updateFlagButton();
+        }
+
+        function renderQuestionNumbers() {
+            questionNumbers.innerHTML = questions.map((_, index) => {
+                const answered = state.answers[index] !== null;
+                const flagged = state.flagged[index];
+
+                return `
+                    <button
+                        class="question-number ${index === state.current ? "active" : ""} ${answered ? "answered" : ""} ${flagged ? "flagged" : ""}"
+                        data-index="${index}"
+                        title="Câu ${index + 1}"
+                    >
+                        ${index + 1}
+                        ${flagged ? '<span class="flag-mini">⚑</span>' : ""}
+                    </button>
+                `;
+            }).join("");
+
+            questionNumbers.querySelectorAll(".question-number").forEach(button => {
+                button.addEventListener("click", () => {
+                    state.current = Number(button.dataset.index);
+                    renderQuestion();
+                    renderQuestionNumbers();
+                });
+            });
+        }
+
+        function updateProgress() {
+            const count = state.answers.filter(answer => answer !== null).length;
+            const percent = Math.round((count / questions.length) * 100);
+
+            answeredCount.textContent = count;
+            progressPercent.textContent = `${percent}%`;
+            progressFill.style.width = `${percent}%`;
+        }
+
+        function updateFlagButton() {
+            if (state.flagged[state.current]) {
+                flagBtn.classList.add("active");
+                flagBtn.innerHTML = "⚑ Đã đánh dấu";
+            } else {
+                flagBtn.classList.remove("active");
+                flagBtn.innerHTML = "⚑ Đánh dấu";
+            }
+        }
+
+        function goNext() {
+            if (state.current < questions.length - 1) {
+                state.current++;
+                renderQuestion();
+                renderQuestionNumbers();
+            }
+        }
+
+        function goPrevious() {
+            if (state.current > 0) {
+                state.current--;
+                renderQuestion();
+                renderQuestionNumbers();
+            }
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+        }
+
+        function startTimer() {
+            state.timerId = setInterval(() => {
+                if (state.submitted) {
+                    clearInterval(state.timerId);
+                    return;
+                }
+
+                state.remainingSeconds--;
+
+                if (state.remainingSeconds <= 0) {
+                    state.remainingSeconds = 0;
+                    timerElement.textContent = "00:00";
+                    clearInterval(state.timerId);
+                    submitExam(true);
+                    return;
+                }
+
+                timerElement.textContent = formatTime(state.remainingSeconds);
+
+                if (state.remainingSeconds <= 300) {
+                    timerElement.classList.add("danger");
+                } else if (state.remainingSeconds <= 900) {
+                    timerElement.classList.add("warning");
+                }
+            }, 1000);
+        }
+
+        function submitExam(autoSubmit = false) {
+            if (state.submitted) return;
+
+            const unanswered = state.answers.filter(answer => answer === null).length;
+
+            if (!autoSubmit && unanswered > 0) {
+                const confirmed = confirm(
+                    `Bạn còn ${unanswered} câu chưa trả lời.\n\nBạn có chắc muốn nộp bài không?`
+                );
+                if (!confirmed) return;
+            } else if (!autoSubmit) {
+                const confirmed = confirm("Bạn có chắc muốn nộp bài và xem kết quả không?");
+                if (!confirmed) return;
+            }
+
+            state.submitted = true;
+
+            if (state.timerId) {
+                clearInterval(state.timerId);
+            }
+
+            calculateAndShowResult();
+
+            document.querySelector(".exam-content").classList.add("submitted-view");
+            document.querySelector(".question-nav").classList.add("hidden");
+            document.querySelector(".submit-area").classList.add("hidden");
+            document.querySelector(".toolbar").classList.add("hidden");
+
+            document.getElementById("submitTop").disabled = true;
+            document.getElementById("submitTop").textContent = "ĐÃ NỘP";
+            document.querySelector(".connection-text").textContent = "Đã nộp bài";
+            document.getElementById("connectionDot").classList.add("offline");
+        }
+
+        function calculateAndShowResult() {
+            let correct = 0;
+
+            state.answers.forEach((answer, index) => {
+                if (answer === questions[index].answer) {
+                    correct++;
+                }
+            });
+
+            const unanswered = state.answers.filter(answer => answer === null).length;
+            const wrong = questions.length - correct - unanswered;
+            const score = (correct / questions.length) * 10;
+            const percent = Math.round((correct / questions.length) * 100);
+
+            document.getElementById("correctCount").textContent = correct;
+            document.getElementById("wrongCount").textContent = wrong;
+            document.getElementById("unansweredCount").textContent = unanswered;
+            document.getElementById("resultPercent").textContent = `${percent}%`;
+            document.getElementById("score10").textContent = score.toFixed(1);
+
+            let message = "";
+
+            if (score >= 9) {
+                message = "🔥 Xuất sắc! Kiến thức Chương 2 của bạn rất chắc chắn.";
+            } else if (score >= 8) {
+                message = "👏 Rất tốt! Chỉ cần rà lại một vài phần để đạt điểm tuyệt đối.";
+            } else if (score >= 6.5) {
+                message = "💪 Khá ổn! Xem kỹ giải thích các câu sai để củng cố thêm.";
+            } else if (score >= 5) {
+                message = "📚 Đã có nền tảng. Ôn lại các khái niệm về System Call, cấu trúc nhân và dịch vụ HĐH.";
+            } else {
+                message = "🧠 Không sao! Xem phần giải thích bên dưới rồi làm lại, lần sau sẽ tốt hơn.";
+            }
+
+            if (unanswered > 0) {
+                message += ` Bạn còn bỏ trống ${unanswered} câu.`;
+            }
+
+            document.getElementById("resultMessage").textContent = message;
+
+            renderReview();
+
+            const resultSection = document.getElementById("resultSection");
+            resultSection.classList.remove("hidden");
+
+            setTimeout(() => {
+                resultSection.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+            }, 100);
+        }
+
+        function renderReview() {
+            const reviewList = document.getElementById("reviewList");
+
+            reviewList.innerHTML = questions.map((item, index) => {
+                const selected = state.answers[index];
+                const isCorrect = selected === item.answer;
+                const isUnanswered = selected === null;
+
+                return `
+                    <article class="review-card ${isCorrect ? "review-correct" : "review-wrong"}">
+                        <div class="review-question-head">
+                            <div>
+                                <span class="review-number">Câu ${index + 1}</span>
+                                <h4>${escapeHtml(item.q)}</h4>
+                            </div>
+
+                            <span class="review-status">
+                                ${isCorrect ? "✓ ĐÚNG" : isUnanswered ? "— BỎ TRỐNG" : "✕ SAI"}
+                            </span>
+                        </div>
+
+                        <div class="review-options">
+                            ${item.options.map((option, optionIndex) => {
+                                const classes = [];
+
+                                if (optionIndex === item.answer) {
+                                    classes.push("correct-option");
+                                }
+
+                                if (selected === optionIndex && selected !== item.answer) {
+                                    classes.push("wrong-option");
+                                }
+
+                                return `
+                                    <div class="review-option ${classes.join(" ")}">
+                                        <span class="option-letter">${letters[optionIndex]}</span>
+                                        <span>${escapeHtml(option)}</span>
+
+                                        ${optionIndex === item.answer
+                                            ? '<strong class="answer-tag">ĐÁP ÁN ĐÚNG</strong>'
+                                            : selected === optionIndex
+                                                ? '<strong class="your-answer-tag">BẠN CHỌN</strong>'
+                                                : ""
+                                        }
+                                    </div>
+                                `;
+                            }).join("")}
+                        </div>
+
+                        <div class="explanation">
+                            <strong>💡 Giải thích:</strong>
+                            <span>${escapeHtml(item.explanation)}</span>
+                        </div>
+                    </article>
+                `;
+            }).join("");
+        }
+
+        function resetExam() {
+            state.current = 0;
+            state.answers = Array(questions.length).fill(null);
+            state.flagged = Array(questions.length).fill(false);
+            state.submitted = false;
+            state.remainingSeconds = 75 * 60 + 5;   // 75:05
+
+            timerElement.textContent = "75:05";
+            timerElement.classList.remove("warning", "danger");
+
+            document.querySelector(".exam-content").classList.remove("submitted-view");
+            document.querySelector(".question-nav").classList.remove("hidden");
+            document.querySelector(".submit-area").classList.remove("hidden");
+            document.querySelector(".toolbar").classList.remove("hidden");
+            document.getElementById("resultSection").classList.add("hidden");
+
+            document.getElementById("submitTop").disabled = false;
+            document.getElementById("submitTop").textContent = "NỘP BÀI";
+            document.querySelector(".connection-text").textContent = "Đang làm bài";
+            document.getElementById("connectionDot").classList.remove("offline");
+
+            renderQuestion();
+            renderQuestionNumbers();
+            updateProgress();
+            startTimer();
+
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        // =============================================================
+        // GẮN SỰ KIỆN
+        // =============================================================
+        document.getElementById("prevBtn").addEventListener("click", goPrevious);
+        document.getElementById("nextBtn").addEventListener("click", goNext);
+
+        flagBtn.addEventListener("click", () => {
+            state.flagged[state.current] = !state.flagged[state.current];
+            updateFlagButton();
+            renderQuestionNumbers();
+        });
+
+        document.getElementById("submitTop").addEventListener("click", () => submitExam(false));
+        document.getElementById("submitMain").addEventListener("click", () => submitExam(false));
+        document.getElementById("retryBtn").addEventListener("click", resetExam);
+
+        document.getElementById("saveBtn").addEventListener("click", () => {
+            const answered = state.answers.filter(answer => answer !== null).length;
+            alert(`Đã lưu trạng thái bài làm tạm thời.\n\nBạn đã chọn ${answered}/50 câu.`);
+        });
+
+        document.getElementById("fullscreenBtn").addEventListener("click", async () => {
+            try {
+                if (!document.fullscreenElement) {
+                    await document.documentElement.requestFullscreen();
+                } else {
+                    await document.exitFullscreen();
+                }
+            } catch (error) {
+                alert("Trình duyệt không cho phép bật toàn màn hình.");
+            }
+        });
+
+        document.addEventListener("keydown", event => {
+            if (state.submitted) return;
+
+            if (event.key === "ArrowRight") goNext();
+            if (event.key === "ArrowLeft") goPrevious();
+        });
+
+        // =============================================================
+        // KHỞI ĐỘNG
+        // =============================================================
+        renderQuestion();
+        renderQuestionNumbers();
+        updateProgress();
+        startTimer();
+    </script>
+
+</body>
+</html>
