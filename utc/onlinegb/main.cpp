@@ -14,8 +14,8 @@ size_t writeCallback(void* contents, size_t size, size_t nmemb, void* userp) {
 
 int main() {
     // ==== Cac bien cau hinh ====
-    string baseUrl   = "https://raw.githubusercontent.com/studyinvietnam/university/refs/heads/main/utc/2026-2027/";
-    string course    = "lap_trinh_huong_doi_tuong_1_1_26_n04"; // Ten mon hoc
+    string baseUrl   = "https://raw.githubusercontent.com/studyinvietnam/university/refs/heads/main/utc/";
+    string course    = "2026-2027/lap_trinh_huong_doi_tuong_1_1_26_n04"; // Ten mon hoc
     string lessonPath = "tren-lop/buoi-3/Untitled1.cpp";        // Duong dan bai hoc (buoi hoc + ten file)
 
     string url = baseUrl + course + "/" + lessonPath;
