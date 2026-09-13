@@ -1416,5 +1416,236 @@
     </div>
 </div>
 
+<!-- SLIDE 26: Phân bổ nhân lực -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">BÀI TẬP BT1 · MÔ HÌNH HÓA · MỤC 1.5</div>
+        <h1 class="slide-title">Phân bổ nhân lực</h1>
+
+        <!-- Nội dung chính -->
+        <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; margin-top:12px;">
+            <div style="font-size:15px; line-height:1.7; color:#334155;">
+                Một bộ phận có 3 nhân viên cần phân công cho 2 dự án. Mỗi nhân viên có năng suất khác nhau trên mỗi dự án, mỗi dự án có yêu cầu khối lượng công việc tối thiểu. Hãy áp dụng đúng quy trình 4 bước để xây dựng mô hình toán học cho bài toán phân bổ sao cho tổng năng suất là lớn nhất. Tự đặt số liệu hợp lý.
+            </div>
+        </div>
+
+        <!-- Yêu cầu -->
+        <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; margin-top:14px; display:flex; align-items:flex-start; gap:12px;">
+            <div style="font-size:16px; font-weight:700; color:#1e293b; white-space:nowrap; display:flex; align-items:center; gap:6px;">
+                <span style="font-size:18px;">📌</span> Yêu cầu
+            </div>
+            <div style="font-size:15px; line-height:1.7; color:#334155; padding-top:2px;">
+                Trình bày đầy đủ cả 4 bước, đặc biệt không được bỏ qua bước 4 (phân tích/kiểm tra kết quả).
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Bài tập BT1 - Mô hình hóa</span>
+        <span>26</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 27: Mô hình định tính & mô hình toán học -->
+<div class="slide-container">
+    <div>
+        <div class="top-tag">BT1 · BƯỚC 1-2</div>
+        <h1 class="slide-title">Mô hình định tính &amp; mô hình toán học</h1>
+
+        <div class="grid-2" style="margin-top:15px; align-items: stretch; gap: 20px;">
+            <!-- Cột trái: Bước 1 - Định tính -->
+            <div style="flex: 1;">
+                <div class="highlight-card" style="background:#ffffff; padding: 16px 20px; height: 100%;">
+                    <div style="font-size:16px; font-weight:700; color:#1e293b; margin-bottom:12px;">Bước 1 — Định tính</div>
+                    <ul style="margin:0; padding-left:20px; font-size:14px; line-height:1.8; color:#334155;">
+                        <li>Có 3 nhân viên, năng suất khác nhau tùy dự án</li>
+                        <li>Mỗi nhân viên chỉ làm 1 trong 2 dự án</li>
+                        <li>Dự án A cần ≥2 người, dự án B cần ≥1 người</li>
+                        <li>Mục tiêu: tổng năng suất lớn nhất</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Cột phải: Bước 2 - Toán học -->
+            <div style="flex: 1;">
+                <div class="highlight-card" style="background:#ffffff; padding: 16px 20px; height: 100%;">
+                    <div style="font-size:16px; font-weight:700; color:#1e293b; margin-bottom:12px;">Bước 2 — Toán học</div>
+                    
+                    <div style="font-size:14px; line-height:1.8; color:#334155; font-family:'Cambria Math', 'Times New Roman', serif;">
+                        \(y_i \in \{0, 1\}\): \(y_i=1\) nếu NVi làm dự án A, \(y_i=0\) nếu làm dự án B
+                    </div>
+
+                    <div style="font-size:15px; font-weight:bold; margin-top: 12px; color:#1e293b; font-family:'Cambria Math', 'Times New Roman', serif;">
+                        \(\max f(y) = 3y_1 - y_2 - 5y_3 + 21\)
+                    </div>
+
+                    <div style="font-size:14px; font-weight:bold; margin-top: 15px; color:#1e293b;">Ràng buộc:</div>
+                    <div style="font-size:14px; line-height:1.9; color:#334155; font-family:'Cambria Math', 'Times New Roman', serif; margin-top: 6px;">
+                        \(y_1 + y_2 + y_3 \ge 2\) &nbsp;&nbsp; (dự án A)<br>
+                        \(y_1 + y_2 + y_3 \le 2\) &nbsp;&nbsp; (dự án B)<br>
+                        \(\Rightarrow y_1 + y_2 + y_3 = 2\)<br>
+                        \(y_i \in \{0, 1\}\)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>BT1 - Bước 1-2</span>
+        <span>27</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 28: Mô hình hóa toán học (Ràng buộc) -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">BT1 · BƯỚC 2 (TIẾP THEO)</div>
+        <h1 class="slide-title">Phân tích ràng buộc</h1>
+
+        <div class="highlight-card" style="background:#ffffff; padding:24px 30px; border-radius:12px; border:1px solid #e2e8f0; margin-top:20px; display:flex; justify-content:space-around; align-items:flex-start; gap:20px; font-family:'Cambria Math', 'Times New Roman', serif; font-size:16px; color:#1e293b; line-height:1.8;">
+            
+            <!-- Cột 1: Ràng buộc cho dự án B -->
+            <div style="flex: 1; text-align: right; padding-right: 20px; border-right: 1px dashed #cbd5e1;">
+                <div style="font-family: Arial, sans-serif; font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 15px; text-align: center;">tham gia dự án B</div>
+                
+                <div style="margin-bottom: 5px;">\(1 - y_1\)</div>
+                <div style="margin-bottom: 5px;">\(1 - y_2\)</div>
+                <div style="margin-bottom: 5px;">\(1 - y_3\)</div>
+                
+                <div style="border-top: 2px solid #334155; margin: 8px 0; width: 60px; margin-left: auto; margin-right: 0;"></div>
+                
+                <div style="margin-bottom: 15px;">\(\sum \ge 1\)</div>
+                
+                <div style="margin-top: 20px;">
+                    \(2 \ge y_1+y_2+y_3\)
+                    <br>
+                    \(y_1+y_2+y_3 \ge 2\)
+                </div>
+            </div>
+
+            <!-- Cột 2: Biến và tổng -->
+            <div style="flex: 1; text-align: center; border-right: 1px dashed #cbd5e1; padding-right: 20px;">
+                <div style="margin-bottom: 5px;">\(y_1\)</div>
+                <div style="margin-bottom: 5px;">\(y_2\)</div>
+                <div style="margin-bottom: 5px;">\(y_3\)</div>
+                
+                <div style="border-top: 2px solid #334155; margin: 8px auto; width: 60px;"></div>
+                
+                <div style="margin-top: 5px;">\(\sum \ge 2\)</div>
+            </div>
+
+            <!-- Cột 3: Danh sách nhân viên và dự án A -->
+            <div style="flex: 1.2; padding-left: 20px;">
+                <div style="font-family: Arial, sans-serif; font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 15px; text-align: center;">tham gia dự án A</div>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px; font-family: Arial, sans-serif; font-size: 15px; color: #334155;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span>NV1</span>
+                        <span style="color: #64748b;">───────────────</span>
+                        <span style="font-weight: bold; color: #1e293b;">A</span>
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span>NV2</span>
+                        <span style="color: #64748b;">───────────────</span>
+                        <span style="font-weight: bold; color: #1e293b;">A</span>
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span>NV3</span>
+                        <span style="color: #64748b;">───────────────</span>
+                        <span style="font-weight: bold; color: #1e293b;">A</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>BT1 - Bước 2 (Tiếp theo)</span>
+        <span>28</span>
+    </div>
+</div>
+
+
+
+<!-- SLIDE 29: Phân loại & phân tích tồn tại nghiệm -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">BT1 · BƯỚC 3-4</div>
+        <h1 class="slide-title">Phân loại &amp; phân tích tồn tại nghiệm</h1>
+
+        <div style="margin-top: 15px;">
+            <!-- Bước 3 -->
+            <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:15px;">
+                <div style="font-size:16px; font-weight:700; color:#1e293b; margin-bottom:10px;">Bước 3 — Phân loại &amp; phương pháp giải</div>
+                <div style="font-size:15px; line-height:1.7; color:#334155;">
+                    Hàm mục tiêu, ràng buộc tuyến tính + biến chỉ nhận 0/1 ⇒ Quy hoạch tuyến tính nguyên 0-1 (giao QHTT và QHRR). D chỉ có C(3,2) = 3 phương án khả thi ⇒ giải được bằng liệt kê toàn bộ, không cần thuật toán chuyên biệt.
+                </div>
+            </div>
+            <!-- Bước 4 -->
+            <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0;">
+                <div style="font-size:16px; font-weight:700; color:#1e293b; margin-bottom:10px;">
+                    Bước 4 — Tồn tại nghiệm
+                </div>
+
+                <div style="font-size:15px; line-height:1.7; color:#334155;">
+                    \(D = \{(y_1, y_2, y_3) \in \{0,1\}^3 : y_1 + y_2 + y_3 = 2\}\)
+                    là tập hữu hạn (3 phần tử) ⇒ luôn đóng và bị chặn ⇒ compact.
+                    <br>
+
+                    \(f(y)\) tuyến tính (liên tục) trên \(D\).
+                    <br>
+
+                    Theo Weierstrass:
+                    \(D\) compact + \(f\) liên tục ⇒
+                    <b>CHẮC CHẮN</b> tồn tại phương án tối ưu
+                    (hiển nhiên đúng với tập hữu hạn, nhưng cho thấy bài toán rời rạc
+                    cũng nằm trong khuôn khổ lý thuyết chung của mục 1.3).
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>BT1 - Bước 3-4</span>
+        <span>29</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 30: Lập lịch trực đơn giản -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">BÀI TẬP BT2 · MÔ HÌNH HÓA · MỤC 1.5</div>
+        <h1 class="slide-title">Lập lịch trực đơn giản</h1>
+
+        <!-- Nội dung chính -->
+        <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; margin-top:12px;">
+            <div style="font-size:15px; line-height:1.7; color:#334155;">
+                Một cửa hàng cần lập lịch trực cho 4 nhân viên trong 7 ngày, mỗi ngày cần ít nhất 1 người trực, mỗi nhân viên có số ngày nghỉ mong muốn khác nhau. Hãy mô hình hóa bài toán này (không cần giải), chỉ rõ biến quyết định, hàm mục tiêu, và các ràng buộc.
+            </div>
+        </div>
+
+        <!-- Yêu cầu -->
+        <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; margin-top:14px; display:flex; align-items:flex-start; gap:12px;">
+            <div style="font-size:16px; font-weight:700; color:#1e293b; white-space:nowrap; display:flex; align-items:center; gap:6px;">
+                <span style="font-size:18px;">📌</span> Yêu cầu
+            </div>
+            <div style="font-size:15px; line-height:1.7; color:#334155; padding-top:2px;">
+                Xác định rõ bài toán thuộc lớp nào trong 6 lớp phân loại mục 1.4 (gợi ý: biến quyết định thường là biến nhị phân 0/1 — thuộc QHRR).
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Bài tập BT2 - Mô hình hóa</span>
+        <span>30</span>
+    </div>
+</div>
+
+
 </body>
 </html>
