@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bài giảng Toán rời rạc - Slide & Bản vẽ</title>
+    <title>Bài giảng Lập trình hướng đối tượng</title>
     <link rel="stylesheet" href="styles.css">
 
 </head>
@@ -31,7 +31,453 @@
 
 
 
-    <!-- SLIDE 1: HÀM BẠN (FRIEND FUNCTION) -->
+    <!-- SLIDE -10: Ví dụ (Xây dựng lớp) -->
+    <div class="slide-container" style="height: 750px;">
+        <div>
+            <div class="top-tag">VÍ DỤ</div>
+            <h1 class="slide-title">Ví dụ (Xây dựng lớp)</h1>
+
+            <div class="grid-2" style="margin-top:15px; align-items:stretch; gap:20px;">
+
+                <!-- Cột 1: Mã nguồn C++ -->
+                <div style="flex: 1.1; min-width:0;">
+                    <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; font-family:'Courier New', Courier, monospace; font-size:13.5px; line-height:1.7; color:#1e293b; overflow-x:auto;">
+                        <pre style="margin:0;"><span style="color:#be185d;">class</span> <span style="color:#0284c7;">Bicycle</span> {
+    <span style="color:#be185d;">private</span>:
+        <span style="color:#be185d;">float</span> speed;
+        <span style="color:#be185d;">float</span> cadence;
+        <span style="color:#be185d;">int</span> gear;
+    <span style="color:#be185d;">public</span>:
+        <span style="color:#be185d;">void</span> <span style="color:#0284c7;">change_gears</span>(<span style="color:#be185d;">int</span> gear);
+        <span style="color:#be185d;">void</span> <span style="color:#0284c7;">brake</span>();
+        <span style="color:#be185d;">void</span> <span style="color:#0284c7;">chage_cadence</span>(<span style="color:#be185d;">float</span> cadence);
+    };
+    ...
+    <span style="color:#0284c7;">Bicycle</span> b;
+    b.<span style="color:#0284c7;">brake</span>();
+    b.cadence = <span style="color:#f59e0b;">5</span>; <span style="color:#64748b;">// Error</span>
+    b.<span style="color:#0284c7;">change_cadence</span>(<span style="color:#f59e0b;">5</span>); <span style="color:#64748b;">// OK</span></pre>
+                    </div>
+                </div>
+
+                <!-- Cột 2: Hình vẽ minh họa (nhúng ảnh) -->
+                <div style="flex: 0.9; min-width:0; display:flex; align-items:center; justify-content:center; background:#ffffff; border-radius:8px; border:1px solid #e2e8f0; overflow:hidden; padding:10px;">
+                    <img src="1789297777.jpg" alt="Minh họa Xây dựng lớp" style="max-width:100%; max-height:100%; object-fit:contain; display:block;">
+                </div>
+
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Ví dụ (Xây dựng lớp)</span>
+            <span>-10</span>
+        </div>
+    </div>
+
+
+
+    <!-- SLIDE -9: Con trỏ đối tượng -->
+    <div class="slide-container" style="height: 750px;">
+        <div>
+            <div class="top-tag">LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG</div>
+            <h1 class="slide-title">Con trỏ đối tượng</h1>
+
+            <div style="font-size:15px; line-height:1.8; color:#334155; margin-top:15px;">
+                <ul style="margin:0; padding-left:20px;">
+                    <li>Con trỏ đối tượng chứa địa chỉ của biến đối tượng</li>
+                    <li>Khai báo con trỏ đối tượng
+                        <div style="padding-left:20px; margin-top:4px; font-family:'Courier New', Courier, monospace; color:#be185d; font-weight:bold;">
+                            Tên_Lớp *Tên_con_trỏ;
+                        </div>
+                    </li>
+                    <li>Sử dụng con trỏ đối tượng
+                        <div style="padding-left:20px; margin-top:4px; font-family:'Courier New', Courier, monospace; color:#be185d; font-weight:bold;">
+                            Tên_con_trỏ -> Tên_thành_phần
+                        </div>
+                    </li>
+                    <li>Ví dụ:
+                        <div style="margin-top:8px;">
+                            <div class="highlight-card" style="background:#ffffff; padding:14px 20px; border-radius:8px; border:1px solid #e2e8f0; font-family:'Courier New', Courier, monospace; font-size:13.5px; line-height:1.7; color:#1e293b; display:inline-block;">
+                                <pre style="margin:0;"><span style="color:#0284c7;">A</span> x, *p;
+    x.<span style="color:#0284c7;">nhap</span>(); <span style="color:#64748b;">// Truy nhập vào thành phần thông qua đối tượng</span>
+    p = &amp;x;
+    p -&gt; <span style="color:#0284c7;">nhap</span>(); <span style="color:#64748b;">// Truy nhập vào thành phần qua con trỏ đ/t</span></pre>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Con trỏ đối tượng</span>
+            <span>-9</span>
+        </div>
+    </div>
+
+
+
+
+
+    <!-- SLIDE -8: Ví dụ -->
+    <div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <h1 class="slide-title" style="text-align: center; margin-top: 15px; margin-bottom: 30px;">Ví dụ</h1>
+
+            <div style="display: flex; gap: 25px; justify-content: center; align-items: flex-start; max-width: 850px; margin: 0 auto;">
+                <!-- Cột 1: Khai báo lớp -->
+                <div class="highlight-card" style="flex: 1; background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; font-family:'Courier New', Courier, monospace; font-size:13.5px; line-height:1.7; color:#1e293b; overflow-x:auto;">
+                    <pre style="margin:0;"><span style="color:#64748b;">#include</span> <span style="color:#0284c7;">&lt;iostream&gt;</span>
+    <span style="color:#64748b;">using namespace</span> std;
+    <span style="color:#64748b;">// Khai báo lớp</span>
+    <span style="color:#be185d;">class</span> <span style="color:#0284c7;">Diem</span> {
+        <span style="color:#be185d;">int</span> x, y;
+        <span style="color:#be185d;">public</span>:
+            <span style="color:#be185d;">void</span> <span style="color:#0284c7;">nhap1</span>();
+            <span style="color:#be185d;">void</span> <span style="color:#0284c7;">hien</span>();
+    };</pre>
+                </div>
+
+                <!-- Cột 2: Hàm main -->
+                <div class="highlight-card" style="flex: 1; background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; font-family:'Courier New', Courier, monospace; font-size:13.5px; line-height:1.7; color:#1e293b; overflow-x:auto;">
+                    <pre style="margin:0;"><span style="color:#be185d;">int</span> <span style="color:#0284c7;">main</span>() {
+        <span style="color:#0284c7;">Diem</span> *p;
+        <span style="color:#be185d;">int</span> i, n;
+        cout &lt;&lt; <span style="color:#059669;">"So diem: "</span>;
+        cin &gt;&gt; n;
+        p = <span style="color:#be185d;">new</span> <span style="color:#0284c7;">DIEM</span>[n+1];
+        <span style="color:#be185d;">for</span> (i= 1; i&lt;= n; ++i)
+            p[i] -&gt; <span style="color:#0284c7;">nhap1</span>();
+        <span style="color:#be185d;">for</span> (i= 1; i&lt;= n; ++i)
+            p[i] -&gt; <span style="color:#0284c7;">hien</span>();
+    }</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Ví dụ</span>
+            <span>-8</span>
+        </div>
+    </div>
+
+
+
+
+    <!-- SLIDE -7: Con trỏ this -->
+    <div class="slide-container" style="height: 750px;">
+        <div>
+            <div class="top-tag">CON TRỎ THIS</div>
+            <h1 class="slide-title">Con trỏ this</h1>
+
+            <div style="font-size:15px; line-height:1.7; color:#334155; margin-top:15px;">
+                <ul style="margin:0; padding-left:20px; line-height:1.8;">
+                    <li>C++ cung cấp một từ khóa <b>this</b> để thể hiện
+                        <ul style="margin-top:6px; padding-left:20px; color:#475569;">
+                            <li>Để trỏ đến đối tượng hiện tại (current object) và nó được truyền như một đối ẩn tới các hàm thành phần của lớp</li>
+                            <li>Con trỏ <b>this</b> chứa địa chỉ bộ nhớ của đối tượng hiện tại</li>
+                            <li>Con trỏ <b>this</b> thường không được thể hiện tường minh</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="highlight-card" style="background:#ffffff; padding:20px 24px; border-radius:8px; border:1px solid #e2e8f0; font-family:'Courier New', Courier, monospace; font-size:14px; line-height:1.8; color:#1e293b; overflow-x:auto; margin-top:20px;">
+                <pre style="margin:0;">
+    <span style="color:#be185d;">void</span> <span style="color:#0284c7;">PS::nhap</span>() {
+        cout &lt;&lt; <span style="color:#059669;">"Nhap phan so: "</span>;
+        cin &gt;&gt; ts &gt;&gt; ms;    <span style="color:#64748b;">// cin &gt;&gt; this-&gt; ts &gt;&gt; this-&gt; ms;</span>
+    }
+                </pre>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Con trỏ this</span>
+            <span>-7</span>
+        </div>
+    </div>
+
+
+
+
+    <!-- SLIDE -6: Phạm vi của các thành phần trong lớp -->
+    <div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="top-tag">PHẠM VI TRUY CẬP</div>
+            <h1 class="slide-title">Phạm vi của các thành phần trong lớp</h1>
+
+            <div style="font-size:15px; line-height:1.7; color:#334155; margin-top:10px;">
+                <ul style="margin:0; padding-left:20px; line-height:1.8;">
+                    <li><b>Thuộc tính thường là bí mật (private)</b> để đảm bảo tính bảo mật.</li>
+                    <li>Để truy nhập các thuộc tính của một lớp cần thông qua các phương thức của lớp đó.</li>
+                </ul>
+            </div>
+
+            <!-- Khung chứa code và chú thích -->
+            <div style="position:relative; width:100%; max-width:900px; height:340px; margin:20px auto 0 auto;">
+
+                <!-- Khung Code -->
+                <div class="highlight-card" style="position:absolute; top:0; left:0; width:560px; background:#ffffff; border-radius:8px; border:1px solid #e2e8f0; padding:16px 20px; color:#1e293b; font-family:'Courier New', Courier, monospace; font-size:13.5px; line-height:20.9px; box-sizing:border-box;">
+                    <pre style="margin:0;"><span style="color:#be185d;">class</span> <span style="color:#0284c7;">A</span> {
+        <span style="color:#be185d;">int</span> x;
+        <span style="color:#be185d;">public</span>:
+            <span style="color:#be185d;">void</span> <span style="color:#0284c7;">nhap</span>(){
+                cin &gt;&gt; x;
+            }
+            <span style="color:#be185d;">void</span> <span style="color:#0284c7;">xuat</span>(){
+                cout &lt;&lt; x;
+            }
+    };
+    <span style="color:#be185d;">int</span> <span style="color:#0284c7;">main</span>(){
+        <span style="color:#0284c7;">A</span> d;
+        d.<span style="color:#0284c7;">nhap</span>();
+        d.<span style="color:#0284c7;">xuat</span>();
+    }</pre>
+                </div>
+
+                <!-- Chú thích -->
+                <div style="position:absolute; top:225px; left:580px; width:280px; font-family:Arial, sans-serif; font-size:13.5px; color:#475569; line-height:1.6;">
+                    Truyền thông điệp (message passing)<br>
+                    <b>nhap()</b> và <b>xuat()</b> cho đối tượng <b>d</b>
+                </div>
+
+                <!-- Mũi tên chỉ vào code -->
+                <svg viewBox="0 0 900 340" style="position:absolute; inset:0; width:100%; height:100%; overflow:visible;">
+                    <defs>
+                        <marker id="annoArrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+                            <path d="M0,0 L7,3 L0,6 Z" fill="#64748b"></path>
+                        </marker>
+                    </defs>
+                    <!-- Mũi tên 1: từ dòng "Truyền thông điệp..." trỏ vào d.nhap(); -->
+                    <line x1="634" y1="243" x2="170" y2="290" stroke="#64748b" stroke-width="1.8" marker-end="url(#annoArrow)"></line>
+                    <!-- Mũi tên 2: từ dòng "nhap() và xuat()..." trỏ vào d.nhap(); (hội tụ gần điểm 1) -->
+                    <line x1="640" y1="267" x2="170" y2="315" stroke="#64748b" stroke-width="1.8" marker-end="url(#annoArrow)"></line>
+                </svg>
+
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Phạm vi của các thành phần trong lớp</span>
+            <span>-6</span>
+        </div>
+    </div>
+ 
+
+
+
+    <!-- SLIDE -5: Con trỏ this -->
+    <div class="slide-container" style="height: 750px;">
+        <div>
+            <div class="top-tag">CON TRỎ THIS</div>
+            <h1 class="slide-title">Con trỏ this</h1>
+
+            <div class="highlight-card" style="background:#ffffff; padding:20px 24px; border-radius:8px; border:1px solid #e2e8f0; font-family:'Courier New', Courier, monospace; font-size:14px; line-height:1.8; color:#1e293b; overflow-x:auto; margin-top:20px;">
+                <pre style="margin:0;">
+    <span style="color:#be185d;">#include</span> <span style="color:#0284c7;">&lt;iostream&gt;</span>
+    <span style="color:#be185d;">using namespace</span> std;
+    <span style="color:#be185d;">class</span> <span style="color:#0284c7;">Test</span> {
+        <span style="color:#be185d;">int</span> x;
+        <span style="color:#be185d;">public</span>:
+            <span style="color:#be185d;">void</span> <span style="color:#0284c7;">print</span>() {
+                cout &lt;&lt; <span style="color:#059669;">" x = "</span> &lt;&lt; x &lt;&lt; endl;
+                cout &lt;&lt; <span style="color:#059669;">" this-&gt;x = "</span> &lt;&lt; <span style="color:#be185d;">this</span>-&gt;x &lt;&lt;      endl;
+                cout &lt;&lt; <span style="color:#059669;">"(*this).x = "</span> &lt;&lt; (*<span style="color:#be185d;">this</span>).x;
+            }
+    };
+                </pre>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Con trỏ this</span>
+            <span>-5</span>
+        </div>
+    </div>
+
+
+
+
+    <!-- SLIDE -4: Ví dụ - Lớp Sinh viên -->
+    <div class="slide-container" style="height: 750px;">
+        <div>
+            <div class="top-tag">VÍ DỤ</div>
+            <h1 class="slide-title">Ví dụ</h1>
+
+            <div class="highlight-card" style="background:#ffffff; padding:20px 24px; border-radius:8px; border:1px solid #e2e8f0; color:#1e293b; margin-top:20px; font-size:15px; line-height:1.8;">
+                <ul style="margin:0; padding-left:20px; line-height:1.8;">
+                    <li>
+                        <b>Xây dựng lớp Sinh viên gồm hai thuộc tính:</b> mã sinh viên và điểm.
+                    </li>
+                    <li style="list-style-type: none; margin-top: 8px;">
+                        <ul style="margin:0; padding-left:20px;">
+                            <li>
+                                <b>–</b> Nhập vào 2 sinh viên, cho biết sinh viên nào có điểm cao hơn.
+                            </li>
+                            <li>
+                                <b>–</b> Cộng 1 điểm cho sinh viên thứ hai.
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Ví dụ</span>
+            <span>-4</span>
+        </div>
+    </div>
+
+
+
+
+    <!-- SLIDE -3: Mã nguồn minh họa - Lớp Sinh viên -->
+    <div class="slide-container" style="height: 750px;">
+        <div>
+            <div class="top-tag">VÍ DỤ MINH HỌA</div>
+            <h1 class="slide-title">Phương thức nhập và xuất của lớp</h1>
+
+            <div class="highlight-card" style="background:#ffffff; padding:20px 24px; border-radius:8px; border:1px solid #e2e8f0; font-family:'Courier New', Courier, monospace; font-size:14px; line-height:1.8; color:#1e293b; overflow-x:auto; margin-top:20px;">
+                <pre style="margin:0;">
+    <span style="color:#64748b;">6</span>   <span style="color:#be185d;">string</span> ten;
+    <span style="color:#64748b;">7</span>   <span style="color:#be185d;">float</span> diem;
+    <span style="color:#64748b;">8</span>   <span style="color:#be185d;">public</span>:
+    <span style="color:#64748b;">9</span>       <span style="color:#be185d;">void</span> <span style="color:#0284c7;">nhap</span>(){
+    <span style="color:#64748b;">10</span>          cout&lt;&lt;<span style="color:#059669;">"Nhap ma: "</span>;
+    <span style="color:#64748b;">11</span>          cin&gt;&gt;<span style="color:#be185d;">this</span>-&gt;ma;
+    <span style="color:#64748b;">12</span>          cout&lt;&lt;<span style="color:#059669;">"Nhap ten: "</span>;
+    <span style="color:#64748b;">13</span>          cin.<span style="color:#0284c7;">ignore</span>();
+    <span style="color:#64748b;">14</span>          <span style="color:#0284c7;">getline</span>(cin, <span style="color:#be185d;">this</span>-&gt;ten);
+    <span style="color:#64748b;">15</span>          cout&lt;&lt;<span style="color:#059669;">"Nhap diem: "</span>;
+    <span style="color:#64748b;">16</span>          cin&gt;&gt;<span style="color:#be185d;">this</span>-&gt;diem;
+    <span style="color:#64748b;">17</span>      }
+    <span style="color:#64748b;">18</span>      <span style="color:#be185d;">void</span> <span style="color:#0284c7;">xuat</span>(){
+    <span style="color:#64748b;">19</span>          cout&lt;&lt;endl&lt;&lt;ma&lt;&lt;<span style="color:#059669;">" "</span>&lt;&lt;ten&lt;&lt;<span style="color:#059669;">" "</span>&lt;&lt;diem;
+    <span style="color:#64748b;">20</span>      }
+    <span style="color:#64748b;">21</span>  };
+    <span style="color:#64748b;">22</span>  <span style="color:#be185d;">int</span> <span style="color:#0284c7;">main</span>(){
+                </pre>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Ví dụ minh họa</span>
+            <span>-3</span>
+        </div>
+    </div>
+
+
+
+
+    <!-- SLIDE -2: Bài tập thực hành - Lớp Phân số -->
+    <div class="slide-container" style="height: 750px;">
+        <div>
+            <div class="top-tag">BÀI TẬP THỰC HÀNH</div>
+            <h1 class="slide-title">Xây dựng lớp Phân số</h1>
+
+            <div class="highlight-card" style="background:#ffffff; padding:20px 24px; border-radius:8px; border:1px solid #e2e8f0; color:#1e293b; margin-top:20px; font-size:15px; line-height:1.8;">
+                <p style="margin:0 0 12px 0;">
+                    <b>Yêu cầu 1:</b> Xây dựng lớp Phân số gồm các thuộc tính: tử số và mẫu số, các phương thức nhập, xuất, ...
+                </p>
+                <p style="margin:0 0 8px 0;">
+                    <b>Yêu cầu 2:</b> Viết hàm main:
+                </p>
+                <ul style="margin:0; padding-left:20px; line-height:1.8;">
+                    <li>Nhập vào 2 phân số, phân số thứ nhất dùng hàm tạo có đối, phân số thứ 2 dùng phương thức nhập</li>
+                    <li>Cộng 2 phân số</li>
+                    <li>So sánh 2 phân số vừa nhập</li>
+                    <li>Cho biết phân số tổng có lớn hơn 1 hay không</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Bài tập thực hành</span>
+            <span>-2</span>
+        </div>
+    </div>
+
+
+
+    <!-- SLIDE -1: Mã nguồn minh họa - Hàm thành viên -->
+    <div class="slide-container" style="height: 750px;">
+        <div>
+            <div class="top-tag">VÍ DỤ MINH HỌA</div>
+            <h1 class="slide-title">Hàm thành viên (Member Function)</h1>
+
+            <div class="highlight-card" style="background:#ffffff; padding:20px 24px; border-radius:8px; border:1px solid #e2e8f0; font-family:'Courier New', Courier, monospace; font-size:14px; line-height:1.8; color:#1e293b; overflow-x:auto; margin-top:20px;">
+                <pre style="margin:0;">
+    <span style="color:#64748b;">21</span>  }
+    <span style="color:#64748b;">22</span>  <span style="color:#be185d;">PS</span> <span style="color:#0284c7;">tong</span>(<span style="color:#be185d;">PS</span> ps){
+    <span style="color:#64748b;">23</span>      <span style="color:#be185d;">PS</span> t;
+    <span style="color:#64748b;">24</span>      t.ts = <span style="color:#be185d;">this</span>-&gt;ts * ps.ms + <span style="color:#be185d;">this</span>-&gt;ms * ps.ts;
+    <span style="color:#64748b;">25</span>      t.ms = <span style="color:#be185d;">this</span>-&gt;ms * ps.ms;
+    <span style="color:#64748b;">26</span>      <span style="color:#be185d;">return</span> t;
+    <span style="color:#64748b;">27</span>  }
+    <span style="color:#64748b;">28</span>  <span style="color:#be185d;">int</span> <span style="color:#0284c7;">getTS</span>(){
+    <span style="color:#64748b;">29</span>      <span style="color:#be185d;">return</span> ts;
+    <span style="color:#64748b;">30</span>  }
+    <span style="color:#64748b;">31</span>  <span style="color:#be185d;">int</span> <span style="color:#0284c7;">getMS</span>(){
+    <span style="color:#64748b;">32</span>      <span style="color:#be185d;">return</span> ms;
+    <span style="color:#64748b;">33</span>  }
+    <span style="color:#64748b;">34</span>  };
+                </pre>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Ví dụ minh họa</span>
+            <span>-1</span>
+        </div>
+    </div>
+
+
+
+
+    <!-- SLIDE 0: Mã nguồn minh họa -->
+    <div class="slide-container" style="height: 750px;">
+        <div>
+            <div class="top-tag">VÍ DỤ MINH HỌA</div>
+            <h1 class="slide-title">Hàm thành viên và Hàm toàn cục</h1>
+
+            <div class="highlight-card" style="background:#ffffff; padding:20px 24px; border-radius:8px; border:1px solid #e2e8f0; font-family:'Courier New', Courier, monospace; font-size:14px; line-height:1.8; color:#1e293b; overflow-x:auto; margin-top:20px;">
+                <pre style="margin:0;">
+    <span style="color:#64748b;">22</span>  <span style="color:#be185d;">PS</span> <span style="color:#0284c7;">tong</span>(<span style="color:#be185d;">PS</span> ps){
+    <span style="color:#64748b;">23</span>      <span style="color:#be185d;">PS</span> t;
+    <span style="color:#64748b;">24</span>      t.ts = <span style="color:#be185d;">this</span>-&gt;ts * ps.ms + <span style="color:#be185d;">this</span>-&gt;ms * ps.ts;
+    <span style="color:#64748b;">25</span>      t.ms = <span style="color:#be185d;">this</span>-&gt;ms * ps.ms;
+    <span style="color:#64748b;">26</span>      <span style="color:#be185d;">return</span> t;
+    <span style="color:#64748b;">27</span>  }
+    <span style="color:#64748b;">28</span>  <span style="color:#be185d;">int</span> <span style="color:#0284c7;">getTS</span>(){
+    <span style="color:#64748b;">29</span>      <span style="color:#be185d;">return</span> ts;
+    <span style="color:#64748b;">30</span>  }
+    <span style="color:#64748b;">31</span>  <span style="color:#be185d;">int</span> <span style="color:#0284c7;">getMS</span>(){
+    <span style="color:#64748b;">32</span>      <span style="color:#be185d;">return</span> ms;
+    <span style="color:#64748b;">33</span>  }
+    <span style="color:#64748b;">34</span>  };
+    <span style="color:#64748b;">35</span>  <span style="color:#be185d;">PS</span> <span style="color:#0284c7;">tong</span>(<span style="color:#be185d;">PS</span> ps1, <span style="color:#be185d;">PS</span> ps2){
+    <span style="color:#64748b;">36</span>      <span style="color:#be185d;">PS</span> t;
+    <span style="color:#64748b;">37</span>      t.ts = ps1.<span style="color:#0284c7;">getTS</span>() * ps2.<span style="color:#0284c7;">getMS</span>() + ps1.<span style="color:#0284c7;">getMS</span>() * ps2.<span style="color:#0284c7;">getTS</span>();
+    <span style="color:#64748b;">38</span>      t.ms = ps1.<span style="color:#0284c7;">getMS</span>() * ps2.<span style="color:#0284c7;">getMS</span>();
+    <span style="color:#64748b;">39</span>      <span style="color:#be185d;">return</span> t;
+    <span style="color:#64748b;">40</span>  }
+                </pre>
+            </div>
+        </div>
+
+        <div class="slide-footer">
+            <span>Ví dụ minh họa</span>
+            <span>0</span>
+        </div>
+    </div>
+    
+    
+    
+    
+    
+        <!-- SLIDE 1: HÀM BẠN (FRIEND FUNCTION) -->
 
     <div class="slide-container">
         <div>
