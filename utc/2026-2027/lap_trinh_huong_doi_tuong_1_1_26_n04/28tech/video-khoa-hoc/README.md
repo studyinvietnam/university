@@ -135,6 +135,7 @@ Thông qua hệ thống bài tập chấm tự động:
 ## 🎬 Video bài giảng
 
 ### [Bài 1-5](https://youtube.com/watch?v=YpLCF2twqxs)
+### [Bài 6](https://youtube.com/watch?v=yux5Sngf3o0)
 
 
 ---
