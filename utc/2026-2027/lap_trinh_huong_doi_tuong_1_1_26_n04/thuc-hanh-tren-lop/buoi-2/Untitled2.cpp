@@ -32,9 +32,6 @@ class ThoiGian{
             gio += phut / 60;
             phut = phut % 60;
         }
-        if (gio >= 24) {
-            gio = gio % 24;
-        }
     }
     ThoiGian(int gio, int phut, int giay) {
         this->gio = gio;
