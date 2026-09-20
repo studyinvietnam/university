@@ -1646,6 +1646,713 @@
     </div>
 </div>
 
+<!-- SLIDE 31: Bài toán tối ưu không ràng buộc -->
+<div class="slide-container" style="height: 650px; display:flex; flex-direction:column; justify-content:space-between;">
+    <div>
+        <div class="top-tag" style="color:#94a3b8; font-weight: 600; letter-spacing: 0.5px;">
+            HỌC PHẦN: CÁC PHƯƠNG PHÁP TỐI ƯU (IT1.238.3)
+        </div>
+        
+        <h1 class="slide-title" style="font-size: 26px; color: #1e293b; margin-top: 40px; margin-bottom: 10px;">
+            Chương 3
+        </h1>
+        
+        <h1 class="slide-title" style="font-size: 38px; color: #1e293b; margin-bottom: 20px; line-height: 1.3;">
+            Bài toán tối ưu không ràng buộc
+        </h1>
+        
+        <div style="font-size: 15px; color: #64748b; font-style: italic; margin-top: 10px;">
+            Điều kiện tối ưu &bull; Phương pháp Gradient &bull; Phương pháp Newton
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 3 — Bài toán tối ưu không ràng buộc</span>
+        <span>31</span>
+    </div>
+</div>
+
+<!-- SLIDE 32: Mục tiêu chương -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">MỞ ĐẦU</div>
+        <h1 class="slide-title">Mục tiêu chương</h1>
+
+        <div style="margin-top: 25px; display: flex; flex-direction: column; gap: 15px;">
+            
+            <!-- Mục 01 -->
+            <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; display:flex; align-items:center; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
+                <div style="flex: 0 0 50px; font-size: 22px; font-weight: 800; color: #475569; text-align: center; border-right: 2px solid #e2e8f0; margin-right: 20px; padding-right: 10px;">
+                    01
+                </div>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                        HIỂU
+                    </div>
+                    <div style="font-size: 15px; color: #1e293b; line-height: 1.5;">
+                        Phát biểu điều kiện cần và điều kiện đủ cho cực trị không ràng buộc
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mục 02 -->
+            <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; display:flex; align-items:center; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
+                <div style="flex: 0 0 50px; font-size: 22px; font-weight: 800; color: #475569; text-align: center; border-right: 2px solid #e2e8f0; margin-right: 20px; padding-right: 10px;">
+                    02
+                </div>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                        HIỂU
+                    </div>
+                    <div style="font-size: 15px; color: #1e293b; line-height: 1.5;">
+                        Trình bày lược đồ chung của phương pháp hướng giảm
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mục 03 -->
+            <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; display:flex; align-items:center; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
+                <div style="flex: 0 0 50px; font-size: 22px; font-weight: 800; color: #475569; text-align: center; border-right: 2px solid #e2e8f0; margin-right: 20px; padding-right: 10px;">
+                    03
+                </div>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                        ÁP DỤNG
+                    </div>
+                    <div style="font-size: 15px; color: #1e293b; line-height: 1.5;">
+                        Giải bài toán bằng phương pháp Gradient và phương pháp Newton
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mục 04 -->
+            <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; display:flex; align-items:center; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
+                <div style="flex: 0 0 50px; font-size: 22px; font-weight: 800; color: #475569; text-align: center; border-right: 2px solid #e2e8f0; margin-right: 20px; padding-right: 10px;">
+                    04
+                </div>
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                        ĐÁNH GIÁ
+                    </div>
+                    <div style="font-size: 15px; color: #1e293b; line-height: 1.5;">
+                        So sánh ưu, nhược điểm và tốc độ hội tụ của hai phương pháp
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 3 — Bài toán tối ưu không ràng buộc</span>
+        <span>32</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 33: Bài toán tối ưu không ràng buộc -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">MỤC 3.1 — ĐIỀU KIỆN TỐI ƯU</div>
+        <h1 class="slide-title">Bài toán tối ưu không ràng buộc</h1>
+
+        <!-- Khung công thức -->
+        <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; margin-top:10px; text-align:center; font-family:'Cambria Math','Times New Roman',serif; font-size:18px; color:#1e293b;">
+            \(f(x) \to \min, \quad x \in \mathbb{R}^n \quad\) (không có ràng buộc \(g_i(x) \le 0, h_j(x) = 0\))
+        </div>
+
+        <div class="grid-2" style="margin-top:20px; align-items: flex-start; gap: 20px;">
+            <!-- Cột trái: Định nghĩa -->
+            <div style="flex: 1;">
+                <!-- Cực tiểu địa phương -->
+                <div style="margin-bottom: 25px;">
+                    <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px;">Cực tiểu địa phương</div>
+                    <div style="font-size: 15px; line-height: 1.6; color: #334155;">
+                        \(x'\) sao cho \(f(x') \le f(x)\) với mọi \(x\) trong lân cận \(B(x')\)
+                    </div>
+                </div>
+
+                <!-- Cực tiểu toàn cục -->
+                <div style="margin-bottom: 25px;">
+                    <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px;">Cực tiểu toàn cục</div>
+                    <div style="font-size: 15px; line-height: 1.6; color: #334155;">
+                        \(x^*\) sao cho \(f(x^*) \le f(x)\) với mọi \(x \in \mathbb{R}^n\)
+                    </div>
+                </div>
+
+                <!-- Ghi chú -->
+                <div style="font-size: 13px; color: #64748b; font-style: italic; line-height: 1.6; padding-left: 10px; border-left: 3px solid #cbd5e1;">
+                    So với Chương 1-2: miền tìm kiếm ở đây là toàn bộ \(\mathbb{R}^n\) — không thu hẹp bởi hệ ràng buộc.
+                </div>
+            </div>
+
+            <!-- Cột phải: Hình vẽ minh họa -->
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <img src="image-slide/Gemini_Generated_Image_jyceqrjyceqrjyce.png" alt="Minh họa cực tiểu địa phương và cực tiểu toàn cục" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0;">
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 3 — Bài toán tối ưu không ràng buộc</span>
+        <span>33</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 34: Điều kiện cần & điều kiện đủ -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">MỤC 3.1 — ĐIỀU KIỆN TỐI ƯU</div>
+        <h1 class="slide-title">Điều kiện cần &amp; điều kiện đủ</h1>
+
+        <!-- Hai khung điều kiện -->
+        <div class="grid-2" style="margin-top:20px; gap: 20px; align-items: stretch;">
+            <!-- Điều kiện cần -->
+            <div style="flex:1;">
+                <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; height: 100%;">
+                    <div style="font-size: 13px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+                        Điều kiện cần (bậc 1)
+                    </div>
+                    <div style="font-family:'Cambria Math','Times New Roman',serif; font-size: 24px; font-weight: 700; color: #1e293b; text-align: center; margin-bottom: 10px;">
+                        \(\nabla f(x^*) = 0\)
+                    </div>
+                    <div style="font-size: 13.5px; color: #475569; line-height: 1.5; text-align: center;">
+                        \(x^*\) là “điểm dừng” — điều kiện cần, chưa đủ để kết luận cực trị
+                    </div>
+                </div>
+            </div>
+
+            <!-- Điều kiện đủ -->
+            <div style="flex:1;">
+                <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; height: 100%;">
+                    <div style="font-size: 13px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+                        Điều kiện đủ (bậc 2)
+                    </div>
+                    <div style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: #1e293b; text-align: center; margin-bottom: 10px;">
+                        Xét dấu Hessian \(H(x^*) = \nabla^2 f(x^*)\)
+                    </div>
+                    <div style="font-size: 13.5px; color: #475569; line-height: 1.5; text-align: center;">
+                        Tại điểm dừng — dùng tiêu chuẩn Hessian đã học ở Chương 2
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bảng kết luận -->
+        <div style="margin-top: 25px; overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size: 14px; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden;">
+                <thead>
+                    <tr style="background:#f1f5f9;">
+                        <th style="padding:12px 16px; text-align:center; font-weight:700; border-bottom:2px solid #cbd5e1; color:#1e293b; width:50%;">Dấu của Hessian tại điểm dừng</th>
+                        <th style="padding:12px 16px; text-align:center; font-weight:700; border-bottom:2px solid #cbd5e1; color:#1e293b; width:50%;">Kết luận</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid #e2e8f0;">
+                        <td style="padding:12px 16px; text-align:center; font-family:'Cambria Math',serif; color:#1e293b;">\(H(x^*)\) xác định dương</td>
+                        <td style="padding:12px 16px; text-align:center; color:#334155;">Cực tiểu địa phương chặt</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e2e8f0; background:#f8fafc;">
+                        <td style="padding:12px 16px; text-align:center; font-family:'Cambria Math',serif; color:#1e293b;">\(H(x^*)\) xác định âm</td>
+                        <td style="padding:12px 16px; text-align:center; color:#334155;">Cực đại địa phương chặt</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e2e8f0;">
+                        <td style="padding:12px 16px; text-align:center; font-family:'Cambria Math',serif; color:#1e293b;">\(H(x^*)\) có trị riêng trái dấu</td>
+                        <td style="padding:12px 16px; text-align:center; color:#334155;">Điểm yên ngựa — KHÔNG phải cực trị</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:12px 16px; text-align:center; font-family:'Cambria Math',serif; color:#1e293b;">\(H(x^*)\) nửa xác định</td>
+                        <td style="padding:12px 16px; text-align:center; color:#334155;">Chưa kết luận được</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 3 — Bài toán tối ưu không ràng buộc</span>
+        <span>34</span>
+    </div>
+</div>
+
+
+
+<!-- SLIDE 35: Kiểm tra điều kiện tối ưu -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">MỤC 3.1 — VÍ DỤ MINH HỌA</div>
+        <h1 class="slide-title">Kiểm tra điều kiện tối ưu</h1>
+
+        <!-- Khung công thức -->
+        <div class="highlight-card" style="background:#f1f5f9; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; margin-top:10px; text-align:center; font-family:'Cambria Math','Times New Roman',serif; font-size:22px; color:#1e293b;">
+            \(f(x_1, x_2) = x_1^2 + x_2^2 - 4\)
+        </div>
+
+        <div class="grid-2" style="margin-top:20px; align-items: flex-start; gap: 25px;">
+            <!-- Cột trái: Các bước giải -->
+            <div style="flex: 1.1;">
+                
+                <!-- Bước 1 -->
+                <div style="display: flex; align-items: flex-start; margin-bottom: 20px;">
+                    <div style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #e2e8f0; color: #1e293b; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 15px; margin-right: 15px; margin-top: 2px;">
+                        1
+                    </div>
+                    <div style="font-size: 15px; line-height: 1.6; color: #1e293b; padding-top: 4px;">
+                        \(\nabla f(x) = (2x_1, 2x_2) = 0 \Rightarrow x^* = (0, 0)\) là điểm dừng
+                    </div>
+                </div>
+
+                <!-- Bước 2 -->
+                <div style="display: flex; align-items: flex-start; margin-bottom: 20px;">
+                    <div style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #e2e8f0; color: #1e293b; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 15px; margin-right: 15px; margin-top: 2px;">
+                        2
+                    </div>
+                    <div style="font-size: 15px; line-height: 1.6; color: #1e293b; padding-top: 4px;">
+                        \(H(x^*) = \begin{bmatrix} 2 & 0 \\ 0 & 2 \end{bmatrix}\)<br>
+                        hai trị riêng đều \(= 2 > 0 \Rightarrow\) xác định dương
+                    </div>
+                </div>
+
+                <!-- Bước 3 -->
+                <div style="display: flex; align-items: flex-start; margin-bottom: 25px;">
+                    <div style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #e2e8f0; color: #1e293b; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 15px; margin-right: 15px; margin-top: 2px;">
+                        3
+                    </div>
+                    <div style="font-size: 15px; line-height: 1.6; color: #1e293b; padding-top: 4px;">
+                        Kết luận: \(x^* = (0,0)\) là cực tiểu địa phương chặt,<br>
+                        \(f(x^*) = -4\) (cũng là cực tiểu toàn cục vì \(f\) lồi)
+                    </div>
+                </div>
+
+                <!-- Cảnh báo -->
+                <div class="highlight-card" style="background:#fff1f2; padding:14px 18px; border-radius:8px; border:1px solid #fecdd3; display: flex; gap: 10px; align-items: flex-start;">
+                    <div style="font-size: 18px; line-height: 1;">⚠️</div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px; color: #be123c; margin-bottom: 4px;">Sai lầm thường gặp:</div>
+                        <div style="font-size: 13.5px; line-height: 1.5; color: #9f1239;">
+                            kết luận cực trị ngay khi \(\nabla f = 0\)<br>
+                            mà quên kiểm tra Hessian.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Cột phải: Hình vẽ minh họa -->
+            <div style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 10px;">
+                <img src="image-slide/Gemini_Generated_Image_g8l9m9g8l9m9g8l9.png" alt="Đồ thị hàm số f(x1, x2)" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 3 — Bài toán tối ưu không ràng buộc</span>
+        <span>35</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 36: Lược đồ chung - Phương pháp hướng giảm -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">MỤC 3.2.1 — KHÁI NIỆM CƠ BẢN</div>
+        <h1 class="slide-title">Lược đồ chung: Phương pháp hướng giảm</h1>
+
+        <!-- Sơ đồ 4 bước -->
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 25px;">
+            
+            <!-- Bước 0 -->
+            <div style="flex: 1; background: #64748b; padding: 16px 10px; border-radius: 8px; text-align: center; color: white; height: 120px; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 11px; font-weight: 800; color: #cbd5e1; letter-spacing: 0.5px; margin-bottom: 4px;">BƯỚC 0</div>
+                <div style="font-size: 14px; font-weight: 600; line-height: 1.3;">Chọn phương án<br>xuất phát \(x_0\)</div>
+            </div>
+
+            <!-- Mũi tên -->
+            <div style="font-size: 24px; color: #94a3b8; font-weight: bold; margin-top: -10px;">&rarr;</div>
+
+            <!-- Bước 1 -->
+            <div style="flex: 1; background: #64748b; padding: 16px 10px; border-radius: 8px; text-align: center; color: white; height: 120px; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 11px; font-weight: 800; color: #cbd5e1; letter-spacing: 0.5px; margin-bottom: 4px;">CHỌN HƯỚNG</div>
+                <div style="font-size: 14px; font-weight: 600; line-height: 1.3;">Xác định hướng<br>giảm \(s_k\)</div>
+            </div>
+
+            <!-- Mũi tên -->
+            <div style="font-size: 24px; color: #94a3b8; font-weight: bold; margin-top: -10px;">&rarr;</div>
+
+            <!-- Bước 2 -->
+            <div style="flex: 1; background: #64748b; padding: 16px 10px; border-radius: 8px; text-align: center; color: white; height: 120px; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 11px; font-weight: 800; color: #cbd5e1; letter-spacing: 0.5px; margin-bottom: 4px;">CHỌN BƯỚC</div>
+                <div style="font-size: 14px; font-weight: 600; line-height: 1.3;">Xác định độ dài<br>bước \(\alpha_k\)</div>
+            </div>
+
+            <!-- Mũi tên -->
+            <div style="font-size: 24px; color: #94a3b8; font-weight: bold; margin-top: -10px;">&rarr;</div>
+
+            <!-- Bước 3 -->
+            <div style="flex: 1.2; background: #64748b; padding: 16px 10px; border-radius: 8px; text-align: center; color: white; height: 120px; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 11px; font-weight: 800; color: #cbd5e1; letter-spacing: 0.5px; margin-bottom: 4px;">CẬP NHẬT</div>
+                <div style="font-size: 15px; font-weight: 600; line-height: 1.4;">\(x_{k+1} = x_k + \alpha_k \cdot s_k\)</div>
+            </div>
+        </div>
+
+        <!-- Ghi chú vòng lặp -->
+        <div style="margin-top: 20px; font-size: 14px; color: #475569; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">↻</span>
+            <span>Lặp lại từ bước "chọn hướng" cho tới khi \(s_k = 0\) (hoặc \(||\nabla f(x_k)||\) đủ nhỏ)</span>
+        </div>
+
+        <!-- Khung thông tin bổ sung -->
+        <div class="highlight-card" style="background:#ffffff; padding: 16px 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 25px;">
+            <div style="font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                Gradient và Newton (các mục tiếp theo) chỉ khác nhau ở CÁCH CHỌN HƯỚNG \(s_k\):
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="font-size: 14.5px; color: #334155; line-height: 1.6;">
+                    • <b>Gradient:</b> \(s_k = -\nabla f(x_k) / ||\nabla f(x_k)||\) (dùng đạo hàm cấp 1)
+                </div>
+                <div style="font-size: 14.5px; color: #334155; line-height: 1.6;">
+                    • <b>Newton:</b> \(s_k = -[\nabla^2 f(x_k)]^{-1} \nabla f(x_k)\) (dùng đạo hàm cấp 2 — Hessian)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 3 — Bài toán tối ưu không ràng buộc</span>
+        <span>36</span>
+    </div>
+</div>
+
+
+
+<!-- SLIDE 37: Minh họa sự thay đổi giá trị hàm số -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">MỤC 3.2.1 — KHÁI NIỆM CƠ BẢN</div>
+        <h1 class="slide-title">Minh họa sự thay đổi giá trị hàm số</h1>
+
+        <div style="display: flex; justify-content: center; align-items: center; margin-top: 20px;">
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 10px;">
+                <img src="image-slide/Gemini_Generated_Image_vz9e57vz9e57vz9e.png" alt="Minh họa sự thay đổi giá trị hàm số" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Minh họa sự thay đổi giá trị hàm số</span>
+        <span>37</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 38: Phương pháp hạ nhanh nhất (Steepest Descent) -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">MỤC 3.2.2 — PHƯƠNG PHÁP GRADIENT</div>
+        <h1 class="slide-title">Phương pháp hạ nhanh nhất (Steepest Descent)</h1>
+
+        <div class="grid-2" style="margin-top:20px; align-items: stretch; gap: 25px;">
+            <!-- Cột trái: Thuật toán -->
+            <div style="flex: 1;">
+                <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 15px; text-transform: uppercase;">
+                    Thuật toán
+                </div>
+
+                <div style="font-size: 15px; line-height: 1.8; color: #334155;">
+                    <p style="margin-bottom: 10px;"><b>Bước 0:</b> Chọn \(x_0\)</p>
+                    
+                    <p style="margin-bottom: 8px;"><b>Bước k:</b> Có \(x_k\)</p>
+                    <ul style="margin: 0; padding-left: 20px; list-style-type: disc;">
+                        <li style="margin-bottom: 6px;">
+                            Nếu \(\nabla f(x_k) = 0 \rightarrow\) dừng, \(x_k\) là nghiệm
+                        </li>
+                        <li style="margin-bottom: 10px;">
+                            Nếu \(\nabla f(x_k) \neq 0\):
+                            <div style="margin-top: 6px; padding-left: 15px; font-family:'Cambria Math', 'Times New Roman', serif; font-size: 16px;">
+                                \(s_k = -\nabla f(x_k) / ||\nabla f(x_k)||\)<br>
+                                chọn \(\alpha_k\) sao cho \(f(x_{k+1}) < f(x_k)\)<br>
+                                \(x_{k+1} = x_k + \alpha_k s_k\), lặp lại
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Cột phải: Công thức và Đặc điểm -->
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+                <!-- Hộp công thức -->
+                <div class="highlight-card" style="background:#f1f5f9; padding: 16px 20px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    <div style="font-size: 15px; color: #1e293b; margin-bottom: 10px;">
+                        Bước tối ưu (steepest descent):
+                    </div>
+                    <div style="font-family:'Cambria Math', 'Times New Roman', serif; font-size: 18px; font-weight: 700; color: #1e293b; text-align: center; line-height: 1.6;">
+                        \(\alpha_k = \text{argmin } f(x_k - \alpha \cdot \nabla f(x_k) / ||\nabla f(x_k)||)\)<br>
+                        \(\alpha \ge 0\)
+                    </div>
+                </div>
+
+                <!-- Hộp đặc điểm -->
+                <div class="highlight-card" style="background:#ffffff; padding: 16px 20px; border-radius: 8px; border: 1px solid #e2e8f0; flex: 1;">
+                    <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 12px; text-transform: uppercase;">
+                        Đặc điểm
+                    </div>
+                    <ul style="margin: 0; padding-left: 0; list-style: none; font-size: 14.5px; line-height: 1.8; color: #334155;">
+                        <li style="display: flex; align-items: flex-start; margin-bottom: 8px;">
+                            <span style="color: #0284c7; font-weight: bold; margin-right: 8px;">✓</span>
+                            <span>Đơn giản, dễ cài đặt</span>
+                        </li>
+                        <li style="display: flex; align-items: flex-start; margin-bottom: 8px;">
+                            <span style="color: #0284c7; font-weight: bold; margin-right: 8px;">✓</span>
+                            <span>Là cơ sở cho nhiều phương pháp cải tiến</span>
+                        </li>
+                        <li style="display: flex; align-items: flex-start; margin-bottom: 8px;">
+                            <span style="color: #be185d; font-weight: bold; margin-right: 8px;">✗</span>
+                            <span>Hội tụ chậm gần điểm tối ưu ("zic-zac")</span>
+                        </li>
+                        <li style="display: flex; align-items: flex-start;">
+                            <span style="color: #be185d; font-weight: bold; margin-right: 8px;">✗</span>
+                            <span>Rất chậm với hàm có đường mức dẹt</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 3 — Bài toán tối ưu không ràng buộc</span>
+        <span>38</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 39: Phương pháp Gradient - Ví dụ số -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">MỤC 3.2.2 — VÍ DỤ SỐ</div>
+        <h1 class="slide-title">Phương pháp Gradient</h1>
+
+        <!-- Khung công thức -->
+        <div class="highlight-card" style="background:#f1f5f9; padding:16px 20px; border-radius:8px; border:1px solid #cbd5e1; margin-top:15px; text-align:center; font-family:'Cambria Math','Times New Roman',serif; font-size:20px; font-weight:700; color:#1e293b;">
+            \(f(x) = x_1^2 + 100x_2^2 \to \min, \quad \alpha = 1, \quad x_0 = (2, 2)\)
+        </div>
+
+        <!-- Bảng kết quả -->
+        <div style="margin-top: 25px; overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:14.5px; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden;">
+                <thead>
+                    <tr style="background:#cbd5e1;">
+                        <th style="padding:10px 14px; text-align:center; font-weight:700; border-bottom:2px solid #94a3b8; color:#1e293b; width:8%;">k</th>
+                        <th style="padding:10px 14px; text-align:center; font-weight:700; border-bottom:2px solid #94a3b8; color:#1e293b; width:22%;">\(x_k\)</th>
+                        <th style="padding:10px 14px; text-align:center; font-weight:700; border-bottom:2px solid #94a3b8; color:#1e293b; width:20%;">\(f(x_k)\)</th>
+                        <th style="padding:10px 14px; text-align:left; font-weight:700; border-bottom:2px solid #94a3b8; color:#1e293b; width:50%;">Nhận xét</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid #e2e8f0;">
+                        <td style="padding:10px 14px; text-align:center; color:#334155;">0</td>
+                        <td style="padding:10px 14px; text-align:center; font-family:'Cambria Math',serif; color:#1e293b;">(2, 2)</td>
+                        <td style="padding:10px 14px; text-align:center; color:#334155;">104</td>
+                        <td style="padding:10px 14px; text-align:left; color:#334155;">Xuất phát</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e2e8f0; background:#f8fafc;">
+                        <td style="padding:10px 14px; text-align:center; color:#334155;">1</td>
+                        <td style="padding:10px 14px; text-align:center; font-family:'Cambria Math',serif; color:#1e293b;">(1,96 ; 1)</td>
+                        <td style="padding:10px 14px; text-align:center; color:#334155;">28,83</td>
+                        <td style="padding:10px 14px; text-align:left; color:#334155;">Giảm mạnh (thành phần \(x_2\) lớn)</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e2e8f0;">
+                        <td style="padding:10px 14px; text-align:center; color:#334155;">2</td>
+                        <td style="padding:10px 14px; text-align:center; font-family:'Cambria Math',serif; color:#1e293b;">(1,88 ; 0)</td>
+                        <td style="padding:10px 14px; text-align:center; color:#334155;">3,53</td>
+                        <td style="padding:10px 14px; text-align:left; color:#334155;">Tiếp tục giảm</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px 14px; text-align:center; color:#334155;">3</td>
+                        <td style="padding:10px 14px; text-align:center; font-family:'Cambria Math',serif; color:#1e293b;">(0,88 ; 0)</td>
+                        <td style="padding:10px 14px; text-align:center; color:#334155;">0,7784</td>
+                        <td style="padding:10px 14px; text-align:left; color:#334155;">Tiến dần về (0, 0)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Ghi chú -->
+        <div style="margin-top: 20px; padding: 14px 18px; background: #f1f5f9; border-left: 4px solid #94a3b8; border-radius: 6px; font-style: italic; font-size: 14px; color: #475569; line-height: 1.6;">
+            <b>Nhận xét:</b> \(f(x_k)\) giảm dần đều, nhưng tốc độ giảm chậm lại khi gần điểm tối ưu — đặc trưng "hội tụ tuyến tính" của phương pháp Gradient.
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 3 — Bài toán tối ưu không ràng buộc</span>
+        <span>39</span>
+    </div>
+</div>
+
+
+
+<!-- SLIDE 40: Sử dụng đạo hàm cấp 2 (ma trận Hessian) -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">MỤC 3.2.3 — PHƯƠNG PHÁP NEWTON</div>
+        <h1 class="slide-title">Sử dụng đạo hàm cấp 2 (ma trận Hessian)</h1>
+
+        <!-- Khung công thức chính -->
+        <div class="highlight-card" style="background:#f1f5f9; padding:16px 20px; border-radius:8px; border:1px solid #cbd5e1; margin-top:15px; text-align:center; font-family:'Cambria Math','Times New Roman',serif; font-size:22px; font-weight:700; color:#1e293b;">
+            \(X_{k+1} = X_k - [\nabla^2 f(X_k)]^{-1} \nabla f(X_k)\)
+        </div>
+
+        <!-- Ý tưởng -->
+        <div style="margin-top: 15px; font-size: 14.5px; font-style: italic; color: #475569; line-height: 1.6;">
+            Ý tưởng: xấp xỉ \(f\) bằng hàm toàn phương (khai triển Taylor bậc 2) quanh \(x_k\), rồi tìm cực tiểu của xấp xỉ đó.
+        </div>
+
+        <!-- Ưu điểm / Nhược điểm -->
+        <div class="grid-2" style="margin-top: 25px; align-items: stretch; gap: 25px;">
+            <!-- Ưu điểm -->
+            <div style="flex: 1;">
+                <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; height: 100%;">
+                    <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 12px; text-transform: uppercase;">
+                        Ưu điểm
+                    </div>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 14.5px; line-height: 1.8; color: #334155;">
+                        <li>Tốc độ hội tụ bậc 2 — rất nhanh</li>
+                        <li>Với hàm toàn phương: hội tụ chính xác chỉ sau 1 bước</li>
+                        <li>Vượt trội các phương pháp khác khi gần nghiệm</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Nhược điểm -->
+            <div style="flex: 1;">
+                <div class="highlight-card" style="background:#ffffff; padding:16px 20px; border-radius:8px; border:1px solid #e2e8f0; height: 100%;">
+                    <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 12px; text-transform: uppercase;">
+                        Nhược điểm
+                    </div>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 14.5px; line-height: 1.8; color: #334155;">
+                        <li>Có thể không hội tụ nếu \(x_0\) ở xa nghiệm (hàm không lồi)</li>
+                        <li>Phải tính Hessian và ma trận nghịch đảo mỗi bước</li>
+                        <li>Chi phí tính toán cao khi số biến \(n\) lớn</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 3 — Bài toán tối ưu không ràng buộc</span>
+        <span>40</span>
+    </div>
+</div>
+
+
+
+<!-- SLIDE 41: Phương pháp Newton — Hàm Rosenbrock -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">MỤC 3.2.3 — VÍ DỤ SỐ</div>
+        <h1 class="slide-title">Phương pháp Newton — Hàm Rosenbrock</h1>
+
+        <!-- Khung công thức -->
+        <div class="highlight-card" style="background:#f1f5f9; padding:16px 20px; border-radius:8px; border:1px solid #cbd5e1; margin-top:15px; text-align:center; font-family:'Cambria Math','Times New Roman',serif; font-size:19px; font-weight:700; color:#1e293b;">
+            \(f(x) = 100(x_2 - x_1^2)^2 + (1 - x_1)^2 \to \min, \quad x_0 = (-0,5 ; 0,5)\)
+        </div>
+
+        <!-- 3 hộp thông số -->
+        <div style="display: flex; gap: 20px; margin-top: 25px; justify-content: space-between;">
+            <!-- Hộp 1 -->
+            <div class="highlight-card" style="flex: 1; background:#ffffff; padding: 20px 10px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 28px; font-weight: 700; color: #1e293b; line-height: 1.2; margin-bottom: 8px;">58,5</div>
+                <div style="font-size: 15px; color: #475569; font-family:'Cambria Math', 'Times New Roman', serif;">\(f(x_0)\)</div>
+            </div>
+
+            <!-- Hộp 2 -->
+            <div class="highlight-card" style="flex: 1; background:#ffffff; padding: 20px 10px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 28px; font-weight: 700; color: #1e293b; line-height: 1.2; margin-bottom: 8px;">(47 ; 50)</div>
+                <div style="font-size: 15px; color: #475569; font-family:'Cambria Math', 'Times New Roman', serif;">\(\nabla f(x_0)\)</div>
+            </div>
+
+            <!-- Hộp 3 -->
+            <div class="highlight-card" style="flex: 1; background:#ffffff; padding: 20px 10px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 28px; font-weight: 700; color: #1e293b; line-height: 1.2; margin-bottom: 8px;">2,33</div>
+                <div style="font-size: 15px; color: #475569; font-family:'Cambria Math', 'Times New Roman', serif;">\(f(x_1)\) sau 1 bước Newton</div>
+            </div>
+        </div>
+
+        <!-- Khung so sánh -->
+        <div class="highlight-card" style="background:#f1f5f9; padding: 16px 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 25px;">
+            <div style="font-size: 15.5px; font-weight: 700; color: #1e293b; margin-bottom: 10px;">
+                So sánh trực tiếp với Gradient trên cùng hàm Rosenbrock:
+            </div>
+            <div style="font-size: 14.5px; color: #334155; line-height: 1.7;">
+                Newton giảm giá trị hàm mục tiêu từ 58,5 xuống 2,33 chỉ sau 1 bước lặp — nhanh hơn rõ rệt so với Gradient trên cùng hàm mục tiêu, nhưng đổi lại chi phí mỗi bước cao hơn (tính và nghịch đảo Hessian).
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 3 — Bài toán tối ưu không ràng buộc</span>
+        <span>41</span>
+    </div>
+</div>
+
+
+
+<!-- SLIDE 42: So sánh Gradient và Newton -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">TỔNG HỢP</div>
+        <h1 class="slide-title">So sánh Gradient và Newton</h1>
+
+        <!-- Bảng so sánh -->
+        <div style="margin-top: 25px; overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:15px; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden;">
+                <thead>
+                    <tr style="background:#cbd5e1;">
+                        <th style="padding:12px 14px; text-align:center; font-weight:700; border-bottom:2px solid #94a3b8; color:#1e293b; width:25%;">Tiêu chí</th>
+                        <th style="padding:12px 14px; text-align:center; font-weight:700; border-bottom:2px solid #94a3b8; color:#1e293b; width:37.5%;">Gradient</th>
+                        <th style="padding:12px 14px; text-align:center; font-weight:700; border-bottom:2px solid #94a3b8; color:#1e293b; width:37.5%;">Newton</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid #e2e8f0;">
+                        <td style="padding:12px 14px; text-align:center; font-weight:600; color:#334155;">Đạo hàm sử dụng</td>
+                        <td style="padding:12px 14px; text-align:center; color:#334155; font-family:'Cambria Math',serif;">Cấp 1 (\(\nabla f\))</td>
+                        <td style="padding:12px 14px; text-align:center; color:#334155; font-family:'Cambria Math',serif;">Cấp 2 (\(\nabla^2 f\) — Hessian)</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e2e8f0; background:#f8fafc;">
+                        <td style="padding:12px 14px; text-align:center; font-weight:600; color:#334155;">Tốc độ hội tụ</td>
+                        <td style="padding:12px 14px; text-align:center; color:#334155;">Tuyến tính (chậm gần cực trị)</td>
+                        <td style="padding:12px 14px; text-align:center; color:#334155;">Bậc 2 (nhanh)</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e2e8f0;">
+                        <td style="padding:12px 14px; text-align:center; font-weight:600; color:#334155;">Chi phí mỗi bước</td>
+                        <td style="padding:12px 14px; text-align:center; color:#334155;">Thấp</td>
+                        <td style="padding:12px 14px; text-align:center; color:#334155;">Cao (tính + nghịch đảo Hessian)</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:12px 14px; text-align:center; font-weight:600; color:#334155;">Phù hợp khi</td>
+                        <td style="padding:12px 14px; text-align:center; color:#334155;">\(n\) lớn, cần đơn giản/rẻ mỗi bước</td>
+                        <td style="padding:12px 14px; text-align:center; color:#334155;">\(n\) vừa/nhỏ, cần hội tụ nhanh</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Ghi chú tổng hợp -->
+        <div class="highlight-card" style="background:#f1f5f9; padding: 16px 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 25px; font-style: italic; font-size: 15px; color: #334155; text-align: center;">
+            Gradient và Newton là hai thái cực: đơn giản nhưng chậm &harr; nhanh nhưng đắt.
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>Chương 3 — Bài toán tối ưu không ràng buộc</span>
+        <span>42</span>
+    </div>
+</div>
+
+
 
 </body>
 </html>
