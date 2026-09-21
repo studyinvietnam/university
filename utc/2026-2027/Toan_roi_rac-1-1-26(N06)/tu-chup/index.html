@@ -1975,6 +1975,1278 @@
         </div>
     </div>
 
+    <!-- SLIDE 40: Chương 3 - Phương pháp đếm -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 10px;">
+            <div style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 1px; text-transform: uppercase;">
+                TOÁN RỜI RẠC - IT1.238.3
+            </div>
+            
+            <!-- Đồ họa chấm bi -->
+            <div style="margin-right: 15px;">
+                <svg width="100" height="60" viewBox="0 0 100 60" style="overflow: visible;">
+                    <!-- Hàng 1 -->
+                    <circle cx="30" cy="10" r="3" fill="#cbd5e1" />
+                    <circle cx="45" cy="10" r="3" fill="#cbd5e1" />
+                    <circle cx="60" cy="10" r="3" fill="#cbd5e1" />
+                    <!-- Hàng 2 -->
+                    <circle cx="20" cy="20" r="3" fill="#cbd5e1" />
+                    <circle cx="35" cy="20" r="3" fill="#cbd5e1" />
+                    <circle cx="50" cy="20" r="3" fill="#cbd5e1" />
+                    <circle cx="65" cy="20" r="3" fill="#cbd5e1" />
+                    <!-- Hàng 3 -->
+                    <circle cx="10" cy="30" r="3" fill="#cbd5e1" />
+                    <circle cx="25" cy="30" r="3" fill="#cbd5e1" />
+                    <circle cx="40" cy="30" r="3" fill="#cbd5e1" />
+                    <circle cx="55" cy="30" r="3" fill="#cbd5e1" />
+                    <circle cx="70" cy="30" r="3" fill="#cbd5e1" />
+                    <!-- Hàng 4 -->
+                    <circle cx="20" cy="40" r="3" fill="#cbd5e1" />
+                    <circle cx="35" cy="40" r="3" fill="#cbd5e1" />
+                    <circle cx="50" cy="40" r="3" fill="#cbd5e1" />
+                    <circle cx="65" cy="40" r="3" fill="#cbd5e1" />
+                    <!-- Hàng 5 -->
+                    <circle cx="30" cy="50" r="3" fill="#cbd5e1" />
+                    <circle cx="45" cy="50" r="3" fill="#cbd5e1" />
+                    <circle cx="60" cy="50" r="3" fill="#cbd5e1" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Tiêu đề chính -->
+        <div style="margin-top: 50px;">
+            <h1 class="slide-title" style="font-size: 34px; font-weight: 800; color: #1e293b; margin-bottom: 5px; line-height: 1.2;">
+                CHƯƠNG 3
+            </h1>
+            <h1 class="slide-title" style="font-size: 38px; font-weight: 800; color: #1e293b; margin-top: 0; line-height: 1.2;">
+                PHƯƠNG PHÁP ĐẾM
+            </h1>
+        </div>
+
+        <!-- Mô tả -->
+        <div style="margin-top: 40px; font-size: 16px; color: #475569; font-style: italic; line-height: 1.6;">
+            Đếm chính xác - quy tắc cộng & nhân - hoán vị, tổ hợp
+        </div>
+
+        <!-- Thông tin học phần -->
+        <div style="margin-top: 20px; font-size: 14px; color: #64748b;">
+            Học phần: Toán rời rạc - IT1.238.3
+        </div>
+    </div>
+
+    <!-- Mục lục chương -->
+    <div>
+        <div style="font-size: 26px; font-weight: 700; color: #1e293b; margin-bottom: 15px;">
+            3.1 → 3.6
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 41: Mục tiêu bài học -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <h1 class="slide-title" style="margin-bottom: 30px;">Mục tiêu bài học</h1>
+
+        <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 20px;">
+            <!-- Mục 1 -->
+            <div style="display: flex; align-items: center;">
+                <div style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 20px;">
+                    1
+                </div>
+                <div style="font-size: 16px; color: #334155; line-height: 1.5;">
+                    Vận dụng nguyên lý cộng và nguyên lý nhân để đếm số cấu hình
+                </div>
+            </div>
+
+            <!-- Mục 2 -->
+            <div style="display: flex; align-items: center;">
+                <div style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 20px;">
+                    2
+                </div>
+                <div style="font-size: 16px; color: #334155; line-height: 1.5;">
+                    Áp dụng nguyên lý bù trừ khi các trường hợp có phần giao nhau
+                </div>
+            </div>
+
+            <!-- Mục 3 -->
+            <div style="display: flex; align-items: center;">
+                <div style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 20px;">
+                    3
+                </div>
+                <div style="font-size: 16px; color: #334155; line-height: 1.5;">
+                    Chứng minh sự tồn tại bằng nguyên lý Dirichlet
+                </div>
+            </div>
+
+            <!-- Mục 4 -->
+            <div style="display: flex; align-items: center;">
+                <div style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 20px;">
+                    4
+                </div>
+                <div style="font-size: 16px; color: #334155; line-height: 1.5;">
+                    Phân biệt và tính đúng hoán vị, chỉnh hợp, tổ hợp (có/không lặp)
+                </div>
+            </div>
+
+            <!-- Mục 5 -->
+            <div style="display: flex; align-items: center;">
+                <div style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 20px;">
+                    5
+                </div>
+                <div style="font-size: 16px; color: #334155; line-height: 1.5;">
+                    Thiết lập và giải hệ thức truy hồi tuyến tính bằng phương trình đặc trưng
+                </div>
+            </div>
+        </div>
+
+        <!-- Dòng ghi chú nhỏ -->
+        <div style="margin-top: 40px; font-size: 13px; color: #64748b; font-style: italic;">
+            Liên kết CĐR: G.1.1 · G.2.1 · G.2.2 · G.2.3 (làm việc nhóm qua mục 3.2, 3.4)
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2);">
+        <span></span>
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>41</span>
+    </div>
+</div>
+
+<!-- SLIDE 42: Quy tắc nhân & quy tắc cộng -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 4px; font-size: 11px;">3.1</span>
+            NGUYÊN LÝ ĐẾM CƠ BẢN
+        </div>
+        <h1 class="slide-title" style="margin-bottom: 30px;">Quy tắc nhân &amp; quy tắc cộng</h1>
+
+        <div style="display: flex; gap: 40px; align-items: flex-start;">
+            <!-- Cột trái: Quy tắc nhân -->
+            <div style="flex: 1;">
+                <!-- Tiêu đề -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px;">
+                        &times;
+                    </div>
+                    <div style="font-size: 18px; font-weight: 700; color: #1e293b;">
+                        Quy tắc nhân
+                    </div>
+                </div>
+
+                <!-- Mô tả -->
+                <div style="font-size: 15px; color: #334155; line-height: 1.6; margin-bottom: 15px;">
+                    Công việc gồm các bước NỐI TIẾP nhau.
+                </div>
+
+                <!-- Hộp công thức -->
+                <div style="background: #94a3b8; border-radius: 6px; padding: 16px 20px; text-align: center; margin-bottom: 15px;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 22px; font-weight: 700; color: white;">
+                        \(n_1 \cdot n_2 \cdot \dots \cdot n_m\)
+                    </span>
+                </div>
+
+                <!-- Giải thích -->
+                <div style="font-size: 14px; color: #475569; line-height: 1.6;">
+                    Bước 1 có \(n_1\) cách,<br>
+                    với MỖI cách của bước 1 thì bước 2 có \(n_2\) cách...
+                </div>
+            </div>
+
+            <!-- Cột phải: Quy tắc cộng -->
+            <div style="flex: 1;">
+                <!-- Tiêu đề -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: #7dd3fc; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px;">
+                        +
+                    </div>
+                    <div style="font-size: 18px; font-weight: 700; color: #1e293b;">
+                        Quy tắc cộng
+                    </div>
+                </div>
+
+                <!-- Mô tả -->
+                <div style="font-size: 15px; color: #334155; line-height: 1.6; margin-bottom: 15px;">
+                    Các lựa chọn LOẠI TRỪ NHAU (không đồng thời xảy ra).
+                </div>
+
+                <!-- Hộp công thức -->
+                <div style="background: #7dd3fc; border-radius: 6px; padding: 16px 20px; text-align: center; margin-bottom: 15px;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 22px; font-weight: 700; color: white;">
+                        \(n_1 + n_2 + \dots + n_m\)
+                    </span>
+                </div>
+
+                <!-- Giải thích -->
+                <div style="font-size: 14px; color: #475569; line-height: 1.6;">
+                    Nếu \(A_1, \dots, A_m\) rời nhau đôi một:<br>
+                    \(|A_1 \cup \dots \cup A_m| = |A_1| + \dots + |A_m|\)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>42</span>
+    </div>
+</div>
+
+<!-- SLIDE 43: Ví dụ minh họa -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">3.1 · VÍ DỤ</div>
+        <h1 class="slide-title" style="margin-bottom: 40px;">Ví dụ minh họa</h1>
+
+        <!-- 3 cột nội dung -->
+        <div style="display: flex; gap: 30px; align-items: flex-start; justify-content: space-between; margin-top: 30px;">
+            
+            <!-- Cột 1 -->
+            <div style="flex: 1; text-align: center;">
+                <div style="font-size: 48px; font-weight: 800; color: #64748b; margin-bottom: 15px; line-height: 1;">
+                    132
+                </div>
+                <div style="font-size: 14.5px; color: #334155; line-height: 1.6; padding: 0 10px;">
+                    cách xếp 2 nhân viên vào 12 văn phòng khác nhau:<br>
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 16px;">12 × 11</span>
+                </div>
+            </div>
+
+            <!-- Cột 2 -->
+            <div style="flex: 1; text-align: center;">
+                <div style="font-size: 48px; font-weight: 800; color: #7dd3fc; margin-bottom: 15px; line-height: 1;">
+                    57
+                </div>
+                <div style="font-size: 14.5px; color: #334155; line-height: 1.6; padding: 0 10px;">
+                    cách chọn đề tài từ 3 danh sách rời nhau (23, 15, 19 đề tài):<br>
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 16px;">23 + 15 + 19</span>
+                </div>
+            </div>
+
+            <!-- Cột 3 -->
+            <div style="flex: 1; text-align: center;">
+                <div style="font-size: 48px; font-weight: 800; color: #fdba74; margin-bottom: 15px; line-height: 1;">
+                    \(2^{|S|}\)
+                </div>
+                <div style="font-size: 14.5px; color: #334155; line-height: 1.6; padding: 0 10px;">
+                    số tập con của tập S — mỗi tập con ứng với 1 xâu bit độ dài ≤ |S|
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Khung ghi chú dưới cùng -->
+        <div class="highlight-card" style="background:#ffffff; padding: 16px 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 45px;">
+            <div style="font-size: 14.5px; color: #475569; line-height: 1.6; font-style: italic;">
+                Ví dụ (3) là cầu nối quan trọng — sẽ dùng lại khi học đồ thị và tập hợp con ở Chương 4-5
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span></span>
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>43</span>
+    </div>
+</div>
+
+<!-- SLIDE 44: Nguyên lý bù trừ -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header: tag, tiêu đề phụ, thẻ thảo luận nhóm -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+            <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin: 0;">
+                <span style="background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.2</span>
+                <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">ĐẾM VỚI PHẦN GIAO NHAU</span>
+            </div>
+            
+            <div style="background: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">
+                THẢO LUẬN NHÓM
+            </div>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 30px;">Nguyên lý bù trừ</h1>
+
+        <div style="display: flex; gap: 40px; align-items: center; margin-top: 20px;">
+            <!-- Cột trái: Công thức và giải thích -->
+            <div style="flex: 1.2;">
+                <!-- Hộp công thức -->
+                <div style="background: #94a3b8; border-radius: 8px; padding: 20px 24px; text-align: center; margin-bottom: 25px;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 22px; font-weight: 700; color: white;">
+                        \(|A_1 \cup A_2| = |A_1| + |A_2| - |A_1 \cap A_2|\)
+                    </span>
+                </div>
+
+                <!-- Giải thích -->
+                <div style="font-size: 15.5px; color: #334155; line-height: 1.7;">
+                    Khi \(A_1\) và \(A_2\) <b>CÓ</b> phần giao nhau, cộng trực tiếp \(|A_1| + |A_2|\) sẽ đếm phần giao <b>HAI LẦN</b> — phải trừ đi một lần.
+                </div>
+            </div>
+
+            <!-- Cột phải: Biểu đồ Venn -->
+            <div style="flex: 1; display: flex; justify-content: center; align-items: center;">
+                <svg width="300" height="220" viewBox="0 0 300 220">
+                    <!-- Vòng tròn A1 -->
+                    <circle cx="120" cy="110" r="70" fill="rgba(148, 163, 184, 0.4)" stroke="#94a3b8" stroke-width="2" />
+                    
+                    <!-- Vòng tròn A2 -->
+                    <circle cx="190" cy="110" r="70" fill="rgba(125, 211, 252, 0.4)" stroke="#7dd3fc" stroke-width="2" />
+
+                    <!-- Nhãn A1 -->
+                    <text x="80" y="115" font-size="24" font-weight="bold" fill="#be123c" font-family="Cambria Math, Times New Roman, serif">A₁</text>
+                    
+                    <!-- Nhãn A2 -->
+                    <text x="220" y="115" font-size="24" font-weight="bold" fill="#be123c" font-family="Cambria Math, Times New Roman, serif">A₂</text>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>44</span>
+    </div>
+</div>
+
+<!-- SLIDE 45: Ví dụ minh họa - Nguyên lý bù trừ -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.3</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">VÍ DỤ</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 25px;">Ví dụ minh họa</h1>
+
+        <!-- Đề bài -->
+        <div style="font-size: 15.5px; color: #1e293b; line-height: 1.7; margin-bottom: 35px; font-weight: 500;">
+            350 hồ sơ ứng tuyển: 220 tốt nghiệp CNTT, 147 tốt nghiệp Kinh doanh, 51 người tốt nghiệp CẢ HAI ngành. Hỏi bao nhiêu người KHÔNG thuộc ngành nào?
+        </div>
+
+        <!-- Bảng kết quả -->
+        <div style="margin-bottom: 30px;">
+            <!-- Header bảng -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 30px;">
+                <div style="flex: 1; text-align: center; font-size: 16px; font-weight: 700; color: #475569;">Bước</div>
+                <div style="flex: 1; text-align: center; font-size: 16px; font-weight: 700; color: #475569;">Phép tính</div>
+                <div style="flex: 1; text-align: center; font-size: 16px; font-weight: 700; color: #475569;">Kết quả</div>
+            </div>
+            
+            <!-- Dòng 1 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding: 0 30px;">
+                <div style="flex: 1; text-align: center; font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 18px; color: #1e293b;">
+                    \(|A_1 \cup A_2|\)
+                </div>
+                <div style="flex: 1; text-align: center; font-size: 16px; color: #334155;">
+                    220 + 147 - 51
+                </div>
+                <div style="flex: 1; text-align: center; font-size: 18px; font-weight: 700; color: #1e293b;">
+                    316
+                </div>
+            </div>
+            
+            <!-- Dòng 2 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 30px;">
+                <div style="flex: 1; text-align: center; font-size: 15.5px; color: #1e293b; font-weight: 600;">
+                    Không thuộc ngành nào
+                </div>
+                <div style="flex: 1; text-align: center; font-size: 16px; color: #334155;">
+                    350 - 316
+                </div>
+                <div style="flex: 1; text-align: center; font-size: 18px; font-weight: 700; color: #1e293b;">
+                    34
+                </div>
+            </div>
+        </div>
+
+        <!-- Ghi chú -->
+        <div class="highlight-card" style="background: #ffffff; padding: 16px 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 40px;">
+            <div style="font-size: 14.5px; color: #475569; line-height: 1.6; font-style: italic;">
+                220 + 147 đếm 51 người thuộc cả hai ngành hai lần → phải trừ 51 một lần để mỗi người chỉ được đếm đúng một lần.
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>45</span>
+    </div>
+</div>
+
+<!-- SLIDE 46: Nguyên lý Dirichlet -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.3</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">CHỨNG MINH SỰ TỒN TẠI</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 25px;">Nguyên lý Dirichlet</h1>
+
+        <div style="display: flex; gap: 30px; align-items: flex-start; margin-top: 20px;">
+            <!-- Cột trái: Nội dung lý thuyết -->
+            <div style="flex: 1.1;">
+                <!-- Phát biểu chính -->
+                <div style="font-size: 16px; font-weight: 700; color: #1e293b; line-height: 1.6; margin-bottom: 30px; padding-right: 10px;">
+                    Nếu k+1 vật được đặt vào k hộp, thì có ít nhất một hộp chứa từ 2 vật trở lên.
+                </div>
+
+                <!-- Chứng minh -->
+                <div style="font-size: 14.5px; color: #334155; line-height: 1.7; margin-bottom: 25px;">
+                    <b>Chứng minh (phản chứng):</b> giả sử không hộp nào chứa quá 1 vật → tổng số vật ≤ k, mâu thuẫn với giả thiết có ≥ k+1 vật. ■
+                </div>
+
+                <!-- Hệ quả -->
+                <div style="font-size: 14.5px; color: #334155; line-height: 1.7;">
+                    <b>Hệ quả:</b><br>
+                    hàm f từ tập k+1 phần tử đến tập k phần tử KHÔNG THỂ là đơn ánh.
+                </div>
+            </div>
+
+            <!-- Cột phải: Minh họa trực quan -->
+            <div style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 10px;">
+                <!-- Các hộp và vật -->
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <!-- Hộp 1 (2 vật) -->
+                    <div style="width: 60px; height: 60px; border: 1px solid #cbd5e1; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 5px; background: #f8fafc;">
+                        <div style="width: 18px; height: 18px; background: #fcd34d; border-radius: 50%; border: 1px solid #eab308;"></div>
+                        <div style="width: 18px; height: 18px; background: #fcd34d; border-radius: 50%; border: 1px solid #eab308;"></div>
+                    </div>
+                    <!-- Hộp 2 (1 vật) -->
+                    <div style="width: 60px; height: 60px; border: 1px solid #cbd5e1; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: #f8fafc;">
+                        <div style="width: 18px; height: 18px; background: #fcd34d; border-radius: 50%; border: 1px solid #eab308;"></div>
+                    </div>
+                    <!-- Hộp 3 (1 vật) -->
+                    <div style="width: 60px; height: 60px; border: 1px solid #cbd5e1; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: #f8fafc;">
+                        <div style="width: 18px; height: 18px; background: #fcd34d; border-radius: 50%; border: 1px solid #eab308;"></div>
+                    </div>
+                    <!-- Hộp 4 (1 vật) -->
+                    <div style="width: 60px; height: 60px; border: 1px solid #cbd5e1; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: #f8fafc;">
+                        <div style="width: 18px; height: 18px; background: #fcd34d; border-radius: 50%; border: 1px solid #eab308;"></div>
+                    </div>
+                </div>
+
+                <!-- Chú thích dưới hình -->
+                <div style="font-size: 15px; font-weight: 600; color: #1e293b; text-align: center; margin-bottom: 20px;">
+                    5 vật · 4 hộp → ít nhất 1 hộp có ≥ 2 vật
+                </div>
+
+                <!-- Tên gọi khác -->
+                <div style="font-size: 14.5px; color: #475569; text-align: center; font-style: italic; line-height: 1.5;">
+                    Còn gọi là nguyên lý ngăn kéo Dirichlet<br>
+                    (G. Lejeune Dirichlet, thế kỷ 19)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>46</span>
+    </div>
+</div>
+
+<!-- SLIDE 47: Nguyên lý Dirichlet tổng quát -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.3</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">MỞ RỘNG CHO N VẬT</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 30px;">Nguyên lý Dirichlet tổng quát</h1>
+
+        <!-- Công thức chính -->
+        <div style="background: #94a3b8; border-radius: 8px; padding: 20px 24px; text-align: center; margin-bottom: 40px;">
+            <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 22px; font-weight: 700; color: white;">
+                N vật vào k hộp \(\rightarrow\) có hộp chứa \(\ge [N / k]\) vật
+            </span>
+        </div>
+
+        <!-- Nội dung 2 cột -->
+        <div style="display: flex; gap: 30px; align-items: flex-start; margin-top: 10px;">
+            <!-- Cột trái: Công thức tính N -->
+            <div style="flex: 1;">
+                <div style="font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 15px; line-height: 1.5;">
+                    Số vật nhỏ nhất để đảm bảo có hộp chứa \(\ge r\) vật:
+                </div>
+                <div style="background: #7dd3fc; border-radius: 8px; padding: 16px 20px; text-align: center;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: white;">
+                        \(N = k(r - 1) + 1\)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Cột phải: Giải thích ý tưởng -->
+            <div style="flex: 1;">
+                <div style="font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 15px;">
+                    Ý tưởng:
+                </div>
+                <div style="font-size: 14.5px; color: #334155; line-height: 1.7;">
+                    nếu chỉ có \(k(r-1)\) vật, có thể xếp đúng \(r-1\) vật/hộp \(\rightarrow\) không hộp nào đủ \(r\) vật.<br>
+                    Thêm 1 vật nữa là bắt buộc có hộp đạt \(r\) vật.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>47</span>
+    </div>
+</div>
+
+<!-- SLIDE 48: Bảng minh họa -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">CHƯƠNG 3 - PHƯƠNG PHÁP ĐẾM</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;"></h1>
+
+        <div style="display: flex; justify-content: center; align-items: center; margin-top: 20px;">
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <!-- Đã điều chỉnh kích thước ảnh bé lại vừa phải -->
+                <img src="https://raw.githubusercontent.com/hunganhcodeserver1/image/refs/heads/main/1789955253.png" 
+                     alt="Bảng minh họa" 
+                     style="max-width: 75%; height: auto; max-height: 450px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2);">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>48</span>
+    </div>
+</div>
+
+<!-- SLIDE 49: Ví dụ minh họa - Nguyên lý Dirichlet -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.3</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">VÍ DỤ</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 30px;">Ví dụ minh họa</h1>
+
+        <!-- Nội dung 3 cột -->
+        <div style="display: flex; gap: 25px; align-items: flex-start; justify-content: space-between; margin-top: 20px;">
+            
+            <!-- Cột 1 -->
+            <div style="flex: 1; text-align: center;">
+                <div style="font-size: 48px; font-weight: 800; color: #64748b; margin-bottom: 15px; line-height: 1;">
+                    367
+                </div>
+                <div style="font-size: 14.5px; color: #334155; line-height: 1.6; padding: 0 10px;">
+                    người \(\rightarrow\) chắc chắn có 2 người trùng ngày sinh (chỉ có 366 ngày sinh nhật khác nhau)
+                </div>
+            </div>
+
+            <!-- Cột 2 -->
+            <div style="flex: 1; text-align: center;">
+                <div style="font-size: 48px; font-weight: 800; color: #64748b; margin-bottom: 15px; line-height: 1;">
+                    102
+                </div>
+                <div style="font-size: 14.5px; color: #334155; line-height: 1.6; padding: 0 10px;">
+                    sinh viên \(\rightarrow\) chắc chắn có 2 người trùng điểm thi (thang điểm 0–100, 101 mức)
+                </div>
+            </div>
+
+            <!-- Cột 3 -->
+            <div style="flex: 1; text-align: center;">
+                <div style="font-size: 48px; font-weight: 800; color: #64748b; margin-bottom: 15px; line-height: 1;">
+                    9
+                </div>
+                <div style="font-size: 14.5px; color: #334155; line-height: 1.6; padding: 0 10px;">
+                    lá bài rút từ bộ 52 lá (4 chất) \(\rightarrow\) chắc chắn có \(\ge 3\) lá cùng chất: \([N/4] \ge 3 \rightarrow N = 9\)
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Ghi chú so sánh -->
+        <div class="highlight-card" style="background: #ffffff; padding: 16px 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 50px;">
+            <div style="font-size: 14.5px; color: #475569; line-height: 1.6; font-style: italic;">
+                <b>So sánh:</b> để chắc chắn có \(\ge 3\) lá CƠ cụ thể (không phải chỉ cùng chất bất kỳ) — trường hợp xấu nhất phải rút hết 39 lá của 3 chất còn lại trước, cần tới 42 lá!
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>49</span>
+    </div>
+</div>
+
+<!-- SLIDE 50: Hoán vị & chỉnh hợp -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+            <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin: 0;">
+                <span style="background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.4</span>
+                <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">SẮP XẾP CÓ THỨ TỰ</span>
+            </div>
+            <div style="background: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">
+                THẢO LUẬN NHÓM
+            </div>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 35px;">Hoán vị &amp; chỉnh hợp</h1>
+
+        <!-- Nội dung 2 cột -->
+        <div style="display: flex; gap: 30px; align-items: flex-start; justify-content: space-between; margin-top: 10px;">
+            
+            <!-- Cột trái: Hoán vị -->
+            <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 10px;">
+                    Hoán vị
+                </div>
+                <div style="font-size: 15px; color: #334155; line-height: 1.6; margin-bottom: 15px;">
+                    Sắp xếp có thứ tự TOÀN BỘ n phần tử
+                </div>
+                <!-- Hộp công thức -->
+                <div style="background: #94a3b8; border-radius: 8px; padding: 16px 20px; text-align: center;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 24px; font-weight: 700; color: white;">
+                        \(n!\)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Cột phải: Chỉnh hợp -->
+            <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 10px;">
+                    Chỉnh hợp chập r
+                </div>
+                <div style="font-size: 15px; color: #334155; line-height: 1.6; margin-bottom: 15px;">
+                    Sắp xếp có thứ tự r trong n phần tử
+                </div>
+                <!-- Hộp công thức -->
+                <div style="background: #7dd3fc; border-radius: 8px; padding: 16px 20px; text-align: center;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: white;">
+                        \(P(n, r) = n! / (n-r)!\)
+                    </span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Khung ví dụ dưới cùng -->
+        <div style="background: #94a3b8; border-radius: 8px; padding: 24px 30px; margin-top: 45px;">
+            <div style="font-size: 15px; color: #f1f5f9; margin-bottom: 12px;">
+                Chọn giải Nhất – Nhì – Ba từ 100 người dự thi (có thứ tự, khác giải):
+            </div>
+            <div style="font-family:'Cambria Math','Times New Roman',serif; font-size: 22px; font-weight: 700; color: #fcd34d; text-align: center;">
+                \(P(100, 3) = 100 \times 99 \times 98 = 970.200\)
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>50</span>
+    </div>
+</div>
+
+<!-- SLIDE 51: Tổ hợp -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.4</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">CHỌN KHÔNG THỨ TỰ</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 30px;">Tổ hợp</h1>
+
+        <!-- Khung công thức chính -->
+        <div style="background: #94a3b8; border-radius: 8px; padding: 24px 30px; text-align: center; margin-bottom: 45px;">
+            <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 26px; font-weight: 700; color: white;">
+                \(C(n,r) = n! / [r!(n-r)!]\)
+            </span>
+        </div>
+
+        <!-- Nội dung 2 cột -->
+        <div style="display: flex; gap: 40px; align-items: flex-start; margin-top: 10px;">
+            
+            <!-- Cột trái: Ý tưởng chứng minh -->
+            <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 12px;">
+                    Ý tưởng chứng minh
+                </div>
+                <div style="font-size: 15px; color: #334155; line-height: 1.7; margin-bottom: 25px; font-style: italic;">
+                    Mỗi chỉnh hợp = chọn 1 tổ hợp r phần tử, rồi sắp xếp thứ tự (r! cách):
+                </div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: #1e293b;">
+                    \(P(n,r) = C(n,r) \cdot r!\)
+                </div>
+            </div>
+
+            <!-- Cột phải: Đẳng thức hữu ích -->
+            <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 12px;">
+                    Đẳng thức hữu ích
+                </div>
+                <div style="font-size: 15px; color: #334155; line-height: 1.7; margin-bottom: 25px; font-style: italic;">
+                    Chọn r phần tử để "lấy" tương đương chọn n-r phần tử để "bỏ lại":
+                </div>
+                <div style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: #1e293b;">
+                    \(C(n,r) = C(n, n-r)\)
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>51</span>
+    </div>
+</div>
+
+<!-- SLIDE 52: Ví dụ minh họa - Hoán vị & Tổ hợp -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.4</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">VÍ DỤ</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 40px;">Ví dụ minh họa</h1>
+
+        <!-- Grid 2x2 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px 30px; margin-top: 20px;">
+            
+            <!-- Ô 1 -->
+            <div style="text-align: center;">
+                <div style="font-size: 42px; font-weight: 800; color: #64748b; margin-bottom: 12px; line-height: 1;">
+                    970.200
+                </div>
+                <div style="font-size: 15px; color: #334155; line-height: 1.6; padding: 0 10px;">
+                    \(P(100,3)\) — trao giải Nhất/Nhì/Ba từ 100 người
+                </div>
+            </div>
+
+            <!-- Ô 2 -->
+            <div style="text-align: center;">
+                <div style="font-size: 42px; font-weight: 800; color: #7dd3fc; margin-bottom: 12px; line-height: 1;">
+                    4
+                </div>
+                <div style="font-size: 15px; color: #334155; line-height: 1.6; padding: 0 10px;">
+                    \(C(4,3)\) — thành lập ban gồm 3 SV từ nhóm 4 SV
+                </div>
+            </div>
+
+            <!-- Ô 3 -->
+            <div style="text-align: center;">
+                <div style="font-size: 42px; font-weight: 800; color: #fda4af; margin-bottom: 12px; line-height: 1;">
+                    2.598.960
+                </div>
+                <div style="font-size: 15px; color: #334155; line-height: 1.6; padding: 0 10px;">
+                    \(C(52,5)\) — số ván bài poker 5 lá từ 52 lá
+                </div>
+            </div>
+
+            <!-- Ô 4 -->
+            <div style="text-align: center;">
+                <div style="font-size: 42px; font-weight: 800; color: #64748b; margin-bottom: 12px; line-height: 1;">
+                    252
+                </div>
+                <div style="font-size: 15px; color: #334155; line-height: 1.6; padding: 0 10px;">
+                    \(C(10,5)\) — chọn đội hình 5 người từ đội 10 người
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>52</span>
+    </div>
+</div>
+
+<!-- SLIDE 53: Tổ hợp lặp -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.5</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">CHO PHÉP LẶP LẠI PHẦN TỬ</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 30px;">Tổ hợp lặp</h1>
+
+        <!-- Bảng so sánh -->
+        <div style="margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 15px; text-align: center;">
+                <thead>
+                    <tr style="background: #94a3b8; color: white;">
+                        <th style="padding: 14px 16px; width: 30%;"></th>
+                        <th style="padding: 14px 16px; width: 35%; font-weight: 700;">KHÔNG lặp</th>
+                        <th style="padding: 14px 16px; width: 35%; font-weight: 700;">CÓ lặp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                        <td style="padding: 14px 16px; font-weight: 600; color: #1e293b; text-align: left;">Có thứ tự<br><span style="font-weight: 400; font-size: 13.5px; color: #64748b;">(Chỉnh hợp)</span></td>
+                        <td style="padding: 14px 16px; font-family:'Cambria Math','Times New Roman',serif; font-size: 18px; color: #1e293b;">\(n! / (n-r)!\)</td>
+                        <td style="padding: 14px 16px; font-family:'Cambria Math','Times New Roman',serif; font-size: 18px; color: #1e293b;">\(n^r\)</td>
+                    </tr>
+                    <tr style="background: #ffffff;">
+                        <td style="padding: 14px 16px; font-weight: 600; color: #1e293b; text-align: left;">Không thứ tự<br><span style="font-weight: 400; font-size: 13.5px; color: #64748b;">(Tổ hợp)</span></td>
+                        <td style="padding: 14px 16px; font-family:'Cambria Math','Times New Roman',serif; font-size: 18px; color: #1e293b;">\(n! / [r!(n-r)!]\)</td>
+                        <td style="padding: 14px 16px; font-family:'Cambria Math','Times New Roman',serif; font-size: 18px; color: #be185d; font-weight: 700;">\(C(n+r-1, r)\)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Khung ghi chú -->
+        <div style="background: #64748b; border-radius: 8px; padding: 20px 24px; margin-top: 35px; text-align: center;">
+            <span style="font-size: 15.5px; color: #f8fafc; line-height: 1.6;">
+                Công thức trọng tâm mục 3.5: <b>\(C(n+r-1, r)\)</b> — số cách chọn r phần tử KHÔNG thứ tự từ n loại, cho phép lặp lại
+            </span>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>53</span>
+    </div>
+</div>
+
+<!-- SLIDE 54: Ví dụ minh họa - Tổ hợp lặp -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.5</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">VÍ DỤ</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 30px;">Ví dụ minh họa</h1>
+
+        <!-- Nội dung 2 cột -->
+        <div style="display: flex; gap: 30px; align-items: flex-start; justify-content: space-between; margin-top: 10px;">
+            
+            <!-- Cột trái -->
+            <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 10px;">
+                    Chọn 6 bánh quy từ 4 loại
+                </div>
+                <div style="font-size: 14.5px; color: #475569; line-height: 1.6; margin-bottom: 20px; font-style: italic;">
+                    (chỉ quan tâm loại, có thể trùng, không thứ tự)
+                </div>
+                
+                <div style="background: #7dd3fc; border-radius: 8px; padding: 18px 20px; text-align: center; margin-bottom: 12px;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: white;">
+                        \(C(4+6-1, 6) = C(9,6) = 84\)
+                    </span>
+                </div>
+                <div style="font-size: 15px; color: #64748b; text-align: center; font-style: italic;">
+                    cách chọn
+                </div>
+            </div>
+
+            <!-- Cột phải -->
+            <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 10px;">
+                    Nghiệm nguyên không âm
+                </div>
+                <div style="font-size: 15px; color: #334155; font-weight: 600; margin-bottom: 15px;">
+                    \(x_1+x_2+x_3=11\)
+                </div>
+
+                <div style="background: #94a3b8; border-radius: 8px; padding: 14px 20px; text-align: center; margin-bottom: 15px;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 18px; font-weight: 700; color: white;">
+                        \(C(3+11-1, 11) = C(13,2) = 78\)
+                    </span>
+                </div>
+
+                <div style="font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 12px;">
+                    Có ràng buộc \(x_1 \ge 1, x_2 \ge 2, x_3 \ge 3\):<br>
+                    "trả trước" 6 đơn vị, còn 5 đơn vị tự do \(\rightarrow\)
+                </div>
+
+                <div style="background: #7dd3fc; border-radius: 8px; padding: 12px 20px; text-align: center;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 18px; font-weight: 700; color: white;">
+                        \(C(7,5) = 21\) nghiệm
+                    </span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>54</span>
+    </div>
+</div>
+
+<!-- SLIDE 55: Hệ thức truy hồi — định nghĩa -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.6</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">KHÁI NIỆM</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 35px;">Hệ thức truy hồi — định nghĩa</h1>
+
+        <!-- Khung công thức -->
+        <div style="background: #94a3b8; border-radius: 8px; padding: 24px 30px; text-align: center; margin-bottom: 45px;">
+            <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 24px; font-weight: 700; color: white;">
+                \(a_n = c_1a_{n-1} + c_2a_{n-2} + \dots + c_ka_{n-k}\)
+            </span>
+        </div>
+
+        <!-- Nội dung 3 cột -->
+        <div style="display: flex; gap: 30px; align-items: flex-start; justify-content: space-between; margin-top: 10px;">
+            
+            <!-- Cột 1 -->
+            <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 15px;">
+                    Tuyến tính
+                </div>
+                <div style="font-size: 15px; color: #334155; line-height: 1.7;">
+                    vế phải là tổ hợp tuyến tính của các số hạng trước
+                </div>
+            </div>
+
+            <!-- Cột 2 -->
+            <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 15px;">
+                    Thuần nhất
+                </div>
+                <div style="font-size: 15px; color: #334155; line-height: 1.7;">
+                    không có hằng số cộng thêm hay hàm riêng của \(n\)
+                </div>
+            </div>
+
+            <!-- Cột 3 -->
+            <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 15px;">
+                    Hệ số hằng
+                </div>
+                <div style="font-size: 15px; color: #334155; line-height: 1.7;">
+                    các \(c_1, c_2, \dots\) không phụ thuộc vào \(n\)
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>55</span>
+    </div>
+</div>
+
+<!-- SLIDE 56: Ví dụ thiết lập hệ thức truy hồi -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.6</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">MÔ HÌNH HÓA BÀI TOÁN</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 40px;">Ví dụ thiết lập hệ thức truy hồi</h1>
+
+        <!-- Nội dung 2 cột -->
+        <div style="display: flex; gap: 40px; align-items: stretch; justify-content: space-between; margin-top: 10px;">
+            
+            <!-- Cột trái: Dãy Fibonacci -->
+            <div style="flex: 1; display: flex; flex-direction: column;">
+                <div style="font-size: 19px; font-weight: 700; color: #1e293b; margin-bottom: 12px;">
+                    Dãy Fibonacci
+                </div>
+                <div style="font-size: 14.5px; color: #475569; line-height: 1.6; margin-bottom: 20px; min-height: 45px;">
+                    Bài toán sinh sản thỏ — mỗi cặp trưởng thành sau 1 tháng mới sinh sản
+                </div>
+                
+                <div style="background: #7dd3fc; border-radius: 8px; padding: 24px 20px; text-align: center; display: flex; flex-direction: column; gap: 10px;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: white;">
+                        \(f_n = f_{n-1} + f_{n-2}\)
+                    </span>
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: white;">
+                        \(f_0 = 0, f_1 = 1\)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Cột phải: Tháp Hà Nội -->
+            <div style="flex: 1; display: flex; flex-direction: column;">
+                <div style="font-size: 19px; font-weight: 700; color: #1e293b; margin-bottom: 12px;">
+                    Tháp Hà Nội
+                </div>
+                <div style="font-size: 14.5px; color: #475569; line-height: 1.6; margin-bottom: 20px; min-height: 45px;">
+                    Chuyển \(n-1\) đĩa \(\rightarrow\) chuyển đĩa lớn nhất \(\rightarrow\) chuyển lại \(n-1\) đĩa
+                </div>
+                
+                <div style="background: #94a3b8; border-radius: 8px; padding: 24px 20px; text-align: center; display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: white;">
+                        \(H_n = 2H_{n-1} + 1\)
+                    </span>
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: white;">
+                        \(H_1 = 1\)
+                    </span>
+                </div>
+
+                <!-- Hình minh họa Tháp Hà Nội -->
+                <div style="display: flex; justify-content: center; align-items: flex-end; height: 100px; margin-top: auto;">
+                    <svg width="280" height="90" viewBox="0 0 280 90">
+                        <!-- Chân đế -->
+                        <line x1="20" y1="80" x2="260" y2="80" stroke="#94a3b8" stroke-width="3" />
+                        
+                        <!-- Cột 1 (có đĩa) -->
+                        <line x1="70" y1="20" x2="70" y2="80" stroke="#94a3b8" stroke-width="3" />
+                        <!-- Đĩa 1 (đáy) -->
+                        <rect x="45" y="70" width="50" height="10" rx="3" fill="#f87171" stroke="#dc2626" stroke-width="1" />
+                        <!-- Đĩa 2 (giữa) -->
+                        <rect x="52" y="60" width="36" height="10" rx="3" fill="#fbbf24" stroke="#d97706" stroke-width="1" />
+                        <!-- Đĩa 3 (đỉnh) -->
+                        <rect x="59" y="50" width="22" height="10" rx="3" fill="#38bdf8" stroke="#0284c7" stroke-width="1" />
+
+                        <!-- Cột 2 (trống) -->
+                        <line x1="140" y1="20" x2="140" y2="80" stroke="#94a3b8" stroke-width="3" />
+
+                        <!-- Cột 3 (trống) -->
+                        <line x1="210" y1="20" x2="210" y2="80" stroke="#94a3b8" stroke-width="3" />
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>56</span>
+    </div>
+</div>
+
+<!-- SLIDE 57: Phương trình đặc trưng -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.6</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">PHƯƠNG PHÁP GIẢI (BẬC 2)</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 15px;">Phương trình đặc trưng</h1>
+
+        <!-- Dẫn dắt -->
+        <div style="font-size: 15px; color: #334155; line-height: 1.6; margin-bottom: 20px;">
+            Tìm nghiệm dạng \(a_n = r^n\), thay vào hệ thức bậc 2 ta được:
+        </div>
+
+        <!-- Công thức chính -->
+        <div style="background: #94a3b8; border-radius: 8px; padding: 20px 24px; text-align: center; margin-bottom: 45px;">
+            <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 24px; font-weight: 700; color: white;">
+                \(r^2 - c_1r - c_2 = 0\)
+            </span>
+        </div>
+
+        <!-- Nội dung 2 cột -->
+        <div style="display: flex; gap: 40px; align-items: flex-start; justify-content: space-between; margin-top: 10px;">
+            
+            <!-- Cột trái: Nghiệm phân biệt -->
+            <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 18px;">
+                    Nghiệm phân biệt \(r_1 \neq r_2\)
+                </div>
+                
+                <div style="background: #7dd3fc; border-radius: 8px; padding: 18px 20px; text-align: center; margin-bottom: 15px;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: white;">
+                        \(a_n = \alpha_1r_1^n + \alpha_2r_2^n\)
+                    </span>
+                </div>
+                
+                <div style="font-size: 14.5px; color: #475569; line-height: 1.6; font-style: italic;">
+                    \(\alpha_1, \alpha_2\) xác định từ điều kiện đầu
+                </div>
+            </div>
+
+            <!-- Cột phải: Nghiệm kép -->
+            <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 18px;">
+                    Nghiệm kép \(r_0\)
+                </div>
+                
+                <div style="background: #fca5a5; border-radius: 8px; padding: 18px 20px; text-align: center; margin-bottom: 15px;">
+                    <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 20px; font-weight: 700; color: white;">
+                        \(a_n = \alpha_1r_0^n + \alpha_2nr_0^n\)
+                    </span>
+                </div>
+                
+                <div style="font-size: 14.5px; color: #475569; line-height: 1.6; font-style: italic;">
+                    Lưu ý số hạng thêm \(n \cdot r_0^n\)
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>57</span>
+    </div>
+</div>
+
+<!-- SLIDE 58: Ví dụ giải từng bước -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">3.6</span>
+            <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">DEMO HOÀN CHỈNH</span>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 20px;">Ví dụ giải từng bước</h1>
+
+        <!-- Đề bài -->
+        <div style="font-size: 16px; color: #1e293b; margin-bottom: 30px;">
+            Giải \(a_n = a_{n-1} + 2a_{n-2}\) với \(a_0 = 2, a_1 = 7\)
+        </div>
+
+        <!-- Bảng 2 cột: Bước và Thực hiện -->
+        <div style="display: grid; grid-template-columns: 40% 60%; gap: 15px 20px; align-items: start; margin-top: 10px;">
+            
+            <!-- Header cột -->
+            <div style="font-size: 15px; font-weight: 700; color: #1e293b; padding-bottom: 10px; border-bottom: 1px solid #cbd5e1;">Bước</div>
+            <div style="font-size: 15px; font-weight: 700; color: #1e293b; padding-bottom: 10px; border-bottom: 1px solid #cbd5e1;">Thực hiện</div>
+
+            <!-- Hàng 1 -->
+            <div style="font-size: 15px; color: #334155; line-height: 1.6;">1. Phương trình đặc trưng</div>
+            <div style="font-size: 15px; color: #1e293b; font-family:'Cambria Math','Times New Roman',serif;">\(r^2 - r - 2 = 0\)</div>
+
+            <!-- Hàng 2 -->
+            <div style="font-size: 15px; color: #334155; line-height: 1.6;">2. Giải phương trình</div>
+            <div style="font-size: 15px; color: #1e293b; font-family:'Cambria Math','Times New Roman',serif;">\((r - 2)(r + 1) = 0 \rightarrow r_1 = 2, r_2 = -1\)</div>
+
+            <!-- Hàng 3 -->
+            <div style="font-size: 15px; color: #334155; line-height: 1.6;">3. Nghiệm tổng quát</div>
+            <div style="font-size: 15px; color: #1e293b; font-family:'Cambria Math','Times New Roman',serif;">\(a_n = \alpha_1 2^n + \alpha_2 (-1)^n\)</div>
+
+            <!-- Hàng 4 -->
+            <div style="font-size: 15px; color: #334155; line-height: 1.6;">4. Áp điều kiện đầu</div>
+            <div style="font-size: 15px; color: #1e293b; font-family:'Cambria Math','Times New Roman',serif;">\(\alpha_1 + \alpha_2 = 2; \quad 2\alpha_1 - \alpha_2 = 7\)</div>
+
+            <!-- Hàng 5 -->
+            <div style="font-size: 15px; color: #334155; line-height: 1.6;">5. Giải hệ</div>
+            <div style="font-size: 15px; color: #1e293b; font-family:'Cambria Math','Times New Roman',serif;">\(\alpha_1 = 3, \alpha_2 = -1\)</div>
+        </div>
+
+        <!-- Khung kết quả -->
+        <div class="highlight-card" style="background: #e2e8f0; padding: 20px 24px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 40px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 15px;">
+            <span style="font-size: 16px; font-weight: 700; color: #475569; text-transform: uppercase;">Kết quả:</span>
+            <span style="font-family:'Cambria Math','Times New Roman',serif; font-size: 24px; font-weight: 700; color: #1e293b;">
+                \(a_n = 3 \cdot 2^n - (-1)^n\)
+            </span>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>58</span>
+    </div>
+</div>
+
+<!-- SLIDE 59: Bảng minh họa -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <div class="top-tag">CHƯƠNG 3 - PHƯƠNG PHÁP ĐẾM</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;"></h1>
+
+        <div style="display: flex; justify-content: center; align-items: center; margin-top: 20px;">
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <img src="https://raw.githubusercontent.com/hunganhcodeserver1/image/refs/heads/main/Gemini_Generated_Image_h2vu4nh2vu4nh2vu.png" 
+                     alt="Bảng minh họa" 
+                     style="max-width: 80%; height: auto; max-height: 480px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2);">
+        <span>Chương 3 - Phương pháp đếm</span>
+        <span>59</span>
+    </div>
+</div>
+
+<!-- SLIDE 60: Câu tự luận TL5 -->
+<div class="slide-container" style="height: 750px;">
+    <div>
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+            <div class="top-tag" style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0;">
+                <span style="background: #f3e8ff; color: #7e22ce; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">Mục 3.6</span>
+                <span style="color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">PHẦN D - TỰ LUẬN (VẬN DỤNG CAO)</span>
+            </div>
+            <div style="background: #e9d5ff; color: #6b21a8; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">
+                TỰ LUẬN
+            </div>
+        </div>
+
+        <h1 class="slide-title" style="margin-bottom: 30px;">Câu tự luận TL5</h1>
+
+        <!-- Nội dung câu hỏi -->
+        <div class="highlight-card" style="background: #ffffff; padding: 20px 24px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 16px; line-height: 1.8; color: #1e293b;">
+            <p style="margin: 0 0 15px 0;">
+                Cho \(a_n = 4a_{n-1} - 4a_{n-2}\) với \(a_0=1, a_1=4\).
+            </p>
+            <p style="margin: 0 0 10px 0;">
+                a) Lập phương trình đặc trưng, xác định loại nghiệm.
+            </p>
+            <p style="margin: 0;">
+                b) Giải hệ thức truy hồi để tìm công thức tường minh cho \(a_n\).
+            </p>
+        </div>
+
+        <!-- Khung gợi ý -->
+        <div style="background: #94a3b8; border-radius: 8px; padding: 16px 20px; margin-top: 40px;">
+            <div style="font-size: 15px; color: #ffffff; line-height: 1.6; font-style: italic;">
+                Gợi ý: \(r^2 - 4r + 4 = 0\) có phải nghiệm kép không?
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 25px;">
+        <span>Chương 3 - Phần hàng câu hỏi đánh giá</span>
+        <span>60</span>
+    </div>
+</div>
+
 </body>
 <!-- MATHJAX: đặt trước </body> nếu file chưa có --> 
  <script> 
