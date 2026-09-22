@@ -1,0 +1,120 @@
+extends ../layout
+
+block content
+    .max-w-7xl.mx-auto.px-4.sm\\:px-6.lg\\:px-8.py-8
+
+        .mb-8
+            h1(class="text-2xl sm:text-3xl font-bold text-gray-900")
+                | Quản lý người dùng
+            p(class="text-gray-500 mt-1")
+                | Duyệt tài khoản và quản lý quyền người dùng
+
+        .bg-white.border.border-gray-200.rounded-xl.p-4.mb-6
+            form(
+                action="/admin/users"
+                method="GET"
+                class="flex flex-col sm:flex-row gap-3"
+            )
+                input(
+                    type="text"
+                    name="search"
+                    value=filters?.search || ''
+                    placeholder="Tìm theo tên hoặc email..."
+                    class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+                )
+
+                select(
+                    name="status"
+                    class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+                )
+                    option(value="") Tất cả trạng thái
+                    option(value="pending" selected=filters?.status === 'pending') Chờ duyệt
+                    option(value="approved" selected=filters?.status === 'approved') Đã duyệt
+                    option(value="rejected" selected=filters?.status === 'rejected') Từ chối
+
+                button(
+                    type="submit"
+                    class="px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium"
+                )
+                    | Tìm kiếm
+
+        .bg-white.border.border-gray-200.rounded-2xl.shadow-sm.overflow-hidden
+            if users && users.length
+                .overflow-x-auto
+                    table(class="w-full text-sm")
+                        thead(class="bg-gray-50")
+                            tr
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Người dùng
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Vai trò
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Trạng thái
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Ngày đăng ký
+                                th(class="px-5 py-3 text-right font-semibold text-gray-600")
+                                    | Thao tác
+
+                        tbody(class="divide-y divide-gray-100")
+                            each account in users
+                                tr(class="hover:bg-gray-50")
+                                    td(class="px-5 py-4")
+                                        .flex.items-center.gap-3
+                                            .w-9.h-9.rounded-full.bg-indigo-100.text-indigo-700.flex.items-center.justify-center.font-semibold
+                                                = (account.name || account.email || 'U').charAt(0).toUpperCase()
+                                            div
+                                                p(class="font-medium text-gray-900")
+                                                    = account.name || 'Chưa cập nhật'
+                                                p(class="text-xs text-gray-500")
+                                                    = account.email
+
+                                    td(class="px-5 py-4")
+                                        span(class="px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium")
+                                            = account.role?.name || account.role || 'student'
+
+                                    td(class="px-5 py-4")
+                                        if account.status === 'approved'
+                                            span(class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium")
+                                                | Đã duyệt
+                                        else if account.status === 'rejected'
+                                            span(class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium")
+                                                | Từ chối
+                                        else
+                                            span(class="px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium")
+                                                | Chờ duyệt
+
+                                    td(class="px-5 py-4 text-gray-500")
+                                        = account.createdAt ? new Date(account.createdAt).toLocaleDateString('vi-VN') : '—'
+
+                                    td(class="px-5 py-4")
+                                        .flex.items-center.justify-end.gap-2
+                                            a(
+                                                href="/admin/users/" + account._id
+                                                class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-medium"
+                                            )
+                                                | Chi tiết
+
+                                            if account.status !== 'approved'
+                                                form(
+                                                    action="/admin/users/" + account._id + "/approve"
+                                                    method="POST"
+                                                )
+                                                    button(
+                                                        type="submit"
+                                                        class="px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 text-xs font-medium"
+                                                    )
+                                                        | Duyệt
+
+                                            if account.status !== 'rejected'
+                                                form(
+                                                    action="/admin/users/" + account._id + "/reject"
+                                                    method="POST"
+                                                )
+                                                    button(
+                                                        type="submit"
+                                                        class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium"
+                                                    )
+                                                        | Từ chối
+            else
+                .py-12.text-center.text-gray-500
+                    | Không tìm thấy người dùng.

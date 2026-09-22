@@ -1,0 +1,112 @@
+extends ../layout
+
+block content
+    .max-w-7xl.mx-auto.px-4.sm\\:px-6.lg\\:px-8.py-8
+
+        .flex.flex-col.sm\\:flex-row.sm\\:items-center.sm\\:justify-between.gap-4.mb-8
+            div
+                h1(class="text-2xl sm:text-3xl font-bold text-gray-900")
+                    | Quản lý bài học
+                p(class="text-gray-500 mt-1")
+                    | Quản lý bài học và bài tập của từng môn
+
+            a(
+                href="/admin/lessons/create"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
+            )
+                i(data-lucide="plus" class="w-4 h-4")
+                | Thêm bài học
+
+        //- Filter
+        .bg-white.border.border-gray-200.rounded-xl.p-4.mb-6
+            form(
+                action="/admin/lessons"
+                method="GET"
+                class="flex flex-col sm:flex-row gap-3"
+            )
+                select(
+                    name="subject"
+                    class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                )
+                    option(value="") Tất cả môn học
+                    if subjects
+                        each subject in subjects
+                            option(
+                                value=subject._id
+                                selected=filters?.subject == subject._id
+                            )
+                                = subject.name
+
+                input(
+                    type="text"
+                    name="search"
+                    value=filters?.search || ''
+                    placeholder="Tìm bài học..."
+                    class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                )
+
+                button(
+                    type="submit"
+                    class="px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+                )
+                    | Tìm kiếm
+
+        if lessons && lessons.length
+            .space-y-3
+                each lesson, index in lessons
+                    .bg-white.border.border-gray-200.rounded-xl.p-5.shadow-sm
+                        .flex.flex-col.lg\\:flex-row.lg\\:items-center.justify-between.gap-4
+                            .flex.items-start.gap-4
+                                .w-10.h-10.rounded-lg.bg-indigo-100.text-indigo-600.flex.items-center.justify-center.flex-shrink-0
+                                    = index + 1
+
+                                div
+                                    h2(class="font-semibold text-gray-900")
+                                        = lesson.title
+
+                                    p(class="text-sm text-gray-500 mt-1")
+                                        = lesson.subject?.name || 'Chưa có môn học'
+
+                                    if lesson.description
+                                        p(class="text-sm text-gray-600 mt-2")
+                                            = lesson.description
+
+                            .flex.items-center.gap-2.flex-shrink-0
+                                if lesson.published
+                                    span(class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700")
+                                        | Đã xuất bản
+                                else
+                                    span(class="px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700")
+                                        | Bản nháp
+
+                                a(
+                                    href="/admin/lessons/" + lesson._id
+                                    class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-indigo-600"
+                                    title="Xem"
+                                )
+                                    i(data-lucide="eye" class="w-4 h-4")
+
+                                a(
+                                    href="/admin/lessons/" + lesson._id + "/edit"
+                                    class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-indigo-600"
+                                    title="Chỉnh sửa"
+                                )
+                                    i(data-lucide="pencil" class="w-4 h-4")
+
+                                form(
+                                    action="/admin/lessons/" + lesson._id + "/delete"
+                                    method="POST"
+                                    onsubmit="return confirm('Bạn có chắc muốn xóa bài học này?')"
+                                )
+                                    button(
+                                        type="submit"
+                                        class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-600"
+                                    )
+                                        i(data-lucide="trash-2" class="w-4 h-4")
+        else
+            .bg-white.border.border-gray-200.rounded-2xl.py-16.text-center
+                i(data-lucide="layers" class="w-10 h-10 mx-auto text-gray-300")
+                h2(class="font-semibold text-gray-900 mt-4")
+                    | Chưa có bài học
+                p(class="text-sm text-gray-500 mt-1")
+                    | Hãy tạo bài học đầu tiên.

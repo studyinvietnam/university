@@ -1,0 +1,255 @@
+doctype html
+html(lang="vi")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        title Đăng ký | AI Grading System
+
+        script(src="https://cdn.tailwindcss.com")
+        script(src="https://unpkg.com/lucide@latest")
+
+    body(class="min-h-screen bg-gray-50")
+
+        .min-h-screen.flex.items-center.justify-center.px-4.py-10
+            .w-full.max-w-lg
+
+                //- Logo
+                .text-center.mb-8
+                    a(
+                        href="/"
+                        class="inline-flex items-center gap-3"
+                    )
+                        .w-12.h-12.rounded-2xl.bg-indigo-600.flex.items-center.justify-center.shadow-lg
+                            i(
+                                data-lucide="graduation-cap"
+                                class="w-7 h-7 text-white"
+                            )
+
+                        div(class="text-left")
+                            h1(class="text-xl font-bold text-gray-900")
+                                | AI Grading
+                            p(class="text-xs text-gray-500")
+                                | Hệ thống học tập trực tuyến
+
+                //- Card
+                .bg-white.rounded-2xl.shadow-sm.border.border-gray-200.p-6.sm\\:p-8
+
+                    .mb-6
+                        h2(class="text-2xl font-bold text-gray-900")
+                            | Tạo tài khoản
+
+                        p(class="text-sm text-gray-500 mt-2")
+                            | Đăng ký tài khoản sinh viên để bắt đầu học tập.
+
+                    if error
+                        .mb-5.flex.items-start.gap-3.p-4.bg-red-50.border.border-red-200.rounded-xl
+                            i(
+                                data-lucide="circle-alert"
+                                class="w-5 h-5 text-red-500 flex-shrink-0"
+                            )
+                            p(class="text-sm text-red-700")
+                                = error
+
+                    form(
+                        action="/auth/register"
+                        method="POST"
+                        class="space-y-5"
+                    )
+
+                        //- Name
+                        div
+                            label(
+                                for="name"
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                            )
+                                | Họ và tên
+
+                            .relative
+                                i(
+                                    data-lucide="user"
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                                )
+
+                                input(
+                                    id="name"
+                                    type="text"
+                                    name="name"
+                                    value=name || ''
+                                    required
+                                    autocomplete="name"
+                                    placeholder="Nguyễn Văn A"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                )
+
+                        //- Email
+                        div
+                            label(
+                                for="email"
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                            )
+                                | Email
+
+                            .relative
+                                i(
+                                    data-lucide="mail"
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                                )
+
+                                input(
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    value=email || ''
+                                    required
+                                    autocomplete="email"
+                                    placeholder="example@email.com"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                )
+
+                        //- Password
+                        div
+                            label(
+                                for="password"
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                            )
+                                | Mật khẩu
+
+                            .relative
+                                i(
+                                    data-lucide="lock"
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                                )
+
+                                input(
+                                    id="password"
+                                    type="password"
+                                    name="password"
+                                    required
+                                    minlength="6"
+                                    autocomplete="new-password"
+                                    placeholder="Tối thiểu 6 ký tự"
+                                    class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                )
+
+                                button(
+                                    type="button"
+                                    id="togglePassword"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                )
+                                    i(
+                                        data-lucide="eye"
+                                        class="w-5 h-5"
+                                    )
+
+                        //- Confirm password
+                        div
+                            label(
+                                for="confirmPassword"
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                            )
+                                | Nhập lại mật khẩu
+
+                            .relative
+                                i(
+                                    data-lucide="lock-keyhole"
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                                )
+
+                                input(
+                                    id="confirmPassword"
+                                    type="password"
+                                    name="confirmPassword"
+                                    required
+                                    minlength="6"
+                                    autocomplete="new-password"
+                                    placeholder="Nhập lại mật khẩu"
+                                    class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                )
+
+                                button(
+                                    type="button"
+                                    id="toggleConfirmPassword"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                )
+                                    i(
+                                        data-lucide="eye"
+                                        class="w-5 h-5"
+                                    )
+
+                        //- Terms
+                        .flex.items-start.gap-2
+                            input(
+                                id="terms"
+                                type="checkbox"
+                                required
+                                class="w-4 h-4 mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            )
+
+                            label(
+                                for="terms"
+                                class="text-sm text-gray-600 leading-5"
+                            )
+                                | Tôi đồng ý với các quy định sử dụng hệ thống.
+
+                        button(
+                            type="submit"
+                            class="w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100 transition"
+                        )
+                            | Đăng ký tài khoản
+
+                    //- Login
+                    .mt-6.pt-6.border-t.border-gray-100.text-center
+                        p(class="text-sm text-gray-500")
+                            | Đã có tài khoản?
+                            a(
+                                href="/auth/login"
+                                class="ml-1 font-semibold text-indigo-600 hover:text-indigo-700"
+                            )
+                                | Đăng nhập
+
+                p(class="text-center text-xs text-gray-400 mt-6")
+                    | © #{new Date().getFullYear()} AI Grading System
+
+        script.
+            lucide.createIcons();
+
+            function setupPasswordToggle(buttonId, inputId) {
+                const button = document.getElementById(buttonId);
+                const input = document.getElementById(inputId);
+
+                if (!button || !input) {
+                    return;
+                }
+
+                button.addEventListener('click', function () {
+                    const isPassword = input.type === 'password';
+
+                    input.type = isPassword ? 'text' : 'password';
+
+                    this.innerHTML = `
+                        <i data-lucide="${isPassword ? 'eye-off' : 'eye'}" class="w-5 h-5"></i>
+                    `;
+
+                    lucide.createIcons();
+                });
+            }
+
+            setupPasswordToggle('togglePassword', 'password');
+            setupPasswordToggle('toggleConfirmPassword', 'confirmPassword');
+
+            const form = document.querySelector('form');
+
+            if (form) {
+                form.addEventListener('submit', function (event) {
+                    const password = document.getElementById('password');
+                    const confirmPassword = document.getElementById('confirmPassword');
+
+                    if (password.value !== confirmPassword.value) {
+                        event.preventDefault();
+
+                        alert('Mật khẩu nhập lại không khớp.');
+
+                        confirmPassword.focus();
+                    }
+                });
+            }

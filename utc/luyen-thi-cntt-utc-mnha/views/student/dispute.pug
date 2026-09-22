@@ -1,0 +1,127 @@
+extends ../layout
+
+block content
+    .max-w-3xl.mx-auto.px-4.sm:px-6.lg:px-8.py-8
+        // Header
+        .mb-8
+            .flex.items-center.gap-2.text-sm.text-gray-500.mb-4
+                a.hover:text-blue-600.transition-colors(href="/student/history")
+                    | Lịch sử bài làm
+                i(data-lucide="chevron-right").w-4.h-4
+                span.text-gray-900 Khiếu nại kết quả
+
+            h1.text-3xl.font-bold.text-gray-900 Khiếu nại kết quả chấm
+            p.mt-2.text-gray-500
+                | Nếu bạn cho rằng kết quả chấm chưa chính xác, hãy gửi yêu cầu để quản trị viên xem xét.
+
+        // Submission information
+        if submission
+            .bg-white.rounded-2xl.border.border-gray-200.p-6.mb-6
+                h2.text-lg.font-bold.text-gray-900.mb-5 Thông tin bài nộp
+
+                .grid.grid-cols-1.sm:grid-cols-2.gap-5
+                    .bg-gray-50.rounded-xl.p-4
+                        p.text-xs.font-medium.text-gray-500.uppercase Bài tập
+                        p.mt-1.font-semibold.text-gray-900
+                            | #{submission.assignment?.title || submission.title || 'Bài tập'}
+
+                    .bg-gray-50.rounded-xl.p-4
+                        p.text-xs.font-medium.text-gray-500.uppercase Điểm hiện tại
+                        p.mt-1.font-semibold.text-gray-900
+                            if submission.score !== undefined && submission.score !== null
+                                | #{submission.score}#{submission.maxScore ? ` / ${submission.maxScore}` : ''}
+                            else
+                                | Chưa có điểm
+
+                    .bg-gray-50.rounded-xl.p-4
+                        p.text-xs.font-medium.text-gray-500.uppercase Môn học
+                        p.mt-1.font-semibold.text-gray-900
+                            | #{submission.subject?.name || '--'}
+
+                    .bg-gray-50.rounded-xl.p-4
+                        p.text-xs.font-medium.text-gray-500.uppercase Trạng thái
+                        p.mt-1.font-semibold.text-gray-900
+                            | #{submission.status || '--'}
+
+        // Existing dispute
+        if dispute
+            .bg-blue-50.border.border-blue-200.rounded-2xl.p-6.mb-6
+                .flex.items-start.gap-3
+                    i(data-lucide="info").w-5.h-5.text-blue-600.mt-0.5.flex-shrink-0
+
+                    div
+                        h2.font-bold.text-blue-900 Yêu cầu khiếu nại đã được gửi
+                        p.mt-1.text-sm.text-blue-800
+                            | Yêu cầu của bạn đang được xử lý.
+
+                        if dispute.reason
+                            .mt-4
+                                p.text-xs.font-semibold.text-blue-900.mb-1 Nội dung khiếu nại
+                                p.text-sm.text-blue-800.whitespace-pre-line
+                                    | #{dispute.reason}
+
+                        if dispute.status
+                            p.mt-3.text-sm.text-blue-800
+                                | Trạng thái: 
+                                strong #{dispute.status}
+
+        // Form
+        else
+            form.bg-white.rounded-2xl.border.border-gray-200.p-6.md:p-8(
+                action=`/student/submissions/${submission?._id || submissionId}/dispute`
+                method="POST"
+            )
+                .mb-6
+                    label.block.text-sm.font-semibold.text-gray-900(for="reason")
+                        | Lý do khiếu nại
+                        span.text-red-500.ml-1 *
+
+                    p.mt-1.text-sm.text-gray-500
+                        | Hãy mô tả rõ phần kết quả mà bạn cho rằng cần được xem xét lại.
+
+                    textarea#reason.mt-3.w-full.rounded-xl.border.border-gray-300.px-4.py-3.text-sm.text-gray-900.placeholder-gray-400.focus:outline-none.focus:ring-2.focus:ring-blue-500.focus:border-blue-500(
+                        name="reason"
+                        rows="7"
+                        required
+                        minlength="10"
+                        maxlength="5000"
+                        placeholder="Ví dụ: Tôi cho rằng phần câu 2 chưa được tính điểm vì..."
+                    )= reason || ''
+
+                    .mt-2.flex.items-center.justify-between.text-xs.text-gray-400
+                        span Tối thiểu 10 ký tự
+                        span#reasonCount 0/5000
+
+                .bg-yellow-50.border.border-yellow-200.rounded-xl.p-4.mb-6
+                    .flex.items-start.gap-3
+                        i(data-lucide="triangle-alert").w-5.h-5.text-yellow-600.mt-0.5.flex-shrink-0
+
+                        p.text-sm.text-yellow-800
+                            | Vui lòng cung cấp thông tin chính xác và cụ thể. Yêu cầu sẽ được quản trị viên xem xét dựa trên bài nộp và kết quả chấm.
+
+                .flex.flex-col-reverse.sm:flex-row.sm:justify-end.gap-3
+                    a.inline-flex.items-center.justify-center.px-5.py-2.5.rounded-lg.border.border-gray-300.text-gray-700.text-sm.font-medium.hover:bg-gray-50(
+                        href="/student/history"
+                    )
+                        | Hủy
+
+                    button.inline-flex.items-center.justify-center.px-5.py-2.5.rounded-lg.bg-blue-600.text-white.text-sm.font-medium.hover:bg-blue-700.focus:outline-none.focus:ring-2.focus:ring-blue-500(
+                        type="submit"
+                    )
+                        i(data-lucide="send").w-4.h-4.mr-2
+                        | Gửi khiếu nại
+
+        script.
+            document.addEventListener('DOMContentLoaded', function () {
+                const textarea = document.getElementById('reason');
+                const counter = document.getElementById('reasonCount');
+
+                if (textarea && counter) {
+                    function updateCount() {
+                        counter.textContent = `${textarea.value.length}/5000`;
+                    }
+
+                    textarea.addEventListener('input', updateCount);
+                    updateCount();
+                }
+            });

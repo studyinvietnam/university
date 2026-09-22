@@ -1,0 +1,139 @@
+extends ../layout
+
+block content
+    .max-w-7xl.mx-auto.px-4.sm\\:px-6.lg\\:px-8.py-8
+
+        .flex.flex-col.sm\\:flex-row.sm\\:items-center.sm\\:justify-between.gap-4.mb-8
+            div
+                h1(class="text-2xl sm:text-3xl font-bold text-gray-900")
+                    | Prompt AI
+                p(class="text-gray-500 mt-1")
+                    | Cấu hình prompt dùng để chấm bài tự động
+
+            button(
+                type="button"
+                onclick="document.getElementById('promptModal').classList.remove('hidden')"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+            )
+                i(data-lucide="plus" class="w-4 h-4")
+                | Tạo prompt
+
+        .bg-blue-50.border.border-blue-200.rounded-xl.p-4.mb-6
+            .flex.items-start.gap-3
+                i(data-lucide="info" class="w-5 h-5 text-blue-600 mt-0.5")
+                div
+                    p(class="font-medium text-blue-900")
+                        | Thứ tự ưu tiên prompt
+                    p(class="text-sm text-blue-700 mt-1")
+                        | Prompt bài học → Prompt môn học → Prompt mặc định → Fallback hệ thống.
+
+        if prompts && prompts.length
+            .space-y-4
+                each prompt in prompts
+                    .bg-white.border.border-gray-200.rounded-2xl.p-5.shadow-sm
+                        .flex.flex-col.lg\\:flex-row.lg\\:items-start.justify-between.gap-4
+                            div(class="flex-1 min-w-0")
+                                .flex.items-center.gap-3
+                                    .w-10.h-10.rounded-lg.bg-purple-100.text-purple-600.flex.items-center.justify-center
+                                        i(data-lucide="bot" class="w-5 h-5")
+
+                                    div
+                                        h2(class="font-semibold text-gray-900")
+                                            = prompt.name || 'Prompt không tên'
+
+                                        .flex.flex-wrap.items-center.gap-2.mt-1
+                                            if prompt.scope === 'lesson'
+                                                span(class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700")
+                                                    | Bài học
+                                            else if prompt.scope === 'subject'
+                                                span(class="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700")
+                                                    | Môn học
+                                            else
+                                                span(class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700")
+                                                    | Mặc định
+
+                                            if prompt.active
+                                                span(class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700")
+                                                    | Đang dùng
+
+                                pre(class="mt-4 p-4 bg-gray-50 rounded-xl text-xs text-gray-700 whitespace-pre-wrap font-mono overflow-x-auto")
+                                    = prompt.content
+
+                            .flex.items-center.gap-2.flex-shrink-0
+                                a(
+                                    href="/admin/prompts/" + prompt._id + "/edit"
+                                    class="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm font-medium"
+                                )
+                                    | Sửa
+
+                                form(
+                                    action="/admin/prompts/" + prompt._id + "/delete"
+                                    method="POST"
+                                    onsubmit="return confirm('Bạn có chắc muốn xóa prompt này?')"
+                                )
+                                    button(
+                                        type="submit"
+                                        class="px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium"
+                                    )
+                                        | Xóa
+        else
+            .bg-white.border.border-gray-200.rounded-2xl.py-16.text-center
+                i(data-lucide="bot" class="w-10 h-10 mx-auto text-gray-300")
+                p(class="text-gray-500 mt-3")
+                    | Chưa có prompt nào.
+
+        #promptModal(class="hidden fixed inset-0 z-[100] bg-black/50 p-4 overflow-y-auto")
+            .min-h-full.flex.items-center.justify-center.py-8
+                .bg-white.rounded-2xl.w-full.max-w-2xl.shadow-xl
+                    .px-6.py-5.border-b.border-gray-200.flex.items-center.justify-between
+                        h2(class="font-bold text-gray-900")
+                            | Tạo prompt
+                        button(
+                            type="button"
+                            onclick="document.getElementById('promptModal').classList.add('hidden')"
+                        )
+                            i(data-lucide="x" class="w-5 h-5")
+
+                    form(
+                        action="/admin/prompts"
+                        method="POST"
+                        class="p-6 space-y-5"
+                    )
+                        div
+                            label(class="block text-sm font-medium text-gray-700 mb-2")
+                                | Tên prompt
+                            input(
+                                type="text"
+                                name="name"
+                                required
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg"
+                                placeholder="Prompt chấm bài mặc định"
+                            )
+
+                        div
+                            label(class="block text-sm font-medium text-gray-700 mb-2")
+                                | Phạm vi
+                            select(
+                                name="scope"
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg"
+                            )
+                                option(value="global") Mặc định toàn hệ thống
+                                option(value="subject") Theo môn học
+                                option(value="lesson") Theo bài học
+
+                        div
+                            label(class="block text-sm font-medium text-gray-700 mb-2")
+                                | Nội dung prompt
+                            textarea(
+                                name="content"
+                                required
+                                rows="12"
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg resize-y font-mono text-sm"
+                                placeholder="Nhập prompt chấm bài..."
+                            )
+
+                        button(
+                            type="submit"
+                            class="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium"
+                        )
+                            | Tạo prompt

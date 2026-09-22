@@ -1,0 +1,190 @@
+doctype html
+html(lang="vi")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        title Đăng nhập | AI Grading của MNHA dành cho ĐHGTVT-UTC
+
+        script(src="https://cdn.tailwindcss.com")
+        script(src="https://unpkg.com/lucide@latest")
+
+    body(class="min-h-screen bg-gray-50")
+
+        .min-h-screen.flex.items-center.justify-center.px-4.py-10
+            .w-full.max-w-md
+
+                //- Logo
+                .text-center.mb-8
+                    a(
+                        href="/"
+                        class="inline-flex items-center gap-3"
+                    )
+                        .w-12.h-12.rounded-2xl.bg-indigo-600.flex.items-center.justify-center.shadow-lg
+                            i(
+                                data-lucide="graduation-cap"
+                                class="w-7 h-7 text-white"
+                            )
+
+                        div(class="text-left")
+                            h1(class="text-xl font-bold text-gray-900")
+                                | AI Grading của MNHA dành cho ĐHGTVT-UTC
+                            p(class="text-xs text-gray-500")
+                                | Hệ thống học tập trực tuyến
+
+                //- Card
+                .bg-white.rounded-2xl.shadow-sm.border.border-gray-200.p-6.sm\\:p-8
+
+                    .mb-6
+                        h2(class="text-2xl font-bold text-gray-900")
+                            | Đăng nhập
+
+                        p(class="text-sm text-gray-500 mt-2")
+                            | Đăng nhập để tiếp tục sử dụng hệ thống.
+
+                    //- Error
+                    if error
+                        .mb-5.flex.items-start.gap-3.p-4.bg-red-50.border.border-red-200.rounded-xl
+                            i(
+                                data-lucide="circle-alert"
+                                class="w-5 h-5 text-red-500 flex-shrink-0"
+                            )
+                            p(class="text-sm text-red-700")
+                                = error
+
+                    //- Success
+                    if success
+                        .mb-5.flex.items-start.gap-3.p-4.bg-green-50.border.border-green-200.rounded-xl
+                            i(
+                                data-lucide="circle-check"
+                                class="w-5 h-5 text-green-500 flex-shrink-0"
+                            )
+                            p(class="text-sm text-green-700")
+                                = success
+
+                    form(
+                        action="/auth/login"
+                        method="POST"
+                        class="space-y-5"
+                    )
+
+                        //- Email
+                        div
+                            label(
+                                for="email"
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                            )
+                                | Email
+
+                            .relative
+                                i(
+                                    data-lucide="mail"
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                                )
+
+                                input(
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    value=email || ''
+                                    required
+                                    autocomplete="email"
+                                    placeholder="example@email.com"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                )
+
+                        //- Password
+                        div
+                            .flex.items-center.justify-between.mb-2
+                                label(
+                                    for="password"
+                                    class="block text-sm font-medium text-gray-700"
+                                )
+                                    | Mật khẩu
+
+                                a(
+                                    href="/auth/forgot"
+                                    class="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                                )
+                                    | Quên mật khẩu?
+
+                            .relative
+                                i(
+                                    data-lucide="lock"
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                                )
+
+                                input(
+                                    id="password"
+                                    type="password"
+                                    name="password"
+                                    required
+                                    autocomplete="current-password"
+                                    placeholder="Nhập mật khẩu"
+                                    class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                )
+
+                                button(
+                                    type="button"
+                                    id="togglePassword"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    aria-label="Hiện mật khẩu"
+                                )
+                                    i(
+                                        data-lucide="eye"
+                                        class="w-5 h-5"
+                                    )
+
+                        //- Remember
+                        .flex.items-center
+                            input(
+                                id="remember"
+                                type="checkbox"
+                                name="remember"
+                                class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            )
+
+                            label(
+                                for="remember"
+                                class="ml-2 text-sm text-gray-600"
+                            )
+                                | Ghi nhớ đăng nhập
+
+                        //- Submit
+                        button(
+                            type="submit"
+                            class="w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100 transition"
+                        )
+                            | Đăng nhập
+
+                    //- Register
+                    .mt-6.pt-6.border-t.border-gray-100.text-center
+                        p(class="text-sm text-gray-500")
+                            | Chưa có tài khoản?
+                            a(
+                                href="/auth/register"
+                                class="ml-1 font-semibold text-indigo-600 hover:text-indigo-700"
+                            )
+                                | Đăng ký ngay
+
+                p(class="text-center text-xs text-gray-400 mt-6")
+                    | © #{new Date().getFullYear()} AI Grading của MNHA dành cho ĐHGTVT-UTC
+
+        script.
+            lucide.createIcons();
+
+            const togglePassword = document.getElementById('togglePassword');
+            const password = document.getElementById('password');
+
+            if (togglePassword && password) {
+                togglePassword.addEventListener('click', function () {
+                    const isPassword = password.type === 'password';
+
+                    password.type = isPassword ? 'text' : 'password';
+
+                    this.innerHTML = `
+                        <i data-lucide="${isPassword ? 'eye-off' : 'eye'}" class="w-5 h-5"></i>
+                    `;
+
+                    lucide.createIcons();
+                });
+            }

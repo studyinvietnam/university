@@ -1,0 +1,198 @@
+extends ../layout
+
+block content
+    .max-w-7xl.mx-auto.px-4.sm\\:px-6.lg\\:px-8.py-8
+
+        //- Header
+        .flex.flex-col.sm\\:flex-row.sm\\:items-center.sm\\:justify-between.gap-4.mb-8
+            div
+                h1(class="text-2xl sm:text-3xl font-bold text-gray-900")
+                    | Dashboard
+                p(class="text-gray-500 mt-1")
+                    | Tổng quan hệ thống chấm bài AI
+
+            a(
+                href="/admin/submissions"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
+            )
+                i(data-lucide="file-check" class="w-4 h-4")
+                | Xem bài nộp
+
+        //- Statistics
+        .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4.gap-5.mb-8
+
+            .bg-white.border.border-gray-200.rounded-2xl.p-5.shadow-sm
+                .flex.items-center.justify-between
+                    .w-11.h-11.rounded-xl.bg-indigo-100.text-indigo-600.flex.items-center.justify-center
+                        i(data-lucide="users" class="w-5 h-5")
+                    span(class="text-xs font-medium text-gray-400")
+                        | Người dùng
+
+                p(class="text-3xl font-bold text-gray-900 mt-4")
+                    = stats?.users ?? 0
+
+                p(class="text-sm text-gray-500 mt-1")
+                    | Tổng số tài khoản
+
+            .bg-white.border.border-gray-200.rounded-2xl.p-5.shadow-sm
+                .flex.items-center.justify-between
+                    .w-11.h-11.rounded-xl.bg-blue-100.text-blue-600.flex.items-center.justify-center
+                        i(data-lucide="book-open" class="w-5 h-5")
+                    span(class="text-xs font-medium text-gray-400")
+                        | Môn học
+
+                p(class="text-3xl font-bold text-gray-900 mt-4")
+                    = stats?.subjects ?? 0
+
+                p(class="text-sm text-gray-500 mt-1")
+                    | Môn học đang quản lý
+
+            .bg-white.border.border-gray-200.rounded-2xl.p-5.shadow-sm
+                .flex.items-center.justify-between
+                    .w-11.h-11.rounded-xl.bg-purple-100.text-purple-600.flex.items-center.justify-center
+                        i(data-lucide="layers" class="w-5 h-5")
+                    span(class="text-xs font-medium text-gray-400")
+                        | Bài học
+
+                p(class="text-3xl font-bold text-gray-900 mt-4")
+                    = stats?.lessons ?? 0
+
+                p(class="text-sm text-gray-500 mt-1")
+                    | Tổng số bài học
+
+            .bg-white.border.border-gray-200.rounded-2xl.p-5.shadow-sm
+                .flex.items-center.justify-between
+                    .w-11.h-11.rounded-xl.bg-green-100.text-green-600.flex.items-center.justify-center
+                        i(data-lucide="file-check-2" class="w-5 h-5")
+                    span(class="text-xs font-medium text-gray-400")
+                        | Bài nộp
+
+                p(class="text-3xl font-bold text-gray-900 mt-4")
+                    = stats?.submissions ?? 0
+
+                p(class="text-sm text-gray-500 mt-1")
+                    | Tổng số bài đã nộp
+
+        //- Quick actions
+        .mb-8
+            h2(class="text-lg font-bold text-gray-900 mb-4")
+                | Quản lý nhanh
+
+            .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4.gap-4
+
+                a(
+                    href="/admin/subjects"
+                    class="bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition group"
+                )
+                    .w-10.h-10.rounded-lg.bg-indigo-100.text-indigo-600.flex.items-center.justify-center.mb-4
+                        i(data-lucide="book-open" class="w-5 h-5")
+                    h3(class="font-semibold text-gray-900")
+                        | Quản lý môn học
+                    p(class="text-sm text-gray-500 mt-1")
+                        | Thêm, sửa và quản lý môn học
+
+                a(
+                    href="/admin/lessons"
+                    class="bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition group"
+                )
+                    .w-10.h-10.rounded-lg.bg-blue-100.text-blue-600.flex.items-center.justify-center.mb-4
+                        i(data-lucide="layers" class="w-5 h-5")
+                    h3(class="font-semibold text-gray-900")
+                        | Quản lý bài học
+                    p(class="text-sm text-gray-500 mt-1")
+                        | Quản lý nội dung và bài tập
+
+                a(
+                    href="/admin/prompts"
+                    class="bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition group"
+                )
+                    .w-10.h-10.rounded-lg.bg-purple-100.text-purple-600.flex.items-center.justify-center.mb-4
+                        i(data-lucide="bot" class="w-5 h-5")
+                    h3(class="font-semibold text-gray-900")
+                        | Prompt AI
+                    p(class="text-sm text-gray-500 mt-1")
+                        | Cấu hình prompt chấm bài
+
+                a(
+                    href="/admin/ai-keys"
+                    class="bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition group"
+                )
+                    .w-10.h-10.rounded-lg.bg-green-100.text-green-600.flex.items-center.justify-center.mb-4
+                        i(data-lucide="key-round" class="w-5 h-5")
+                    h3(class="font-semibold text-gray-900")
+                        | API Key AI
+                    p(class="text-sm text-gray-500 mt-1")
+                        | Quản lý khóa Gemini
+
+        //- Recent submissions
+        .bg-white.border.border-gray-200.rounded-2xl.shadow-sm.overflow-hidden
+            .px-5.py-4.border-b.border-gray-200.flex.items-center.justify-between
+                div
+                    h2(class="font-bold text-gray-900")
+                        | Bài nộp gần đây
+                    p(class="text-sm text-gray-500 mt-1")
+                        | Các bài nộp mới nhất trong hệ thống
+
+                a(
+                    href="/admin/submissions"
+                    class="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                )
+                    | Xem tất cả
+
+            if recentSubmissions && recentSubmissions.length
+                .overflow-x-auto
+                    table(class="w-full text-sm")
+                        thead(class="bg-gray-50")
+                            tr
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Sinh viên
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Bài học
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Điểm
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Trạng thái
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Thời gian
+
+                        tbody(class="divide-y divide-gray-100")
+                            each submission in recentSubmissions
+                                tr(class="hover:bg-gray-50")
+                                    td(class="px-5 py-4")
+                                        p(class="font-medium text-gray-900")
+                                            = submission.student?.name || submission.student?.email || 'Không xác định'
+                                        p(class="text-xs text-gray-500")
+                                            = submission.student?.email || ''
+
+                                    td(class="px-5 py-4 text-gray-700")
+                                        = submission.lesson?.title || 'Không xác định'
+
+                                    td(class="px-5 py-4")
+                                        if submission.score !== undefined && submission.score !== null
+                                            span(class="font-semibold text-gray-900")
+                                                = submission.score
+                                        else
+                                            span(class="text-gray-400")
+                                                | —
+
+                                    td(class="px-5 py-4")
+                                        if submission.status === 'graded'
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700")
+                                                | Đã chấm
+                                        else if submission.status === 'grading'
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700")
+                                                | Đang chấm
+                                        else if submission.status === 'failed'
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700")
+                                                | Lỗi
+                                        else
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700")
+                                                = submission.status || 'Chờ xử lý'
+
+                                    td(class="px-5 py-4 text-gray-500")
+                                        = submission.createdAt ? new Date(submission.createdAt).toLocaleString('vi-VN') : '—'
+            else
+                .py-12.text-center
+                    i(data-lucide="inbox" class="w-10 h-10 mx-auto text-gray-300")
+                    p(class="text-gray-500 mt-3")
+                        | Chưa có bài nộp nào.

@@ -1,0 +1,102 @@
+extends ../layout
+
+block content
+    .max-w-7xl.mx-auto.px-4.sm\\:px-6.lg\\:px-8.py-8
+
+        .flex.items-center.justify-between.mb-8
+            div
+                h1(class="text-2xl sm:text-3xl font-bold text-gray-900")
+                    | Quản lý vai trò
+                p(class="text-gray-500 mt-1")
+                    | Quản lý các role của hệ thống
+
+            button(
+                type="button"
+                onclick="document.getElementById('roleModal').classList.remove('hidden')"
+                class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+            )
+                i(data-lucide="plus" class="w-4 h-4")
+                | Thêm vai trò
+
+        .bg-white.border.border-gray-200.rounded-2xl.shadow-sm.overflow-hidden
+            if roles && roles.length
+                .overflow-x-auto
+                    table(class="w-full text-sm")
+                        thead(class="bg-gray-50")
+                            tr
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Tên
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Mô tả
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Số người dùng
+                                th(class="px-5 py-3 text-right font-semibold text-gray-600")
+                                    | Thao tác
+
+                        tbody(class="divide-y divide-gray-100")
+                            each role in roles
+                                tr(class="hover:bg-gray-50")
+                                    td(class="px-5 py-4 font-medium text-gray-900")
+                                        = role.name
+
+                                    td(class="px-5 py-4 text-gray-600")
+                                        = role.description || '—'
+
+                                    td(class="px-5 py-4 text-gray-600")
+                                        = role.userCount ?? 0
+
+                                    td(class="px-5 py-4")
+                                        .flex.items-center.justify-end.gap-2
+                                            a(
+                                                href="/admin/roles/" + role._id + "/edit"
+                                                class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 text-gray-500 hover:text-indigo-600"
+                                            )
+                                                i(data-lucide="pencil" class="w-4 h-4")
+
+                                            form(
+                                                action="/admin/roles/" + role._id + "/delete"
+                                                method="POST"
+                                                onsubmit="return confirm('Bạn có chắc muốn xóa vai trò này?')"
+                                            )
+                                                button(
+                                                    type="submit"
+                                                    class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-50 text-gray-500 hover:text-red-600"
+                                                )
+                                                    i(data-lucide="trash-2" class="w-4 h-4")
+            else
+                .py-12.text-center.text-gray-500
+                    | Chưa có vai trò nào.
+
+        #roleModal(class="hidden fixed inset-0 z-[100] bg-black/50 p-4")
+            .min-h-full.flex.items-center.justify-center
+                .bg-white.rounded-2xl.w-full.max-w-md.shadow-xl
+                    .px-6.py-5.border-b.border-gray-200.flex.items-center.justify-between
+                        h2(class="font-bold text-gray-900")
+                            | Thêm vai trò
+                        button(
+                            type="button"
+                            onclick="document.getElementById('roleModal').classList.add('hidden')"
+                        )
+                            i(data-lucide="x" class="w-5 h-5")
+
+                    form(action="/admin/roles" method="POST" class="p-6 space-y-4")
+                        input(
+                            type="text"
+                            name="name"
+                            required
+                            placeholder="Tên vai trò"
+                            class="w-full px-3 py-2.5 border border-gray-300 rounded-lg"
+                        )
+
+                        textarea(
+                            name="description"
+                            rows="3"
+                            placeholder="Mô tả"
+                            class="w-full px-3 py-2.5 border border-gray-300 rounded-lg resize-none"
+                        )
+
+                        button(
+                            type="submit"
+                            class="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium"
+                        )
+                            | Lưu

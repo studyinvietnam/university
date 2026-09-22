@@ -1,0 +1,83 @@
+extends layout
+
+block content
+    .min-h-[calc(100vh-145px)].flex.items-center.justify-center.px-4.py-12
+        .w-full.max-w-2xl
+            .bg-white.rounded-3xl.border.border-gray-200.shadow-sm.overflow-hidden
+
+                // Header
+                .bg-gradient-to-br.from-blue-600.to-indigo-700.px-6.py-10.md:px-10.text-center.text-white
+                    .w-20.h-20.mx-auto.rounded-2xl.bg-white.bg-opacity-15.flex.items-center.justify-center.mb-5
+                        i(data-lucide="user-round-check").w-10.h-10
+
+                    h1.text-2xl.md:text-3xl.font-bold
+                        | Tài khoản đang chờ duyệt
+
+                    p.mt-3.text-blue-100.max-w-lg.mx-auto
+                        | Tài khoản của bạn đã được đăng ký thành công nhưng chưa được quản trị viên phê duyệt.
+
+                // Content
+                .p-6.md:p-10
+                    .flex.items-start.gap-4.p-5.rounded-2xl.bg-yellow-50.border.border-yellow-200
+                        .w-10.h-10.rounded-full.bg-yellow-100.flex.items-center.justify-center.flex-shrink-0
+                            i(data-lucide="clock-3").w-5.h-5.text-yellow-700
+
+                        div
+                            h2.font-semibold.text-yellow-900
+                                | Đang chờ phê duyệt
+
+                            p.mt-1.text-sm.leading-6.text-yellow-800
+                                | Quản trị viên cần phê duyệt tài khoản trước khi bạn có thể sử dụng đầy đủ hệ thống.
+
+                    .mt-8.space-y-5
+                        .flex.items-start.gap-4
+                            .w-9.h-9.rounded-lg.bg-blue-50.flex.items-center.justify-center.flex-shrink-0
+                                i(data-lucide="shield-check").w-5.h-5.text-blue-600
+
+                            div
+                                h3.font-medium.text-gray-900
+                                    | Sau khi được duyệt
+
+                                p.mt-1.text-sm.text-gray-500
+                                    | Bạn sẽ có thể truy cập các môn học, bài học, nộp bài và xem kết quả chấm.
+
+                        .flex.items-start.gap-4
+                            .w-9.h-9.rounded-lg.bg-green-50.flex.items-center.justify-center.flex-shrink-0
+                                i(data-lucide="bell").w-5.h-5.text-green-600
+
+                            div
+                                h3.font-medium.text-gray-900
+                                    | Kiểm tra thông báo
+
+                                p.mt-1.text-sm.text-gray-500
+                                    | Hệ thống sẽ cập nhật trạng thái tài khoản khi quản trị viên hoàn tất việc xét duyệt.
+
+                    if user
+                        .mt-8.pt-6.border-t.border-gray-100
+                            .flex.items-center.gap-3
+                                .w-10.h-10.rounded-full.bg-gray-100.flex.items-center.justify-center
+                                    span.font-semibold.text-gray-600
+                                        | #{(user.name || user.email || 'U').charAt(0).toUpperCase()}
+
+                                div.min-w-0
+                                    p.text-sm.font-medium.text-gray-900.truncate
+                                        | #{user.name || 'Người dùng'}
+                                    p.text-xs.text-gray-500.truncate
+                                        | #{user.email}
+
+                    .mt-8.flex.flex-col.sm:flex-row.gap-3
+                        a.flex-1.inline-flex.items-center.justify-center.gap-2.px-5.py-3.rounded-xl.bg-blue-600.text-white.text-sm.font-semibold.hover:bg-blue-700.transition-colors(
+                            href="/"
+                        )
+                            i(data-lucide="house").w-4.h-4
+                            | Về trang chủ
+
+                        a.flex-1.inline-flex.items-center.justify-center.gap-2.px-5.py-3.rounded-xl.border.border-gray-300.text-gray-700.text-sm.font-semibold.hover:bg-gray-50.transition-colors(
+                            href="/auth/logout"
+                        )
+                            i(data-lucide="log-out").w-4.h-4
+                            | Đăng xuất
+
+                    .mt-6.text-center
+                        p.text-xs.text-gray-400
+                            | Nếu bạn cho rằng tài khoản đã chờ quá lâu, hãy liên hệ quản trị viên.

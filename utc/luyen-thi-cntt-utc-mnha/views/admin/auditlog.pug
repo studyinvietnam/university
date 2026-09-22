@@ -1,0 +1,44 @@
+extends ../layout
+
+block content
+    .max-w-7xl.mx-auto.px-4.sm\\:px-6.lg\\:px-8.py-8
+
+        .mb-8
+            h1(class="text-2xl sm:text-3xl font-bold text-gray-900")
+                | Audit Log
+            p(class="text-gray-500 mt-1")
+                | Lịch sử các thao tác quan trọng trong hệ thống
+
+        .bg-white.border.border-gray-200.rounded-2xl.shadow-sm.overflow-hidden
+            if logs && logs.length
+                .divide-y.divide-gray-100
+                    each log in logs
+                        .p-5.flex.items-start.gap-4
+                            .w-10.h-10.rounded-full.bg-gray-100.text-gray-600.flex.items-center.justify-center.flex-shrink-0
+                                i(data-lucide="activity" class="w-5 h-5")
+
+                            div(class="flex-1 min-w-0")
+                                .flex.flex-col.sm\\:flex-row.sm\\:items-center.sm\\:justify-between.gap-1
+                                    p(class="font-medium text-gray-900")
+                                        = log.action || 'Thao tác'
+
+                                    span(class="text-xs text-gray-400")
+                                        = log.createdAt ? new Date(log.createdAt).toLocaleString('vi-VN') : '—'
+
+                                p(class="text-sm text-gray-600 mt-1")
+                                    = log.description || 'Không có mô tả'
+
+                                if log.user
+                                    p(class="text-xs text-gray-400 mt-2")
+                                        | Người thực hiện:
+                                        = ' ' + (log.user.name || log.user.email || 'Không xác định')
+
+                                if log.ip
+                                    p(class="text-xs text-gray-400 mt-1")
+                                        | IP:
+                                        = ' ' + log.ip
+            else
+                .py-16.text-center
+                    i(data-lucide="history" class="w-10 h-10 mx-auto text-gray-300")
+                    p(class="text-gray-500 mt-3")
+                        | Chưa có lịch sử thao tác.
