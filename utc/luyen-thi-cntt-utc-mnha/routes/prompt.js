@@ -1,66 +1,45 @@
 const express = require("express");
-
+const router = express.Router();
 const promptController = require("../controllers/prompt.controller");
 
-const router = express.Router();
+function requireAuth(req, res, next) {
+    const user = req.user || req.session?.user;
+    if (!user) return res.redirect("/auth/login");
+    next();
+}
 
-
-// ============================================================
-// ADMIN - GRADING PROMPTS
-// ============================================================
-
-// Danh sách prompt
-router.get(
-    "/",
-    promptController.getPrompts
-);
-
-// Tạo prompt
-router.post(
-    "/",
-    promptController.createPrompt
-);
-
-// Cập nhật prompt
-router.put(
-    "/:id",
-    promptController.updatePrompt
-);
-
-// Xóa prompt
-router.delete(
-    "/:id",
-    promptController.deletePrompt
-);
-
-
-// ============================================================
-// AI - EFFECTIVE PROMPT
-// ============================================================
-
-router.get(
-    "/effective",
-    async (req, res) => {
-        try {
-            const prompt = await promptController.getEffectivePrompt({
-                lessonId: req.query.lessonId,
-                subjectId: req.query.subjectId
-            });
-
-            return res.json({
-                success: true,
-                prompt
-            });
-        } catch (error) {
-            console.error(error);
-
-            return res.status(500).json({
-                success: false,
-                message: error.message
-            });
-        }
+function requireAdmin(req, res, next) {
+    const user = req.user || req.session?.user;
+    if (!user) return res.redirect("/auth/login");
+    if (user.role !== "admin") {
+        return res.status(403).render("error", {
+            title: "Không có quyền",
+            message: "Chỉ admin mới quản lý prompt.",
+            statusCode: 403,
+            stack: null
+        });
     }
-);
+    next();
+}
 
+router.use(requireAuth);
+
+// Danh sách prompt — admin
+router.get("/", requireAdmin, promptController.getPrompts);
+
+// Tạo mới — admin
+router.post("/", requireAdmin, promptController.createPrompt);
+
+// Lấy prompt hiệu lực cho lesson/subject (dùng cho chấm bài)
+router.get("/effective", promptController.getEffectivePrompt);
+
+// Test prompt — admin
+router.post("/:id/test", requireAdmin, promptController.testPrompt);
+
+// Cập nhật — admin
+router.post("/:id/update", requireAdmin, promptController.updatePrompt);
+
+// Xoá — admin
+router.post("/:id/delete", requireAdmin, promptController.deletePrompt);
 
 module.exports = router;

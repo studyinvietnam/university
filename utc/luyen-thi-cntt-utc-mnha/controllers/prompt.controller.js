@@ -1,4 +1,12 @@
 const GradingPrompt = require('../models/GradingPrompt');
+const ModelComparison = require('../models/ModelComparison');
+const { renderPromptTemplate } = require('../services/promptService');
+const {
+    runCustomPrompt,
+    runCustomPromptAllModels,
+    SUPPORTED_MODELS,
+    DEFAULT_MODEL
+} = require('../services/aiService');
 
 const getPrompts = async (req, res) => {
     try {
@@ -13,7 +21,9 @@ const getPrompts = async (req, res) => {
 
         return res.render('admin/prompts', {
             title: 'Prompt chấm bài',
-            prompts
+            prompts,
+            supportedModels: SUPPORTED_MODELS,
+            defaultModel: DEFAULT_MODEL
         });
     } catch (error) {
         console.error('Get prompts error:', error);
@@ -21,6 +31,8 @@ const getPrompts = async (req, res) => {
         return res.status(500).render('admin/prompts', {
             title: 'Prompt chấm bài',
             prompts: [],
+            supportedModels: SUPPORTED_MODELS,
+            defaultModel: DEFAULT_MODEL,
             error: 'Không thể tải danh sách prompt.'
         });
     }
@@ -174,10 +186,92 @@ const getEffectivePrompt = async ({
     return globalPrompt;
 };
 
+// ============================================================
+// TEST PROMPT — chọn 1 model hoặc chạy tất cả (models = 'all')
+// POST /admin/prompts/:id/test
+// body: { topic, essay, sampleSolution, maxScore, rubric, model, models }
+// ============================================================
+
+const testPrompt = async (req, res) => {
+    try {
+        const prompt = await GradingPrompt.findById(req.params.id).lean();
+
+        if (!prompt) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy prompt.'
+            });
+        }
+
+        const {
+            topic,
+            essay,
+            sampleSolution,
+            maxScore,
+            rubric,
+            model,
+            models
+        } = req.body;
+
+        if (!essay || !String(essay).trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cần nhập bài làm mẫu để test.'
+            });
+        }
+
+        const renderedPrompt = renderPromptTemplate(prompt.content, {
+            topic,
+            essay,
+            sampleSolution,
+            rubric: rubric || prompt.rubric,
+            maxScore: maxScore || prompt.maxScore,
+            strictness: prompt.strictness
+        });
+
+        const runAll = models === 'all' || models === true;
+
+        if (runAll) {
+            const results = await runCustomPromptAllModels(renderedPrompt);
+
+            const comparison = await ModelComparison.create({
+                promptId: prompt._id,
+                promptSnapshot: renderedPrompt,
+                results,
+                createdBy: req.session?.user?.id || null
+            });
+
+            return res.json({
+                success: true,
+                mode: 'all',
+                comparisonId: comparison._id,
+                results
+            });
+        }
+
+        const output = await runCustomPrompt(renderedPrompt, model);
+
+        return res.json({
+            success: true,
+            mode: 'single',
+            model: output.model,
+            result: output
+        });
+    } catch (error) {
+        console.error('Test prompt error:', error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message || 'Không thể test prompt.'
+        });
+    }
+};
+
 module.exports = {
     getPrompts,
     createPrompt,
     updatePrompt,
     deletePrompt,
-    getEffectivePrompt
+    getEffectivePrompt,
+    testPrompt
 };

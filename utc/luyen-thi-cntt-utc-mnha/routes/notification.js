@@ -1,33 +1,32 @@
 const express = require("express");
-
+const router = express.Router();
 const notificationController = require("../controllers/notification.controller");
 
-const router = express.Router();
+function requireAuth(req, res, next) {
+    const user = req.user || req.session?.user;
+    if (!user) {
+        if (req.xhr || req.headers.accept?.includes("json"))
+            return res.status(401).json({ error: "Chưa đăng nhập" });
+        return res.redirect("/auth/login");
+    }
+    next();
+}
 
+router.use(requireAuth);
 
-// ============================================================
-// NOTIFICATIONS
-// ============================================================
+// Đếm chưa đọc (đặt trước /:id để không bị nhầm)
+router.get("/unread-count", notificationController.getUnreadCount);
 
-router.get(
-    "/",
-    notificationController.getNotifications
-);
+// Đánh dấu tất cả đã đọc (đặt trước /:id/read)
+router.post("/read-all", notificationController.markAllAsRead);
 
-router.get(
-    "/unread-count",
-    notificationController.getUnreadCount
-);
+// Danh sách
+router.get("/", notificationController.getNotifications);
 
-router.put(
-    "/read-all",
-    notificationController.markAllAsRead
-);
+// Tạo thủ công (dùng nội bộ hoặc admin)
+router.post("/", notificationController.createNotification);
 
-router.put(
-    "/:id/read",
-    notificationController.markAsRead
-);
-
+// Đánh dấu 1 cái đã đọc
+router.post("/:id/read", notificationController.markAsRead);
 
 module.exports = router;

@@ -1,59 +1,63 @@
 extends ../layout
 
 block content
-    .max-w-7xl.mx-auto.px-4.sm:px-6.lg:px-8.py-8
-        // Header
-        .flex.flex-col.md:flex-row.md:items-center.md:justify-between.gap-4.mb-8
+    div(class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8")
+        //- Header
+        div(class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8")
             div
-                h1.text-3xl.font-bold.text-gray-900 Danh sách môn học
-                p.mt-1.text-gray-500 Chọn môn học để xem các bài tập và bài học.
+                h1(class="text-3xl font-bold text-gray-900") Danh sách môn học
+                p(class="mt-1 text-gray-500") Chọn môn học để xem các bài tập và bài học.
 
             if subjects && subjects.length
-                .text-sm.text-gray-500
-                    i(data-lucide="book-open").w-4.h-4.inline-block.mr-1
+                div(class="text-sm text-gray-500")
+                    i(data-lucide="book-open", class="w-4 h-4 inline-block mr-1")
                     | #{subjects.length} môn học
 
-        // Empty state
+        //- Empty state
         if !subjects || subjects.length === 0
-            .bg-white.rounded-2xl.border.border-gray-200.p-10.text-center
-                .w-16.h-16.mx-auto.rounded-full.bg-blue-50.flex.items-center.justify-center.mb-4
-                    i(data-lucide="book-open").w-8.h-8.text-blue-600
+            div(class="bg-white rounded-2xl border border-gray-200 p-10 text-center")
+                div(class="w-16 h-16 mx-auto rounded-full bg-blue-50 flex items-center justify-center mb-4")
+                    i(data-lucide="book-open", class="w-8 h-8 text-blue-600")
 
-                h2.text-xl.font-semibold.text-gray-900 Chưa có môn học
-                p.mt-2.text-gray-500 Hiện tại chưa có môn học nào được công khai.
+                h2(class="text-xl font-semibold text-gray-900") Chưa có môn học
+                p(class="mt-2 text-gray-500") Hiện tại chưa có môn học nào được công khai.
 
-        // Subject list
+        //- Subject list
         else
-            .grid.grid-cols-1.sm:grid-cols-2.lg:grid-cols-3.gap-6
+            div(class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6")
                 each subject in subjects
-                    a.group.block.bg-white.rounded-2xl.border.border-gray-200.hover:border-blue-300.hover:shadow-lg.transition-all.duration-200.overflow-hidden(
-                        href=`/student/subjects/${subject._id}`
+                    a(
+                        href=`/subjects/${subject._id}`
+                        class="group block bg-white rounded-2xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 overflow-hidden"
                     )
-                        .h-2.bg-blue-600
+                        div(class="h-2 bg-blue-600")
 
-                        .p-6
-                            .flex.items-start.justify-between.gap-4
-                                .w-12.h-12.rounded-xl.bg-blue-50.flex.items-center.justify-center.flex-shrink-0
-                                    i(data-lucide="book-open").w-6.h-6.text-blue-600
+                        div(class="p-6")
+                            div(class="flex items-start justify-between gap-4")
+                                div(class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0")
+                                    i(data-lucide="book-open", class="w-6 h-6 text-blue-600")
 
-                                i(data-lucide="arrow-up-right").w-5.h-5.text-gray-400.group-hover:text-blue-600.transition-colors
+                                i(
+                                    data-lucide="arrow-up-right"
+                                    class="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors"
+                                )
 
-                            h2.mt-5.text-xl.font-bold.text-gray-900.group-hover:text-blue-600.transition-colors
+                            h2(class="mt-5 text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors")
                                 | #{subject.name}
 
                             if subject.code
-                                p.mt-1.text-sm.font-medium.text-blue-600
+                                p(class="mt-1 text-sm font-medium text-blue-600")
                                     | #{subject.code}
 
                             if subject.description
-                                p.mt-3.text-sm.text-gray-500.line-clamp-3
+                                p(class="mt-3 text-sm text-gray-500 line-clamp-3")
                                     | #{subject.description}
 
-                            .mt-5.pt-4.border-t.border-gray-100.flex.items-center.justify-between
-                                span.text-sm.text-gray-500
-                                    i(data-lucide="layers").w-4.h-4.inline-block.mr-1
+                            div(class="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between")
+                                span(class="text-sm text-gray-500")
+                                    i(data-lucide="layers", class="w-4 h-4 inline-block mr-1")
                                     | #{subject.lessonCount || 0} bài học
 
-                                span.text-sm.font-medium.text-blue-600
+                                span(class="text-sm font-medium text-blue-600")
                                     | Xem môn học
-                                    i(data-lucide="chevron-right").w-4.h-4.inline-block.ml-1
+                                    i(data-lucide="chevron-right", class="w-4 h-4 inline-block ml-1")

@@ -1,38 +1,24 @@
 const express = require("express");
-
+const router = express.Router();
 const disputeController = require("../controllers/dispute.controller");
 
-const router = express.Router();
+function requireAuth(req, res, next) {
+    const user = req.user || req.session?.user;
+    if (!user) return res.redirect("/auth/login");
+    if (user.status === "pending" || user.role === "client") return res.redirect("/pages");
+    next();
+}
 
+router.use(requireAuth);
 
-// ============================================================
-// ADMIN
-// ============================================================
+// Student tạo khiếu nại
+router.post("/", disputeController.createDispute);
 
-router.get(
-    "/admin/all",
-    disputeController.getDisputes
-);
+// Xem chi tiết 1 khiếu nại
+router.get("/:id", disputeController.showDispute);
 
-router.put(
-    "/admin/:id",
-    disputeController.updateDispute
-);
-
-
-// ============================================================
-// STUDENT
-// ============================================================
-
-router.get(
-    "/:submissionId",
-    disputeController.showDispute
-);
-
-router.post(
-    "/:submissionId",
-    disputeController.createDispute
-);
-
+// Admin: danh sách + cập nhật
+router.get("/", disputeController.getDisputes);
+router.post("/:id/update", disputeController.updateDispute);
 
 module.exports = router;

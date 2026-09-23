@@ -1,48 +1,50 @@
+// routes/lesson.js
 const express = require("express");
+const router = express.Router();
 
 const lessonController = require("../controllers/lesson.controller");
 
-const router = express.Router();
-
-
 // ============================================================
-// STUDENT
+// MIDDLEWARE — chỉ check đăng nhập, KHÔNG phân biệt role
+// Student và Admin dùng chung
 // ============================================================
 
-// Danh sách bài học của môn
-router.get(
-    "/subject/:subjectId",
-    lessonController.getLessons
-);
+function requireLogin(req, res, next) {
+    const user = req.user || req.session?.user;
 
-// Chi tiết bài học
-router.get(
-    "/:id",
-    lessonController.getLesson
-);
+    if (!user) {
+        const wantsJson =
+            req.xhr ||
+            req.path.startsWith("/api") ||
+            req.headers.accept?.includes("json");
+        if (wantsJson) {
+            return res.status(401).json({ success: false, message: "Chưa đăng nhập." });
+        }
+        return res.redirect("/auth/login");
+    }
 
+    // Chỉ chặn client/pending. Admin LUÔN qua, bất kể status.
+    if (user.role !== "admin") {
+        if (user.status === "pending" || user.role === "client") {
+            const wantsJson =
+                req.xhr ||
+                req.path.startsWith("/api") ||
+                req.headers.accept?.includes("json");
+            if (wantsJson) {
+                return res.status(403).json({ success: false, message: "Tài khoản đang chờ duyệt." });
+            }
+            return res.redirect("/pages");
+        }
+    }
+
+    next();
+}
+
+router.use(requireLogin);
 
 // ============================================================
-// ADMIN
+// Chi tiết bài học — controller tự phân biệt id vs slug
 // ============================================================
-
-// Tạo bài học
-router.post(
-    "/",
-    lessonController.createLesson
-);
-
-// Cập nhật bài học
-router.put(
-    "/:id",
-    lessonController.updateLesson
-);
-
-// Xóa bài học
-router.delete(
-    "/:id",
-    lessonController.deleteLesson
-);
-
+router.get("/:id", lessonController.showLesson);
 
 module.exports = router;

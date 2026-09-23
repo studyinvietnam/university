@@ -1,120 +1,367 @@
 extends ../layout
 
 block content
-    .max-w-7xl.mx-auto.px-4.sm\\:px-6.lg\\:px-8.py-8
+    div(class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8")
 
-        .mb-8
-            h1(class="text-2xl sm:text-3xl font-bold text-gray-900")
-                | Quản lý người dùng
-            p(class="text-gray-500 mt-1")
-                | Duyệt tài khoản và quản lý quyền người dùng
+        //- Header
+        div(class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8")
+            div
+                h1(class="text-2xl sm:text-3xl font-bold text-gray-900") Quản lý tài khoản
+                p(class="text-gray-500 mt-1") Duyệt, phân quyền và quản lý người dùng hệ thống
 
-        .bg-white.border.border-gray-200.rounded-xl.p-4.mb-6
-            form(
-                action="/admin/users"
-                method="GET"
-                class="flex flex-col sm:flex-row gap-3"
-            )
+        //- Stats bar
+        div(class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8")
+            div(class="bg-white border border-gray-200 rounded-xl p-4")
+                p(class="text-xs font-medium text-gray-500") Tổng
+                p(class="text-2xl font-bold text-gray-900 mt-1")= stats.total || 0
+
+            div(class="bg-amber-50 border border-amber-200 rounded-xl p-4")
+                p(class="text-xs font-medium text-amber-700") Chờ duyệt
+                p(class="text-2xl font-bold text-amber-800 mt-1")= stats.pending || 0
+
+            div(class="bg-blue-50 border border-blue-200 rounded-xl p-4")
+                p(class="text-xs font-medium text-blue-700") Sinh viên
+                p(class="text-2xl font-bold text-blue-800 mt-1")= stats.student || 0
+
+            div(class="bg-indigo-50 border border-indigo-200 rounded-xl p-4")
+                p(class="text-xs font-medium text-indigo-700") Admin
+                p(class="text-2xl font-bold text-indigo-800 mt-1")= stats.admin || 0
+
+            div(class="bg-gray-50 border border-gray-200 rounded-xl p-4")
+                p(class="text-xs font-medium text-gray-600") Client
+                p(class="text-2xl font-bold text-gray-700 mt-1")= stats.client || 0
+
+        //- Filters
+        form(
+            method="GET"
+            action="/admin/users"
+            class="bg-white border border-gray-200 rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-3"
+        )
+            div(class="flex-1")
                 input(
                     type="text"
-                    name="search"
-                    value=filters?.search || ''
+                    name="q"
+                    value=(filters.q || '')
                     placeholder="Tìm theo tên hoặc email..."
-                    class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
                 )
 
+            div
+                select(
+                    name="role"
+                    class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
+                )
+                    option(value="all", selected=filters.role === 'all') Tất cả vai trò
+                    option(value="client", selected=filters.role === 'client') Client
+                    option(value="student", selected=filters.role === 'student') Student
+                    option(value="admin", selected=filters.role === 'admin') Admin
+
+            div
                 select(
                     name="status"
-                    class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+                    class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
                 )
-                    option(value="") Tất cả trạng thái
-                    option(value="pending" selected=filters?.status === 'pending') Chờ duyệt
-                    option(value="approved" selected=filters?.status === 'approved') Đã duyệt
-                    option(value="rejected" selected=filters?.status === 'rejected') Từ chối
+                    option(value="all", selected=filters.status === 'all') Tất cả trạng thái
+                    option(value="pending", selected=filters.status === 'pending') Chờ duyệt
+                    option(value="approved", selected=filters.status === 'approved') Đã duyệt
+                    option(value="rejected", selected=filters.status === 'rejected') Bị từ chối
+                    option(value="disabled", selected=filters.status === 'disabled') Vô hiệu hoá
 
+            div(class="flex gap-2")
                 button(
                     type="submit"
-                    class="px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium"
-                )
-                    | Tìm kiếm
+                    class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
+                ) Lọc
 
-        .bg-white.border.border-gray-200.rounded-2xl.shadow-sm.overflow-hidden
-            if users && users.length
-                .overflow-x-auto
-                    table(class="w-full text-sm")
-                        thead(class="bg-gray-50")
-                            tr
-                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
-                                    | Người dùng
-                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
-                                    | Vai trò
-                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
-                                    | Trạng thái
-                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
-                                    | Ngày đăng ký
-                                th(class="px-5 py-3 text-right font-semibold text-gray-600")
-                                    | Thao tác
+                a(
+                    href="/admin/users"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+                ) Xoá lọc
 
-                        tbody(class="divide-y divide-gray-100")
-                            each account in users
-                                tr(class="hover:bg-gray-50")
+        //- Table
+        div(class="bg-white border border-gray-200 rounded-2xl overflow-hidden")
+            .overflow-x-auto
+                table(class="w-full text-sm")
+                    thead(class="bg-gray-50")
+                        tr
+                            th(class="px-5 py-3 text-left font-semibold text-gray-600") Người dùng
+                            th(class="px-5 py-3 text-left font-semibold text-gray-600") Vai trò
+                            th(class="px-5 py-3 text-left font-semibold text-gray-600") Trạng thái
+                            th(class="px-5 py-3 text-left font-semibold text-gray-600") Ngày tạo
+                            th(class="px-5 py-3 text-right font-semibold text-gray-600") Hành động
+
+                    tbody(class="divide-y divide-gray-100")
+                        if users && users.length
+                            each u in users
+                                tr(class="hover:bg-gray-50", data-user-id=u._id)
                                     td(class="px-5 py-4")
-                                        .flex.items-center.gap-3
-                                            .w-9.h-9.rounded-full.bg-indigo-100.text-indigo-700.flex.items-center.justify-center.font-semibold
-                                                = (account.name || account.email || 'U').charAt(0).toUpperCase()
-                                            div
-                                                p(class="font-medium text-gray-900")
-                                                    = account.name || 'Chưa cập nhật'
-                                                p(class="text-xs text-gray-500")
-                                                    = account.email
-
-                                    td(class="px-5 py-4")
-                                        span(class="px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium")
-                                            = account.role?.name || account.role || 'student'
+                                        div(class="flex items-center gap-3")
+                                            div(class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0")
+                                                span(class="text-sm font-bold text-indigo-700")
+                                                    | #{(u.name || u.email || 'U').charAt(0).toUpperCase()}
+                                            div(class="min-w-0")
+                                                p(class="font-medium text-gray-900 truncate")= u.name || '(Chưa có tên)'
+                                                p(class="text-xs text-gray-500 truncate")= u.email
 
                                     td(class="px-5 py-4")
-                                        if account.status === 'approved'
-                                            span(class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium")
-                                                | Đã duyệt
-                                        else if account.status === 'rejected'
-                                            span(class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium")
-                                                | Từ chối
+                                        if u.role === 'admin'
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700") Admin
+                                        else if u.role === 'student'
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700") Sinh viên
                                         else
-                                            span(class="px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium")
-                                                | Chờ duyệt
-
-                                    td(class="px-5 py-4 text-gray-500")
-                                        = account.createdAt ? new Date(account.createdAt).toLocaleDateString('vi-VN') : '—'
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700") Client
 
                                     td(class="px-5 py-4")
-                                        .flex.items-center.justify-end.gap-2
-                                            a(
-                                                href="/admin/users/" + account._id
-                                                class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-medium"
-                                            )
-                                                | Chi tiết
+                                        if u.status === 'approved'
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700") Đã duyệt
+                                        else if u.status === 'pending'
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700") Chờ duyệt
+                                        else if u.status === 'rejected'
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700") Bị từ chối
+                                        else if u.status === 'disabled'
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-700") Vô hiệu hoá
+                                        else
+                                            span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700")= u.status
 
-                                            if account.status !== 'approved'
-                                                form(
-                                                    action="/admin/users/" + account._id + "/approve"
-                                                    method="POST"
-                                                )
-                                                    button(
-                                                        type="submit"
-                                                        class="px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 text-xs font-medium"
-                                                    )
-                                                        | Duyệt
+                                    td(class="px-5 py-4 text-gray-500 text-xs")
+                                        = u.createdAt ? new Date(u.createdAt).toLocaleString('vi-VN') : '—'
 
-                                            if account.status !== 'rejected'
-                                                form(
-                                                    action="/admin/users/" + account._id + "/reject"
-                                                    method="POST"
-                                                )
-                                                    button(
-                                                        type="submit"
-                                                        class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium"
-                                                    )
-                                                        | Từ chối
-            else
-                .py-12.text-center.text-gray-500
-                    | Không tìm thấy người dùng.
+                                    td(class="px-5 py-4")
+                                        div(class="flex items-center justify-end gap-2")
+                                            if u.status === 'pending'
+                                                button(
+                                                    type="button"
+                                                    class="quick-approve px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition"
+                                                    data-id=u._id
+                                                ) Duyệt
+
+                                            button(
+                                                type="button"
+                                                class="edit-user px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-50 transition"
+                                                data-user=JSON.stringify({
+                                                    _id: String(u._id),
+                                                    name: u.name,
+                                                    email: u.email,
+                                                    role: u.role,
+                                                    status: u.status
+                                                })
+                                            ) Sửa
+
+                                            button(
+                                                type="button"
+                                                class="delete-user px-3 py-1.5 border border-red-300 text-red-600 rounded-lg text-xs font-medium hover:bg-red-50 transition"
+                                                data-id=u._id
+                                                data-email=u.email
+                                            ) Xoá
+                        else
+                            tr
+                                td(colspan="5", class="px-5 py-12 text-center")
+                                    i(data-lucide="users", class="w-10 h-10 mx-auto text-gray-300")
+                                    p(class="text-gray-500 mt-3") Không có user nào.
+
+        //- Pagination
+        if pagination && pagination.totalPages > 1
+            div(class="flex items-center justify-between mt-6")
+                p(class="text-sm text-gray-500")
+                    | Trang #{pagination.page} / #{pagination.totalPages} — Tổng #{pagination.total} user
+
+                div(class="flex gap-2")
+                    if pagination.hasPrev
+                        a(
+                            href=`/admin/users?q=${encodeURIComponent(filters.q || '')}&role=${filters.role}&status=${filters.status}&page=${pagination.page - 1}`
+                            class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                        ) ← Trước
+                    if pagination.hasNext
+                        a(
+                            href=`/admin/users?q=${encodeURIComponent(filters.q || '')}&role=${filters.role}&status=${filters.status}&page=${pagination.page + 1}`
+                            class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                        ) Sau →
+
+    //- ================================
+    //- MODAL EDIT USER
+    //- ================================
+    div#editUserModal(class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4")
+        div(class="bg-white rounded-2xl max-w-md w-full shadow-xl")
+            div(class="px-6 py-4 border-b border-gray-200 flex items-center justify-between")
+                h3(class="font-bold text-lg text-gray-900") Sửa tài khoản
+                button#closeEditModal(class="text-gray-400 hover:text-gray-600", type="button")
+                    i(data-lucide="x", class="w-5 h-5")
+
+            form#editUserForm(class="px-6 py-5 space-y-4")
+                input#editUserId(type="hidden", name="id")
+
+                div
+                    label(class="block text-sm font-medium text-gray-700 mb-1") Email
+                    input#editUserEmail(
+                        type="email"
+                        disabled
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500"
+                    )
+
+                div
+                    label(class="block text-sm font-medium text-gray-700 mb-1") Tên
+                    input#editUserName(
+                        type="text"
+                        name="name"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
+                    )
+
+                div
+                    label(class="block text-sm font-medium text-gray-700 mb-1") Vai trò
+                    select#editUserRole(
+                        name="role"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
+                    )
+                        option(value="client") Client
+                        option(value="student") Sinh viên
+                        option(value="admin") Admin
+
+                div
+                    label(class="block text-sm font-medium text-gray-700 mb-1") Trạng thái
+                    select#editUserStatus(
+                        name="status"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
+                    )
+                        option(value="pending") Chờ duyệt
+                        option(value="approved") Đã duyệt
+                        option(value="rejected") Bị từ chối
+                        option(value="disabled") Vô hiệu hoá
+
+                div#editUserError(class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2")
+
+                div(class="flex items-center justify-end gap-3 pt-2")
+                    button(
+                        type="button"
+                        id="cancelEditModal"
+                        class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    ) Huỷ
+                    button(
+                        type="submit"
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                    ) Lưu
+
+    //- ================================
+    //- JS
+    //- ================================
+    script.
+        (function () {
+            var modal = document.getElementById('editUserModal');
+            var form = document.getElementById('editUserForm');
+            var errBox = document.getElementById('editUserError');
+
+            function openModal(user) {
+                document.getElementById('editUserId').value = user._id;
+                document.getElementById('editUserEmail').value = user.email;
+                document.getElementById('editUserName').value = user.name || '';
+                document.getElementById('editUserRole').value = user.role;
+                document.getElementById('editUserStatus').value = user.status;
+                errBox.classList.add('hidden');
+                errBox.textContent = '';
+                modal.classList.remove('hidden');
+            }
+
+            function closeModal() {
+                modal.classList.add('hidden');
+            }
+
+            document.querySelectorAll('.edit-user').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    try {
+                        var user = JSON.parse(btn.getAttribute('data-user'));
+                        openModal(user);
+                    } catch (e) {
+                        alert('Không đọc được dữ liệu user');
+                    }
+                });
+            });
+
+            document.getElementById('closeEditModal').addEventListener('click', closeModal);
+            document.getElementById('cancelEditModal').addEventListener('click', closeModal);
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) closeModal();
+            });
+
+            // Quick approve
+            document.querySelectorAll('.quick-approve').forEach(function (btn) {
+                btn.addEventListener('click', async function () {
+                    var id = btn.getAttribute('data-id');
+                    if (!confirm('Duyệt user này?')) return;
+                    btn.disabled = true;
+                    btn.textContent = '...';
+                    try {
+                        var res = await fetch('/admin/users/' + id + '/approve', {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+                        });
+                        var data = await res.json();
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert(data.message || 'Lỗi duyệt user');
+                            btn.disabled = false;
+                            btn.textContent = 'Duyệt';
+                        }
+                    } catch (e) {
+                        alert('Lỗi mạng');
+                        btn.disabled = false;
+                        btn.textContent = 'Duyệt';
+                    }
+                });
+            });
+
+            // Delete
+            document.querySelectorAll('.delete-user').forEach(function (btn) {
+                btn.addEventListener('click', async function () {
+                    var id = btn.getAttribute('data-id');
+                    var email = btn.getAttribute('data-email');
+                    if (!confirm('Xoá vĩnh viễn user "' + email + '"? Hành động không thể hoàn tác.')) return;
+                    btn.disabled = true;
+                    try {
+                        var res = await fetch('/admin/users/' + id + '/delete', {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+                        });
+                        var data = await res.json();
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert(data.message || 'Lỗi xoá');
+                            btn.disabled = false;
+                        }
+                    } catch (e) {
+                        alert('Lỗi mạng');
+                        btn.disabled = false;
+                    }
+                });
+            });
+
+            // Submit form update
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                var id = document.getElementById('editUserId').value;
+                var body = {
+                    name: document.getElementById('editUserName').value,
+                    role: document.getElementById('editUserRole').value,
+                    status: document.getElementById('editUserStatus').value
+                };
+                errBox.classList.add('hidden');
+
+                try {
+                    var res = await fetch('/admin/users/' + id + '/update', {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    var data = await res.json();
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        errBox.textContent = data.message || 'Lỗi cập nhật';
+                        errBox.classList.remove('hidden');
+                    }
+                } catch (e) {
+                    errBox.textContent = 'Lỗi mạng';
+                    errBox.classList.remove('hidden');
+                }
+            });
+        })();

@@ -7,15 +7,82 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo").default;
 const cors = require("cors");
 const morgan = require("morgan");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 
+// ============================================================
+// ENVIRONMENT
+// ============================================================
+
 const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-const MONGODB_URI =
-    process.env.MONGODB_URI ||
-    "mongodb://127.0.0.1:27017/luyen_thi_cntt_utc_mnha";
+// ============================================================
+// ERROR LOGGING
+// ============================================================
 
+function logError(type, error, extra = {}) {
+    const now = new Date().toISOString();
+
+    console.error("");
+    console.error("============================================================");
+    console.error(`[${now}] ${type}`);
+    console.error("============================================================");
+
+    if (extra && Object.keys(extra).length > 0) {
+        console.error("Context:", extra);
+    }
+
+    if (error) {
+        console.error("Name:", error.name || "UnknownError");
+        console.error("Message:", error.message || error);
+
+        if (error.code !== undefined) console.error("Code:", error.code);
+        if (error.codeName !== undefined) console.error("CodeName:", error.codeName);
+        if (error.status !== undefined) console.error("Status:", error.status);
+
+        if (error.stack) {
+            console.error("Stack:");
+            console.error(error.stack);
+        }
+    }
+
+    console.error("============================================================");
+    console.error("");
+}
+
+// ============================================================
+// PROCESS-LEVEL ERROR HANDLING
+// ============================================================
+
+process.on("uncaughtException", (error) => {
+    logError("UNCAUGHT EXCEPTION", error);
+    process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+    logError(
+        "UNHANDLED PROMISE REJECTION",
+        reason instanceof Error ? reason : new Error(String(reason))
+    );
+});
+
+// ============================================================
+// MONGODB EVENTS
+// ============================================================
+
+mongoose.connection.on("error", (error) => {
+    logError("MONGODB CONNECTION ERROR", error);
+});
+
+mongoose.connection.on("disconnected", () => {
+    console.error(`[${new Date().toISOString()}] MONGODB DISCONNECTED`);
+});
+
+mongoose.connection.on("reconnected", () => {
+    console.log(`[${new Date().toISOString()}] MONGODB RECONNECTED`);
+});
 
 // ============================================================
 // VIEW ENGINE
@@ -24,20 +91,17 @@ const MONGODB_URI =
 app.set("view engine", "pug");
 app.set("views", path.join(__dirname, "views"));
 
-
 // ============================================================
 // MIDDLEWARE
 // ============================================================
 
 app.use(cors());
-
 app.use(morgan("dev"));
+app.use(cookieParser());
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
-
 app.use(express.static(path.join(__dirname, "public")));
-
 
 // ============================================================
 // SESSION
@@ -45,88 +109,209 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
     session({
-        secret:
-            process.env.SESSION_SECRET ||
-            "change-this-session-secret",
-
+        secret: process.env.SESSION_SECRET || "change-this-session-secret",
         resave: false,
-
         saveUninitialized: false,
 
         store: MongoStore.create({
             mongoUrl: MONGODB_URI,
-            collectionName: "sessions"
+            collectionName: "sessions",
+            autoRemove: "native",
         }),
 
         cookie: {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            maxAge: 1000 * 60 * 60 * 24
-        }
+            maxAge: 1000 * 60 * 60 * 24, // 1 ngày
+        },
     })
 );
 
+// ============================================================
+// ✅ REFRESH SESSION USER TỪ DB MỖI REQUEST
+// ------------------------------------------------------------
+// Giải quyết root cause: khi admin duyệt user (đổi role/status
+// trong DB), session cũ vẫn giữ role/status cũ → gây loop.
+// Middleware này load lại user mới nhất từ DB.
+// ============================================================
+
+app.use(async (req, res, next) => {
+    // Bỏ qua static files, favicon
+    if (
+        req.path.startsWith("/css") ||
+        req.path.startsWith("/js") ||
+        req.path.startsWith("/images") ||
+        req.path === "/favicon.ico"
+    ) {
+        return next();
+    }
+
+    if (req.session?.user?._id) {
+        try {
+            const User = require("./models/User");
+            const fresh = await User.findById(req.session.user._id)
+                .select("-password")
+                .lean();
+
+            if (fresh) {
+                // Cập nhật session với data mới nhất
+                req.session.user = {
+                    _id: fresh._id,
+                    email: fresh.email,
+                    name: fresh.name,
+                    role: fresh.role,
+                    status: fresh.status,
+                };
+            } else {
+                // User không còn trong DB → clear session
+                req.session.destroy(() => {});
+            }
+        } catch (err) {
+            // Bỏ qua lỗi mạng, tiếp tục với session cũ
+            console.warn("[refresh session]", err.message);
+        }
+    }
+
+    next();
+});
 
 // ============================================================
 // GLOBAL LOCALS
 // ============================================================
 
 app.use((req, res, next) => {
-    res.locals.user = req.session.user || null;
-    res.locals.currentPath = req.path;
-
-    next();
+    try {
+        res.locals.user = req.session?.user || null;
+        res.locals.currentPath = req.path;
+        res.locals.unreadCount = 0; // nếu bạn có Notification, có thể set sau
+        next();
+    } catch (error) {
+        logError("GLOBAL LOCALS ERROR", error, {
+            method: req.method,
+            url: req.originalUrl,
+        });
+        next(error);
+    }
 });
 
-
 // ============================================================
-// HOME
+// ✅ HOME — logic phân nhánh đúng
+// ------------------------------------------------------------
+// Thứ tự ưu tiên:
+//   1. Chưa login            → /auth/login
+//   2. Admin                 → /admin/dashboard   (LUÔN thắng, bất kể status)
+//   3. Client (chờ duyệt)    → /pages
+//   4. Student               → /subjects
 // ============================================================
 
-app.get("/", (req, res) => {
-    if (!req.session.user) {
+app.get("/", (req, res, next) => {
+    try {
+        const user = req.session?.user;
+
+        // 1) Chưa login
+        if (!user) {
+            return res.redirect("/auth/login");
+        }
+
+        // 2) ADMIN — luôn ưu tiên, không quan tâm status
+        if (user.role === "admin") {
+            return res.redirect("/admin/dashboard");
+        }
+
+        // 3) CLIENT chờ duyệt (role=client + status=pending)
+        if (user.role === "client" || user.status === "pending") {
+            return res.redirect("/pages");
+        }
+
+        // 4) STUDENT (đã được duyệt)
+        if (user.role === "student") {
+            return res.redirect("/subjects");
+        }
+
+        // Fallback an toàn
         return res.redirect("/auth/login");
+    } catch (error) {
+        next(error);
     }
-
-    if (req.session.user.status === "pending") {
-        return res.redirect("/pages");
-    }
-
-    if (req.session.user.role === "admin") {
-        return res.redirect("/admin/dashboard");
-    }
-
-    return res.redirect("/student/subjects");
 });
 
-
 // ============================================================
-// PENDING PAGE
+// ✅ PENDING PAGE — chỉ client+pending mới thực sự thấy
+// ------------------------------------------------------------
+// Admin vào /pages → đá về /admin/dashboard
+// Student vào /pages → đá về /subjects
+// Chỉ client+pending mới render view "pages"
 // ============================================================
 
-app.get("/pages", (req, res) => {
-    res.render("pages", {
-        title: "Chờ duyệt tài khoản"
-    });
+app.get("/pages", (req, res, next) => {
+    try {
+        const user = req.session?.user;
+
+        // 1) Chưa login
+        if (!user) {
+            return res.redirect("/auth/login");
+        }
+
+        // 2) Admin — KHÔNG BAO GIỜ ở đây
+        if (user.role === "admin") {
+            return res.redirect("/admin/dashboard");
+        }
+
+        // 3) Student đã duyệt — không phải trang của họ
+        if (user.role === "student" && user.status !== "pending") {
+            return res.redirect("/subjects");
+        }
+
+        // 4) Client pending — đúng chỗ, render trang chờ
+        if (user.role === "client" || user.status === "pending") {
+            return res.render("pages", {
+                title: "Chờ duyệt tài khoản",
+            });
+        }
+
+        // Fallback
+        return res.redirect("/auth/login");
+    } catch (error) {
+        next(error);
+    }
 });
-
 
 // ============================================================
 // ROUTES
 // ============================================================
 
-const authRoutes = require("./routes/auth");
-const subjectRoutes = require("./routes/subject");
-const lessonRoutes = require("./routes/lesson");
-const submissionRoutes = require("./routes/submission");
-const disputeRoutes = require("./routes/dispute");
-const notificationRoutes = require("./routes/notification");
-const promptRoutes = require("./routes/prompt");
-const aiRoutes = require("./routes/ai");
-const adminRoutes = require("./routes/admin");
+let authRoutes;
+let subjectRoutes;
+let lessonRoutes;
+let submissionRoutes;
+let disputeRoutes;
+let notificationRoutes;
+let promptRoutes;
+let aiRoutes;
+let adminRoutes;
+
+try {
+    authRoutes = require("./routes/auth");
+    subjectRoutes = require("./routes/subject");
+    lessonRoutes = require("./routes/lesson");
+    submissionRoutes = require("./routes/submission");
+    disputeRoutes = require("./routes/dispute");
+    notificationRoutes = require("./routes/notification");
+    promptRoutes = require("./routes/prompt");
+    aiRoutes = require("./routes/ai");
+    adminRoutes = require("./routes/admin");
+} catch (error) {
+    logError("ROUTE MODULE LOAD ERROR", error);
+    process.exit(1);
+}
+
+// ============================================================
+// REGISTER ROUTES
+// ============================================================
 
 app.use("/auth", authRoutes);
 app.use("/subjects", subjectRoutes);
+app.use("/student/subjects", subjectRoutes); // alias cũ
 app.use("/lessons", lessonRoutes);
 app.use("/submissions", submissionRoutes);
 app.use("/disputes", disputeRoutes);
@@ -135,60 +320,298 @@ app.use("/prompts", promptRoutes);
 app.use("/ai", aiRoutes);
 app.use("/admin", adminRoutes);
 
+// ============================================================
+// HELPER: Render error page (HTML fallback nếu Pug lỗi)
+// ============================================================
+
+function renderErrorPage(req, res, status, title, message, stack = null) {
+    if (
+        req.path.startsWith("/api") ||
+        req.xhr ||
+        req.headers.accept?.includes("json")
+    ) {
+        return res.status(status).json({
+            success: false,
+            message,
+            ...(process.env.NODE_ENV !== "production" && stack
+                ? { error: { stack } }
+                : {}),
+        });
+    }
+
+    return res.status(status).render(
+        "error",
+        { title, message, statusCode: status, stack },
+        (renderErr, html) => {
+            if (renderErr) {
+                console.error(
+                    "[renderErrorPage] Render view 'error' thất bại:",
+                    renderErr.message
+                );
+
+                return res.status(status).send(`
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <title>${title}</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #f9fafb;
+               display: flex; align-items: center; justify-content: center;
+               min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
+                max-width: 600px; width: 100%; padding: 40px; text-align: center; }
+        h1 { color: #dc2626; margin: 0 0 12px; font-size: 24px; }
+        .status { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
+        p { color: #374151; line-height: 1.6; margin-bottom: 24px; }
+        a { display: inline-block; background: #2563eb; color: #fff;
+            padding: 12px 24px; border-radius: 10px; text-decoration: none;
+            font-weight: 600; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>${title}</h1>
+        <div class="status">Mã lỗi: ${status}</div>
+        <p>${message}</p>
+        <a href="/">← Về trang chủ</a>
+    </div>
+</body>
+</html>
+                `);
+            }
+            res.send(html);
+        }
+    );
+}
 
 // ============================================================
 // 404
 // ============================================================
 
-app.use((req, res) => {
-    res.status(404);
+app.use((req, res, next) => {
+    try {
+        console.warn("");
+        console.warn("------------------------------------------------------------");
+        console.warn("404 NOT FOUND");
+        console.warn("Method:", req.method);
+        console.warn("URL:", req.originalUrl);
+        console.warn("IP:", req.ip);
+        console.warn("User:", req.session?.user?.email || "Guest");
+        console.warn("------------------------------------------------------------");
+        console.warn("");
 
-    if (req.accepts("html")) {
-        return res.render("pages", {
-            title: "Không tìm thấy trang",
-            message: "Trang bạn đang truy cập không tồn tại."
-        });
+        return renderErrorPage(
+            req,
+            res,
+            404,
+            "404 — Không tìm thấy trang",
+            "Trang bạn đang truy cập không tồn tại hoặc đã bị di chuyển.",
+            null
+        );
+    } catch (error) {
+        next(error);
     }
-
-    return res.json({
-        success: false,
-        message: "Không tìm thấy trang."
-    });
 });
-
 
 // ============================================================
 // ERROR HANDLER
 // ============================================================
 
 app.use((err, req, res, next) => {
-    console.error("SERVER ERROR:", err);
-
-    if (res.headersSent) {
-        return next(err);
-    }
-
-    const statusCode = err.status || 500;
-
-    if (req.accepts("html")) {
-        return res.status(statusCode).render("pages", {
-            title: "Lỗi máy chủ",
-            message:
-                process.env.NODE_ENV === "production"
-                    ? "Đã xảy ra lỗi máy chủ."
-                    : err.message
-        });
-    }
-
-    return res.status(statusCode).json({
-        success: false,
-        message:
-            process.env.NODE_ENV === "production"
-                ? "Đã xảy ra lỗi máy chủ."
-                : err.message
+    logError("EXPRESS SERVER ERROR", err, {
+        method: req.method,
+        url: req.originalUrl,
+        ip: req.ip,
+        user: req.session?.user?.email || "Guest",
+        userId: req.session?.user?._id || null,
     });
+
+    if (res.headersSent) return next(err);
+
+    let statusCode = err.status || err.statusCode || 500;
+    if (typeof statusCode !== "number" || statusCode < 400 || statusCode > 599) {
+        statusCode = 500;
+    }
+
+    // Pug error
+    if (
+        err.code === "PUG:UNEXPECTED_TEXT" ||
+        err.code?.startsWith?.("PUG:") ||
+        err.name === "PugError" ||
+        (err.message && err.message.includes(".pug:"))
+    ) {
+        return renderErrorPage(
+            req,
+            res,
+            500,
+            "Lỗi template",
+            process.env.NODE_ENV === "production"
+                ? "Đã xảy ra lỗi khi render giao diện. Vui lòng thử lại sau."
+                : err.message,
+            process.env.NODE_ENV === "production" ? null : err.stack
+        );
+    }
+
+    // Invalid JSON
+    if (
+        err instanceof SyntaxError &&
+        err.status === 400 &&
+        err.type === "entity.parse.failed"
+    ) {
+        return renderErrorPage(
+            req,
+            res,
+            400,
+            "Dữ liệu không hợp lệ",
+            "Dữ liệu JSON gửi lên không hợp lệ. Vui lòng kiểm tra lại."
+        );
+    }
+
+    // Body too large
+    if (err.type === "entity.too.large" || err.status === 413) {
+        return renderErrorPage(
+            req,
+            res,
+            413,
+            "Dữ liệu quá lớn",
+            "Dữ liệu gửi lên vượt quá giới hạn cho phép."
+        );
+    }
+
+    // Mongoose validation
+    if (err.name === "ValidationError") {
+        const details = Object.values(err.errors || {}).map((item) => ({
+            field: item.path,
+            message: item.message,
+            value: item.value,
+        }));
+
+        if (
+            req.path.startsWith("/api") ||
+            req.xhr ||
+            req.headers.accept?.includes("json")
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Dữ liệu không hợp lệ.",
+                errors: details,
+            });
+        }
+
+        return renderErrorPage(
+            req,
+            res,
+            400,
+            "Dữ liệu không hợp lệ",
+            "Một hoặc nhiều dữ liệu không hợp lệ."
+        );
+    }
+
+    // Cast error
+    if (err.name === "CastError") {
+        return renderErrorPage(
+            req,
+            res,
+            400,
+            "Dữ liệu không hợp lệ",
+            "ID hoặc dữ liệu gửi lên không đúng định dạng."
+        );
+    }
+
+    // Duplicate key
+    if (err.code === 11000) {
+        const duplicateFields = Object.keys(err.keyPattern || err.keyValue || {});
+
+        if (
+            req.path.startsWith("/api") ||
+            req.xhr ||
+            req.headers.accept?.includes("json")
+        ) {
+            return res.status(409).json({
+                success: false,
+                message: "Dữ liệu đã tồn tại.",
+                fields: duplicateFields,
+            });
+        }
+
+        return renderErrorPage(
+            req,
+            res,
+            409,
+            "Dữ liệu đã tồn tại",
+            "Dữ liệu bạn nhập đã tồn tại trong hệ thống."
+        );
+    }
+
+    // Version error
+    if (err.name === "VersionError") {
+        return renderErrorPage(
+            req,
+            res,
+            409,
+            "Dữ liệu đã thay đổi",
+            "Dữ liệu vừa được thay đổi bởi một yêu cầu khác. Vui lòng thử lại."
+        );
+    }
+
+    // Default
+    const productionMessage =
+        process.env.NODE_ENV === "production"
+            ? "Đã xảy ra lỗi máy chủ."
+            : err.message || "Đã xảy ra lỗi không xác định.";
+
+    return renderErrorPage(
+        req,
+        res,
+        statusCode,
+        statusCode >= 500 ? "Lỗi máy chủ" : "Có lỗi xảy ra",
+        productionMessage,
+        process.env.NODE_ENV === "production" ? null : err.stack
+    );
 });
 
+// ============================================================
+// HTTP SERVER
+// ============================================================
+
+let server;
+
+// ============================================================
+// GRACEFUL SHUTDOWN
+// ============================================================
+
+async function shutdown(signal) {
+    console.log("");
+    console.log("============================================================");
+    console.log(`SERVER SHUTDOWN: ${signal}`);
+    console.log("============================================================");
+
+    try {
+        if (server) {
+            await new Promise((resolve) => {
+                server.close((error) => {
+                    if (error) logError("HTTP SERVER CLOSE ERROR", error);
+                    resolve();
+                });
+            });
+        }
+
+        if (mongoose.connection.readyState !== 0) {
+            await mongoose.connection.close(false);
+            console.log("MongoDB connection closed");
+        }
+
+        console.log("Server shutdown completed");
+        process.exit(0);
+    } catch (error) {
+        logError("GRACEFUL SHUTDOWN ERROR", error);
+        process.exit(1);
+    }
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 // ============================================================
 // START SERVER
@@ -196,30 +619,100 @@ app.use((err, req, res, next) => {
 
 async function startServer() {
     try {
-        await mongoose.connect(MONGODB_URI);
+        if (!process.env.MONGODB_URI) {
+            throw new Error("MONGODB_URI chưa được cấu hình trong file .env");
+        }
 
-        console.log("MongoDB connected");
+        if (!process.env.SESSION_SECRET) {
+            console.warn("WARNING: SESSION_SECRET chưa được cấu hình.");
 
-        app.listen(PORT, () => {
-            console.log("");
-            console.log("==============================================");
-            console.log("  LUYEN THI CNTT UTC - MNHA");
-            console.log("==============================================");
-            console.log(`  Server: http://localhost:${PORT}`);
-            console.log(
-                `  Environment: ${process.env.NODE_ENV || "development"}`
-            );
-            console.log("==============================================");
-            console.log("");
-        });
+            if (process.env.NODE_ENV === "production") {
+                throw new Error(
+                    "SESSION_SECRET bắt buộc phải được cấu hình ở production."
+                );
+            }
+        }
+
+        console.log("");
+        console.log("============================================================");
+        console.log("STARTING SERVER");
+        console.log("============================================================");
+        console.log("Environment:", process.env.NODE_ENV || "development");
+        console.log("Port:", PORT);
+
+        const safeMongoURI = MONGODB_URI.replace(
+            /\/\/([^:]+):([^@]+)@/,
+            "//***:***@"
+        );
+        console.log("MongoDB:", safeMongoURI);
+
+        try {
+            await mongoose.connect(MONGODB_URI);
+            console.log("MongoDB connected");
+        } catch (error) {
+            logError("MONGODB INITIAL CONNECTION FAILED", error);
+            throw error;
+        }
+
+        try {
+            server = app.listen(PORT, () => {
+                console.log("");
+                console.log("==============================================");
+                console.log("  LUYEN THI CNTT UTC - MNHA");
+                console.log("==============================================");
+                console.log(`  Server: http://localhost:${PORT}`);
+                console.log(`  Environment: ${process.env.NODE_ENV || "development"}`);
+                console.log("  MongoDB: connected");
+                console.log("  Status: ONLINE");
+                console.log("==============================================");
+                console.log("");
+            });
+
+            server.on("error", (error) => {
+                logError("HTTP SERVER ERROR", error);
+                if (error.code === "EADDRINUSE") {
+                    console.error(`Port ${PORT} đang được sử dụng bởi process khác.`);
+                }
+                if (error.code === "EACCES") {
+                    console.error(`Không có quyền sử dụng port ${PORT}.`);
+                }
+                process.exit(1);
+            });
+
+            server.on("clientError", (error, socket) => {
+                logError("HTTP CLIENT ERROR", error);
+                if (socket.writable) {
+                    socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
+                }
+            });
+        } catch (error) {
+            logError("HTTP SERVER START FAILED", error);
+            await mongoose.connection.close();
+            throw error;
+        }
     } catch (error) {
-        console.error("MongoDB connection failed:");
-        console.error(error.message);
+        logError("SERVER STARTUP FAILED", error);
+
+        try {
+            if (mongoose.connection.readyState !== 0) {
+                await mongoose.connection.close();
+            }
+        } catch (closeError) {
+            logError("MONGODB CLOSE AFTER STARTUP FAILURE", closeError);
+        }
 
         process.exit(1);
     }
 }
 
+// ============================================================
+// RUN SERVER
+// ============================================================
+
 startServer();
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 module.exports = app;

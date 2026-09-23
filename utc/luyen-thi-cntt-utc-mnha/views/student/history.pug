@@ -1,136 +1,48 @@
 extends ../layout
 
 block content
-    .max-w-7xl.mx-auto.px-4.sm:px-6.lg:px-8.py-8
-        // Header
-        .mb-8
-            h1.text-3xl.font-bold.text-gray-900 Lịch sử bài làm
-            p.mt-1.text-gray-500 Theo dõi các bài đã nộp và kết quả chấm.
+  .container
+    h1 Lịch sử nộp bài
+    .toolbar
+      button#refresh-btn Làm mới
 
-        // Statistics
-        .grid.grid-cols-1.sm:grid-cols-2.lg:grid-cols-4.gap-4.mb-8
-            .bg-white.rounded-2xl.border.border-gray-200.p-5
-                .flex.items-center.gap-4
-                    .w-11.h-11.rounded-xl.bg-blue-50.flex.items-center.justify-center
-                        i(data-lucide="file-check-2").w-5.h-5.text-blue-600
-                    div
-                        p.text-sm.text-gray-500 Tổng bài nộp
-                        p.text-2xl.font-bold.text-gray-900 #{stats?.total || 0}
-
-            .bg-white.rounded-2xl.border.border-gray-200.p-5
-                .flex.items-center.gap-4
-                    .w-11.h-11.rounded-xl.bg-green-50.flex.items-center.justify-center
-                        i(data-lucide="check-circle-2").w-5.h-5.text-green-600
-                    div
-                        p.text-sm.text-gray-500 Đã chấm
-                        p.text-2xl.font-bold.text-gray-900 #{stats?.graded || 0}
-
-            .bg-white.rounded-2xl.border.border-gray-200.p-5
-                .flex.items-center.gap-4
-                    .w-11.h-11.rounded-xl.bg-yellow-50.flex.items-center.justify-center
-                        i(data-lucide="clock-3").w-5.h-5.text-yellow-600
-                    div
-                        p.text-sm.text-gray-500 Đang chờ
-                        p.text-2xl.font-bold.text-gray-900 #{stats?.pending || 0}
-
-            .bg-white.rounded-2xl.border.border-gray-200.p-5
-                .flex.items-center.gap-4
-                    .w-11.h-11.rounded-xl.bg-purple-50.flex.items-center.justify-center
-                        i(data-lucide="star").w-5.h-5.text-purple-600
-                    div
-                        p.text-sm.text-gray-500 Điểm trung bình
-                        p.text-2xl.font-bold.text-gray-900 #{stats?.averageScore ?? '--'}
-
-        // History
-        .bg-white.rounded-2xl.border.border-gray-200.overflow-hidden
-            .px-6.py-5.border-b.border-gray-200
-                .flex.flex-col.sm:flex-row.sm:items-center.sm:justify-between.gap-3
-                    h2.text-lg.font-bold.text-gray-900 Danh sách bài đã nộp
-
-                    if submissions && submissions.length
-                        span.text-sm.text-gray-500
-                            | #{submissions.length} kết quả
-
-            if !submissions || submissions.length === 0
-                .p-10.text-center
-                    .w-14.h-14.mx-auto.rounded-full.bg-gray-100.flex.items-center.justify-center
-                        i(data-lucide="inbox").w-7.h-7.text-gray-400
-
-                    h3.mt-4.font-semibold.text-gray-900 Chưa có bài nộp
-                    p.mt-1.text-sm.text-gray-500
-                        | Bạn chưa nộp bài tập nào.
-
-                    a.inline-flex.items-center.mt-5.px-4.py-2.rounded-lg.bg-blue-600.text-white.text-sm.font-medium.hover:bg-blue-700(
-                        href="/student/subjects"
-                    )
-                        | Xem môn học
-                        i(data-lucide="arrow-right").w-4.h-4.ml-2
-
-            else
-                .overflow-x-auto
-                    table.w-full
-                        thead.bg-gray-50
-                            tr.text-left.text-xs.font-semibold.text-gray-500.uppercase.tracking-wider
-                                th.px-6.py-4 Bài tập
-                                th.px-6.py-4 Môn học
-                                th.px-6.py-4 Ngày nộp
-                                th.px-6.py-4 Trạng thái
-                                th.px-6.py-4 Điểm
-                                th.px-6.py-4.text-right Thao tác
-
-                        tbody.divide-y.divide-gray-100
-                            each submission in submissions
-                                tr.hover:bg-gray-50.transition-colors
-                                    td.px-6.py-4
-                                        .flex.items-center.gap-3
-                                            .w-9.h-9.rounded-lg.bg-blue-50.flex.items-center.justify-center.flex-shrink-0
-                                                i(data-lucide="file-text").w-4.h-4.text-blue-600
-                                            div
-                                                p.font-medium.text-gray-900
-                                                    | #{submission.assignment?.title || submission.title || 'Bài tập'}
-                                                if submission.lesson?.name
-                                                    p.text-xs.text-gray-500
-                                                        | #{submission.lesson.name}
-
-                                    td.px-6.py-4.text-sm.text-gray-600
-                                        | #{submission.subject?.name || '--'}
-
-                                    td.px-6.py-4.text-sm.text-gray-500
-                                        | #{submission.createdAt || submission.submittedAt || '--'}
-
-                                    td.px-6.py-4
-                                        if submission.status === 'graded' || submission.status === 'completed'
-                                            span.inline-flex.items-center.px-2.5.py-1.rounded-full.text-xs.font-medium.bg-green-50.text-green-700
-                                                i(data-lucide="check-circle-2").w-3.5.h-3.5.mr-1
-                                                | Đã chấm
-                                        else if submission.status === 'grading'
-                                            span.inline-flex.items-center.px-2.5.py-1.rounded-full.text-xs.font-medium.bg-blue-50.text-blue-700
-                                                i(data-lucide="loader-circle").w-3.5.h-3.5.mr-1
-                                                | Đang chấm
-                                        else if submission.status === 'rejected'
-                                            span.inline-flex.items-center.px-2.5.py-1.rounded-full.text-xs.font-medium.bg-red-50.text-red-700
-                                                i(data-lucide="x-circle").w-3.5.h-3.5.mr-1
-                                                | Từ chối
-                                        else
-                                            span.inline-flex.items-center.px-2.5.py-1.rounded-full.text-xs.font-medium.bg-yellow-50.text-yellow-700
-                                                i(data-lucide="clock-3").w-3.5.h-3.5.mr-1
-                                                | Đang chờ
-
-                                    td.px-6.py-4
-                                        if submission.score !== undefined && submission.score !== null
-                                            span.font-bold.text-gray-900
-                                                | #{submission.score}
-                                            if submission.maxScore
-                                                span.text-sm.text-gray-400
-                                                    | / #{submission.maxScore}
-                                        else
-                                            span.text-gray-400
-                                                | --
-
-                                    td.px-6.py-4.text-right
-                                        if submission._id
-                                            a.inline-flex.items-center.px-3.py-2.rounded-lg.border.border-gray-200.text-sm.font-medium.text-gray-700.hover:bg-gray-50.transition-colors(
-                                                href=`/student/submissions/${submission._id}`
-                                            )
-                                                | Chi tiết
-                                                i(data-lucide="chevron-right").w-4.h-4.ml-1
+    if !submissions || submissions.length === 0
+      p.empty Chưa có bài nộp nào.
+    else
+      table.history-table
+        thead
+          tr
+            th Bài
+            th Điểm
+            th Số lỗi
+            th Model
+            th Thời gian
+            th Trạng thái
+            th
+        tbody
+          each s in submissions
+            tr(data-id=s._id)
+              td= s.lessonId
+              td
+                strong= s.score ?? "—"
+                | /#{s.maxScore}
+              td
+                if s.errorCount > 0
+                  span.badge.badge-error= `${s.errorCount} lỗi`
+                else
+                  span.badge.badge-ok Không có lỗi
+              td= s.model
+              td= new Date(s.submittedAt).toLocaleString("vi-VN")
+              td
+                case s.status
+                  when "committed"
+                    span.badge.badge-ok ✔ Đã lưu
+                  when "pending"
+                    span.badge.badge-warn ⏳ Đang đồng bộ
+                  default
+                    span.badge= s.status
+              td
+                a.btn(href=`/student/submissions/${s._id}`) Xem chi tiết
+                if s.githubUrl
+                  |  
+                  a.btn.btn-gh(href=s.githubUrl target="_blank" rel="noopener") GitHub

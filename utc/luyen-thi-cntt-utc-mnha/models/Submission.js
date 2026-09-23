@@ -1,221 +1,56 @@
-const mongoose = require('mongoose');
+// ============================================================
+// SUBMISSION MODEL
+// ============================================================
 
-const submissionSchema = new mongoose.Schema(
-    {
-        student: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            required: true,
-            index: true
-        },
+const mongoose = require("mongoose");
 
-        subject: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Subject',
-            required: true,
-            index: true
-        },
+const GrammarErrorSchema = new mongoose.Schema({
+    original:    String,
+    corrected:   String,
+    explanation: String,
+}, { _id: false });
 
-        lesson: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Lesson',
-            required: true,
-            index: true
-        },
+const SubmissionSchema = new mongoose.Schema({
+    userId:   { type: mongoose.Schema.Types.ObjectId, ref: "User",   required: true, index: true },
+    lessonId: { type: mongoose.Schema.Types.ObjectId, ref: "Lesson", required: true, index: true },
+    subjectId:{ type: mongoose.Schema.Types.ObjectId, ref: "Subject", index: true },
 
-        assignment: {
-            type: mongoose.Schema.Types.ObjectId,
-            required: true
-        },
+    // GitHub
+    githubFile: { type: String, default: null },
+    githubUrl:  { type: String, default: null },
+    githubError:{ type: String, default: null },
 
-        assignmentTitle: {
-            type: String,
-            default: ''
-        },
+    // Kết quả AI
+    score:       { type: Number, default: null },
+    maxScore:    { type: Number, default: 10 },
+    wordCount:   { type: Number, default: 0 },
+    model:       { type: String, default: null },
+    latencyMs:   { type: Number, default: null },
 
-        content: {
-            type: String,
-            required: true
-        },
+    // Tóm tắt để hiển thị nhanh
+    errorCount:  { type: Number, default: 0 },
+    summary:     { type: String, default: "" },
 
-        status: {
-            type: String,
-            enum: [
-                'pending',
-                'queued',
-                'grading',
-                'graded',
-                'failed',
-                'rejected'
-            ],
-            default: 'pending',
-            index: true
-        },
+    // Prompt đã dùng
+    promptId:       { type: mongoose.Schema.Types.ObjectId, ref: "GradingPrompt", default: null },
+    promptVersion:  { type: Number, default: null },
+    promptSnapshot: { type: String, default: null },
 
-        score: {
-            type: Number,
-            min: 0,
-            default: null
-        },
+    // Lỗi ngữ pháp (lưu sẵn để badge list nhanh, không cần đọc GitHub)
+    grammarErrors: { type: [GrammarErrorSchema], default: [] },
 
-        maxScore: {
-            type: Number,
-            default: 10,
-            min: 0
-        },
+    // Thời gian
+    submittedAt: { type: Date, default: Date.now, index: true },
+    gradedAt:    { type: Date, default: null },
 
-        feedback: {
-            type: String,
-            default: ''
-        },
-
-        aiResult: {
-            type: mongoose.Schema.Types.Mixed,
-            default: null
-        },
-
-        /*
-         * Prompt đầy đủ được sử dụng tại thời điểm chấm.
-         * Không phụ thuộc vào prompt hiện tại.
-         */
-        promptSnapshot: {
-            type: String,
-            default: ''
-        },
-
-        promptId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'GradingPrompt',
-            default: null
-        },
-
-        aiProvider: {
-            type: String,
-            default: 'gemini'
-        },
-
-        aiModel: {
-            type: String,
-            default: ''
-        },
-
-        aiKeyId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'AIKey',
-            default: null
-        },
-
-        submittedAt: {
-            type: Date,
-            default: Date.now
-        },
-
-        gradedAt: {
-            type: Date,
-            default: null
-        },
-
-        gradingStartedAt: {
-            type: Date,
-            default: null
-        },
-
-        gradingError: {
-            type: String,
-            default: ''
-        },
-
-        retryCount: {
-            type: Number,
-            default: 0,
-            min: 0
-        },
-
-        githubPath: {
-            type: String,
-            default: ''
-        },
-
-        githubSha: {
-            type: String,
-            default: ''
-        },
-
-        githubStatus: {
-            type: String,
-            enum: [
-                'pending',
-                'queued',
-                'committed',
-                'failed'
-            ],
-            default: 'pending'
-        },
-
-        disputeStatus: {
-            type: String,
-            enum: [
-                'none',
-                'pending',
-                'reviewing',
-                'resolved',
-                'rejected'
-            ],
-            default: 'none'
-        },
-
-        manualOverride: {
-            type: Boolean,
-            default: false
-        },
-
-        manualScore: {
-            type: Number,
-            default: null
-        },
-
-        manualFeedback: {
-            type: String,
-            default: ''
-        },
-
-        manuallyGradedBy: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            default: null
-        },
-
-        manuallyGradedAt: {
-            type: Date,
-            default: null
-        }
+    status: {
+        type: String,
+        enum: ["pending", "graded", "committed", "failed"],
+        default: "pending",
+        index: true,
     },
-    {
-        timestamps: true
-    }
-);
+}, { timestamps: true });
 
-submissionSchema.index({
-    student: 1,
-    createdAt: -1
-});
+SubmissionSchema.index({ userId: 1, lessonId: 1, submittedAt: -1 });
 
-submissionSchema.index({
-    status: 1,
-    createdAt: 1
-});
-
-submissionSchema.index({
-    githubStatus: 1,
-    createdAt: 1
-});
-
-submissionSchema.index({
-    disputeStatus: 1,
-    createdAt: -1
-});
-
-module.exports = mongoose.model(
-    'Submission',
-    submissionSchema
-);
+module.exports = mongoose.model("Submission", SubmissionSchema);

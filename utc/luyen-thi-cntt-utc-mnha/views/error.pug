@@ -1,0 +1,42 @@
+doctype html
+html(lang="vi")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        title= title || "Có lỗi xảy ra"
+        script(src="https://cdn.tailwindcss.com")
+        script(src="https://unpkg.com/lucide@latest")
+    body(class="min-h-screen bg-gray-50")
+        .min-h-screen.flex.items-center.justify-center.px-4.py-10
+            .w-full.max-w-2xl
+                .bg-white.rounded-3xl.border.border-gray-200.shadow-sm.overflow-hidden
+                    div(class="bg-gradient-to-br from-red-600 to-rose-700 px-6 py-10 md:px-10 text-center text-white")
+                        .w-20.h-20.mx-auto.rounded-2xl.bg-white.bg-opacity-15.flex.items-center.justify-center.mb-5
+                            i(data-lucide="triangle-alert").w-10.h-10
+                        h1(class="text-2xl md:text-3xl font-bold")= title || "Có lỗi xảy ra"
+                        p.mt-3.text-red-100
+                            | Đã xảy ra lỗi khi xử lý yêu cầu của bạn.
+
+                    div(class="p-6 md:p-10")
+                        .flex.items-start.gap-4.p-5.rounded-2xl.bg-red-50.border.border-red-200
+                            .w-10.h-10.rounded-full.bg-red-100.flex.items-center.justify-center.flex-shrink-0
+                                i(data-lucide="circle-alert").w-5.h-5.text-red-600
+                            div
+                                h2.font-semibold.text-red-900
+                                    | Chi tiết
+                                p.mt-1.text-sm.leading-6.text-red-800
+                                    = message || "Đã xảy ra lỗi không xác định."
+
+                        div(class="mt-8 flex flex-col sm:flex-row gap-3")
+                            a(class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors", href="/")
+                                i(data-lucide="house").w-4.h-4
+                                | Về trang chủ
+                            a(class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors", href="javascript:history.back()")
+                                i(data-lucide="arrow-left").w-4.h-4
+                                | Quay lại
+
+                p(class="text-center text-xs text-gray-400 mt-6")
+                    | © #{new Date().getFullYear()} AI Grading System
+
+        script.
+            lucide.createIcons();

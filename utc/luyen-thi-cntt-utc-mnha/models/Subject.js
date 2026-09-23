@@ -11,11 +11,16 @@ const subjectSchema = new mongoose.Schema(
 
         code: {
             type: String,
-            required: true,
-            unique: true,
-            uppercase: true,
             trim: true,
-            index: true
+            default: null
+        },
+
+        slug: {
+            type: String,
+            trim: true,
+            lowercase: true,
+            index: true,
+            default: null
         },
 
         description: {
@@ -23,42 +28,91 @@ const subjectSchema = new mongoose.Schema(
             default: ''
         },
 
-        thumbnail: {
+        // Thứ tự hiển thị
+        order: {
+            type: Number,
+            default: 0,
+            index: true
+        },
+
+        // GitHub folder name
+        githubFolder: {
             type: String,
             default: null
         },
 
-        order: {
-            type: Number,
-            default: 0
+        // Prompt riêng cho môn (fallback: prompt global)
+        promptId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'GradingPrompt',
+            default: null
         },
 
+        // Công khai cho sinh viên
         isPublished: {
             type: Boolean,
-            default: false,
+            default: true,
             index: true
         },
 
+        // ============================================
+        // AUDIT
+        // ============================================
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
-            default: null
+            default: null,
+            index: true
         },
 
         updatedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             default: null
+        },
+
+        // Soft delete
+        deletedAt: {
+            type: Date,
+            default: null,
+            index: true
+        },
+
+        deletedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null
+        },
+
+        deletedForever: {
+            type: Boolean,
+            default: false,
+            index: true
         }
     },
     {
-        timestamps: true
+        timestamps: true // createdAt + updatedAt tự động
     }
 );
 
-subjectSchema.index({
-    isPublished: 1,
-    order: 1
+// Index tổng hợp cho query phổ biến
+subjectSchema.index({ deletedForever: 1, isPublished: 1, order: 1 });
+subjectSchema.index({ deletedAt: 1 });
+
+// Virtual để dùng trong view: subject.createdAtFormatted
+subjectSchema.virtual('createdAtFormatted').get(function () {
+    return this.createdAt
+        ? new Date(this.createdAt).toLocaleString('vi-VN')
+        : '';
 });
+
+subjectSchema.virtual('updatedAtFormatted').get(function () {
+    return this.updatedAt
+        ? new Date(this.updatedAt).toLocaleString('vi-VN')
+        : '';
+});
+
+subjectSchema.set('toObject', { virtuals: true });
+subjectSchema.set('toJSON', { virtuals: true });
 
 module.exports = mongoose.model('Subject', subjectSchema);

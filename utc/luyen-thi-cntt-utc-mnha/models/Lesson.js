@@ -1,55 +1,5 @@
 const mongoose = require('mongoose');
 
-const assignmentSchema = new mongoose.Schema(
-    {
-        title: {
-            type: String,
-            required: true,
-            trim: true
-        },
-
-        description: {
-            type: String,
-            default: ''
-        },
-
-        content: {
-            type: String,
-            default: ''
-        },
-
-        instructions: {
-            type: String,
-            default: ''
-        },
-
-        maxScore: {
-            type: Number,
-            default: 10,
-            min: 0
-        },
-
-        deadline: {
-            type: Date,
-            default: null
-        },
-
-        order: {
-            type: Number,
-            default: 0
-        },
-
-        isPublished: {
-            type: Boolean,
-            default: false
-        }
-    },
-    {
-        _id: true,
-        timestamps: true
-    }
-);
-
 const lessonSchema = new mongoose.Schema(
     {
         subject: {
@@ -59,17 +9,19 @@ const lessonSchema = new mongoose.Schema(
             index: true
         },
 
-        name: {
+        title: {
             type: String,
             required: true,
             trim: true,
             maxlength: 200
         },
 
-        code: {
+        slug: {
             type: String,
             trim: true,
-            default: ''
+            lowercase: true,
+            index: true,
+            default: null
         },
 
         description: {
@@ -77,37 +29,74 @@ const lessonSchema = new mongoose.Schema(
             default: ''
         },
 
-        content: {
+        // Nội dung đề bài (HTML)
+        contentHtml: {
             type: String,
             default: ''
         },
 
-        order: {
-            type: Number,
-            default: 0
+        // Lời giải mẫu (chỉ hiện sau khi chấm)
+        sampleSolution: {
+            type: String,
+            default: ''
         },
 
-        assignments: {
-            type: [assignmentSchema],
-            default: []
+        // Thứ tự trong môn
+        order: {
+            type: Number,
+            default: 0,
+            index: true
+        },
+
+        // File JSON trên GitHub
+        githubFile: {
+            type: String,
+            default: null
+        },
+
+        // Prompt riêng cho bài (fallback: prompt môn → global)
+        promptId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'GradingPrompt',
+            default: null
         },
 
         isPublished: {
             type: Boolean,
-            default: false,
+            default: true,
             index: true
         },
 
+        // ============ AUDIT ============
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
-            default: null
+            default: null,
+            index: true
         },
 
         updatedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             default: null
+        },
+
+        deletedAt: {
+            type: Date,
+            default: null,
+            index: true
+        },
+
+        deletedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null
+        },
+
+        deletedForever: {
+            type: Boolean,
+            default: false,
+            index: true
         }
     },
     {
@@ -115,9 +104,6 @@ const lessonSchema = new mongoose.Schema(
     }
 );
 
-lessonSchema.index({
-    subject: 1,
-    order: 1
-});
+lessonSchema.index({ subject: 1, deletedForever: 1, isPublished: 1, order: 1 });
 
 module.exports = mongoose.model('Lesson', lessonSchema);
