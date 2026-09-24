@@ -1,42 +1,845 @@
-doctype html
-html(lang="vi")
-    head
-        meta(charset="UTF-8")
-        meta(name="viewport", content="width=device-width, initial-scale=1.0")
-        title= title || "Có lỗi xảy ra"
-        script(src="https://cdn.tailwindcss.com")
-        script(src="https://unpkg.com/lucide@latest")
-    body(class="min-h-screen bg-gray-50")
-        .min-h-screen.flex.items-center.justify-center.px-4.py-10
-            .w-full.max-w-2xl
-                .bg-white.rounded-3xl.border.border-gray-200.shadow-sm.overflow-hidden
-                    div(class="bg-gradient-to-br from-red-600 to-rose-700 px-6 py-10 md:px-10 text-center text-white")
-                        .w-20.h-20.mx-auto.rounded-2xl.bg-white.bg-opacity-15.flex.items-center.justify-center.mb-5
-                            i(data-lucide="triangle-alert").w-10.h-10
-                        h1(class="text-2xl md:text-3xl font-bold")= title || "Có lỗi xảy ra"
-                        p.mt-3.text-red-100
-                            | Đã xảy ra lỗi khi xử lý yêu cầu của bạn.
+extends layout
 
-                    div(class="p-6 md:p-10")
-                        .flex.items-start.gap-4.p-5.rounded-2xl.bg-red-50.border.border-red-200
-                            .w-10.h-10.rounded-full.bg-red-100.flex.items-center.justify-center.flex-shrink-0
-                                i(data-lucide="circle-alert").w-5.h-5.text-red-600
-                            div
-                                h2.font-semibold.text-red-900
-                                    | Chi tiết
-                                p.mt-1.text-sm.leading-6.text-red-800
-                                    = message || "Đã xảy ra lỗi không xác định."
+block content
+  div.error-page
+    .moon
+    div(class="moon__crater moon__crater1")
+    div(class="moon__crater moon__crater2")
+    div(class="moon__crater moon__crater3")
 
-                        div(class="mt-8 flex flex-col sm:flex-row gap-3")
-                            a(class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors", href="/")
-                                i(data-lucide="house").w-4.h-4
-                                | Về trang chủ
-                            a(class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors", href="javascript:history.back()")
-                                i(data-lucide="arrow-left").w-4.h-4
-                                | Quay lại
+    .star.star1
+    .star.star2
+    .star.star3
+    .star.star4
+    .star.star5
 
-                p(class="text-center text-xs text-gray-400 mt-6")
-                    | © #{new Date().getFullYear()} AI Grading System
+    .error
+      div(class="error__title") 404
+      div(class="error__subtitle") Hmmm...
+      div(class="error__description") #{message || 'Trang bạn đang tìm kiếm không tồn tại hoặc đã được di chuyển.'}
+      a(href="/" class="error__button error__button--active") TRANG CHỦ
 
-        script.
-            lucide.createIcons();
+    .astronaut
+      div(class="astronaut__backpack")
+      div(class="astronaut__body")
+      div(class="astronaut__body__chest")
+
+      div(class="astronaut__arm-left1")
+      div(class="astronaut__arm-left2")
+      div(class="astronaut__arm-thumb-left")
+
+      div(class="astronaut__arm-right1")
+      div(class="astronaut__arm-right2")
+      div(class="astronaut__arm-thumb-right")
+
+      div(class="astronaut__leg-left")
+      div(class="astronaut__leg-right")
+
+      div(class="astronaut__foot-left")
+      div(class="astronaut__foot-right")
+
+      div(class="astronaut__wrist-left")
+      div(class="astronaut__wrist-right")
+
+      div(class="astronaut__cord")
+        canvas#cord(width="500" height="500")
+
+      div(class="astronaut__head")
+        canvas#visor(height="60" width="60")
+        div(class="astronaut__head-visor-flare1")
+        div(class="astronaut__head-visor-flare2")
+
+  style.
+    @import url('https://fonts.googleapis.com/css?family=Righteous&display=swap');
+
+    /* =========================================================
+       404 ERROR PAGE
+       ========================================================= */
+
+    .error-page {
+      position: relative;
+
+      width: 100%;
+      min-height: 650px;
+
+      overflow: hidden;
+
+      background: linear-gradient(
+        90deg,
+        #2f3640 23%,
+        #181b20 100%
+      );
+
+      font-family: "Righteous", cursive;
+
+      isolation: isolate;
+    }
+
+
+    /* =========================================================
+       MOON
+       ========================================================= */
+
+    .error-page .moon {
+      background: linear-gradient(
+        90deg,
+        #d0d0d0 48%,
+        #919191 100%
+      );
+
+      position: absolute;
+
+      top: -100px;
+      left: -300px;
+
+      width: 900px;
+      height: 900px;
+
+      border-radius: 100%;
+
+      box-shadow:
+        0px 0px 30px -4px rgba(0, 0, 0, 0.5);
+
+      z-index: 1;
+    }
+
+
+    /* =========================================================
+       MOON CRATERS
+       ========================================================= */
+
+    .error-page .moon__crater {
+      position: absolute;
+
+      border-radius: 100%;
+
+      background: linear-gradient(
+        90deg,
+        #7a7a7a 38%,
+        #c3c3c3 100%
+      );
+
+      opacity: 0.6;
+    }
+
+    .error-page .moon__crater1 {
+      top: 250px;
+      left: 500px;
+
+      width: 60px;
+      height: 180px;
+    }
+
+    .error-page .moon__crater2 {
+      top: 650px;
+      left: 340px;
+
+      width: 40px;
+      height: 80px;
+
+      transform: rotate(55deg);
+    }
+
+    .error-page .moon__crater3 {
+      top: -20px;
+      left: 40px;
+
+      width: 65px;
+      height: 120px;
+
+      transform: rotate(250deg);
+    }
+
+
+    /* =========================================================
+       STARS
+       ========================================================= */
+
+    .error-page .star {
+      background: grey;
+
+      position: absolute;
+
+      width: 5px;
+      height: 5px;
+
+      border-radius: 100%;
+
+      transform: rotate(250deg);
+
+      opacity: 0.4;
+
+      animation-name: shimmer;
+      animation-duration: 1.5s;
+      animation-iteration-count: infinite;
+      animation-direction: alternate;
+
+      z-index: 2;
+    }
+
+    @keyframes shimmer {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 0.7;
+      }
+    }
+
+    .error-page .star1 {
+      top: 40%;
+      left: 50%;
+
+      animation-delay: 1s;
+    }
+
+    .error-page .star2 {
+      top: 60%;
+      left: 90%;
+
+      animation-delay: 3s;
+    }
+
+    .error-page .star3 {
+      top: 10%;
+      left: 70%;
+
+      animation-delay: 2s;
+    }
+
+    .error-page .star4 {
+      top: 90%;
+      left: 40%;
+    }
+
+    .error-page .star5 {
+      top: 20%;
+      left: 30%;
+
+      animation-delay: 0.5s;
+    }
+
+
+    /* =========================================================
+       ERROR CONTENT
+       ========================================================= */
+
+    .error-page .error {
+      position: absolute;
+
+      left: 100px;
+      top: 50%;
+
+      transform: translateY(-50%);
+
+      color: #363e49;
+
+      z-index: 10;
+    }
+
+
+    /* =========================================================
+       404 TITLE
+       ========================================================= */
+
+    .error-page .error__title {
+      font-size: 10em;
+
+      line-height: 0.9;
+
+      margin-bottom: 15px;
+    }
+
+
+    /* =========================================================
+       SUBTITLE
+       ========================================================= */
+
+    .error-page .error__subtitle {
+      font-size: 2em;
+
+      margin-bottom: 10px;
+    }
+
+
+    /* =========================================================
+       DESCRIPTION
+       ========================================================= */
+
+    .error-page .error__description {
+      max-width: 500px;
+
+      margin-top: 10px;
+      margin-bottom: 45px;
+
+      font-size: 1em;
+
+      line-height: 1.6;
+
+      opacity: 0.65;
+    }
+
+
+    /* =========================================================
+       BUTTON
+       ========================================================= */
+
+    .error-page .error__button {
+      display: inline-block;
+
+      min-width: 7em;
+
+      padding: 0.6em 2em;
+
+      border: 2px solid #2f3640;
+
+      border-radius: 8em;
+
+      outline: none;
+
+      background-color: transparent;
+
+      color: #576375;
+
+      cursor: pointer;
+
+      transition: 0.2s;
+
+      font-size: 0.75em;
+
+      font-family: "Righteous", cursive;
+
+      text-decoration: none;
+
+      text-align: center;
+    }
+
+    .error-page .error__button:hover {
+      color: #21252c;
+    }
+
+
+    /* =========================================================
+       ACTIVE BUTTON
+       ========================================================= */
+
+    .error-page .error__button--active {
+      background-color: #e67e22;
+
+      border: 2px solid #e67e22;
+
+      color: white;
+    }
+
+    .error-page .error__button--active:hover {
+      color: white;
+
+      box-shadow:
+        0px 0px 8px 0px rgba(0, 0, 0, 0.5);
+    }
+
+
+    /* =========================================================
+       ASTRONAUT
+       ========================================================= */
+
+    .error-page .astronaut {
+      position: absolute;
+
+      width: 185px;
+      height: 300px;
+
+      left: 70%;
+      top: 50%;
+
+      transform:
+        translate(-50%, -50%)
+        rotate(20deg)
+        scale(1.2);
+
+      z-index: 8;
+    }
+
+
+    /* =========================================================
+       ASTRONAUT HEAD
+       ========================================================= */
+
+    .error-page .astronaut__head {
+      background-color: white;
+
+      position: absolute;
+
+      top: 60px;
+      left: 60px;
+
+      width: 60px;
+      height: 60px;
+
+      border-radius: 2em;
+    }
+
+    .error-page .astronaut__head-visor-flare1 {
+      background-color: #7f8fa6;
+
+      position: absolute;
+
+      top: 28px;
+      left: 40px;
+
+      width: 10px;
+      height: 10px;
+
+      border-radius: 2em;
+
+      opacity: 0.5;
+    }
+
+    .error-page .astronaut__head-visor-flare2 {
+      background-color: #718093;
+
+      position: absolute;
+
+      top: 40px;
+      left: 38px;
+
+      width: 5px;
+      height: 5px;
+
+      border-radius: 2em;
+
+      opacity: 0.3;
+    }
+
+
+    /* =========================================================
+       ASTRONAUT BACKPACK
+       ========================================================= */
+
+    .error-page .astronaut__backpack {
+      background-color: #bfbfbf;
+
+      position: absolute;
+
+      top: 90px;
+      left: 47px;
+
+      width: 86px;
+      height: 90px;
+
+      border-radius: 8px;
+    }
+
+
+    /* =========================================================
+       ASTRONAUT BODY
+       ========================================================= */
+
+    .error-page .astronaut__body {
+      background-color: #e6e6e6;
+
+      position: absolute;
+
+      top: 115px;
+      left: 55px;
+
+      width: 70px;
+      height: 80px;
+
+      border-radius: 8px;
+    }
+
+    .error-page .astronaut__body__chest {
+      background-color: #d9d9d9;
+
+      position: absolute;
+
+      top: 140px;
+      left: 68px;
+
+      width: 45px;
+      height: 25px;
+
+      border-radius: 6px;
+    }
+
+
+    /* =========================================================
+       LEFT ARM
+       ========================================================= */
+
+    .error-page .astronaut__arm-left1 {
+      background-color: #e6e6e6;
+
+      position: absolute;
+
+      top: 127px;
+      left: 9px;
+
+      width: 65px;
+      height: 20px;
+
+      border-radius: 8px;
+
+      transform: rotate(-30deg);
+    }
+
+    .error-page .astronaut__arm-left2 {
+      background-color: #e6e6e6;
+
+      position: absolute;
+
+      top: 102px;
+      left: 7px;
+
+      width: 20px;
+      height: 45px;
+
+      border-radius: 8px;
+
+      transform: rotate(-12deg);
+
+      border-top-left-radius: 8em;
+      border-top-right-radius: 8em;
+    }
+
+    .error-page .astronaut__arm-thumb-left {
+      background-color: #e6e6e6;
+
+      position: absolute;
+
+      top: 110px;
+      left: 21px;
+
+      width: 10px;
+      height: 6px;
+
+      border-radius: 8em;
+
+      transform: rotate(-35deg);
+    }
+
+
+    /* =========================================================
+       RIGHT ARM
+       ========================================================= */
+
+    .error-page .astronaut__arm-right1 {
+      background-color: #e6e6e6;
+
+      position: absolute;
+
+      top: 113px;
+      left: 100px;
+
+      width: 65px;
+      height: 20px;
+
+      border-radius: 8px;
+
+      transform: rotate(-10deg);
+    }
+
+    .error-page .astronaut__arm-right2 {
+      background-color: #e6e6e6;
+
+      position: absolute;
+
+      top: 78px;
+      left: 141px;
+
+      width: 20px;
+      height: 45px;
+
+      border-radius: 8px;
+
+      transform: rotate(-10deg);
+
+      border-top-left-radius: 8em;
+      border-top-right-radius: 8em;
+    }
+
+    .error-page .astronaut__arm-thumb-right {
+      background-color: #e6e6e6;
+
+      position: absolute;
+
+      top: 90px;
+      left: 133px;
+
+      width: 10px;
+      height: 6px;
+
+      border-radius: 8em;
+
+      transform: rotate(20deg);
+    }
+
+
+    /* =========================================================
+       WRISTS
+       ========================================================= */
+
+    .error-page .astronaut__wrist-left {
+      background-color: #e67e22;
+
+      position: absolute;
+
+      top: 122px;
+      left: 6.5px;
+
+      width: 21px;
+      height: 4px;
+
+      border-radius: 8em;
+
+      transform: rotate(-15deg);
+    }
+
+    .error-page .astronaut__wrist-right {
+      background-color: #e67e22;
+
+      position: absolute;
+
+      top: 98px;
+      left: 141px;
+
+      width: 21px;
+      height: 4px;
+
+      border-radius: 8em;
+
+      transform: rotate(-10deg);
+    }
+
+
+    /* =========================================================
+       LEGS
+       ========================================================= */
+
+    .error-page .astronaut__leg-left {
+      background-color: #e6e6e6;
+
+      position: absolute;
+
+      top: 188px;
+      left: 50px;
+
+      width: 23px;
+      height: 75px;
+
+      transform: rotate(10deg);
+    }
+
+    .error-page .astronaut__leg-right {
+      background-color: #e6e6e6;
+
+      position: absolute;
+
+      top: 188px;
+      left: 108px;
+
+      width: 23px;
+      height: 75px;
+
+      transform: rotate(-10deg);
+    }
+
+
+    /* =========================================================
+       FEET
+       ========================================================= */
+
+    .error-page .astronaut__foot-left {
+      background-color: white;
+
+      position: absolute;
+
+      top: 240px;
+      left: 43px;
+
+      width: 28px;
+      height: 20px;
+
+      transform: rotate(10deg);
+
+      border-radius: 3px;
+
+      border-top-left-radius: 8em;
+      border-top-right-radius: 8em;
+
+      border-bottom: 4px solid #e67e22;
+    }
+
+    .error-page .astronaut__foot-right {
+      background-color: white;
+
+      position: absolute;
+
+      top: 240px;
+      left: 111px;
+
+      width: 28px;
+      height: 20px;
+
+      transform: rotate(-10deg);
+
+      border-radius: 3px;
+
+      border-top-left-radius: 8em;
+      border-top-right-radius: 8em;
+
+      border-bottom: 4px solid #e67e22;
+    }
+
+
+    /* =========================================================
+       RESPONSIVE
+       ========================================================= */
+
+    @media (max-width: 900px) {
+
+      .error-page {
+        min-height: 700px;
+      }
+
+      .error-page .error {
+        left: 40px;
+      }
+
+      .error-page .error__title {
+        font-size: 7em;
+      }
+
+      .error-page .astronaut {
+        left: 75%;
+        transform:
+          translate(-50%, -50%)
+          rotate(20deg)
+          scale(0.9);
+      }
+    }
+
+
+    @media (max-width: 650px) {
+
+      .error-page {
+        min-height: 750px;
+      }
+
+      .error-page .error {
+        left: 25px;
+        top: 35%;
+
+        transform: translateY(-50%);
+      }
+
+      .error-page .error__title {
+        font-size: 5em;
+      }
+
+      .error-page .error__subtitle {
+        font-size: 1.5em;
+      }
+
+      .error-page .error__description {
+        max-width: 320px;
+        font-size: 0.9em;
+      }
+
+      .error-page .astronaut {
+        left: 65%;
+        top: 70%;
+
+        transform:
+          translate(-50%, -50%)
+          rotate(20deg)
+          scale(0.75);
+      }
+
+      .error-page .moon {
+        top: -200px;
+        left: -450px;
+        transform: scale(0.8);
+      }
+    }
+
+  script.
+    function drawVisor() {
+      const canvas = document.getElementById('visor');
+      const ctx = canvas.getContext('2d');
+      
+      ctx.beginPath();
+      ctx.moveTo(5, 45);
+      ctx.bezierCurveTo(15, 64, 45, 64, 55, 45);
+      
+      ctx.lineTo(55, 20);
+      ctx.bezierCurveTo(55, 15, 50, 10, 45, 10);
+      
+      ctx.lineTo(15, 10);
+      
+      ctx.bezierCurveTo(15, 10, 5, 10, 5, 20);
+      ctx.lineTo(5, 45);
+      
+      ctx.fillStyle = '#2f3640';
+      ctx.strokeStyle = '#f5f6fa';
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    const cordCanvas = document.getElementById('cord');
+    const ctx = cordCanvas.getContext('2d');
+
+    let y1 = 160;
+    let y2 = 100;
+    let y3 = 100;
+
+    let y1Forward = true;
+    let y2Forward = false;
+    let y3Forward = true;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      
+      ctx.beginPath();
+      ctx.moveTo(130, 170);
+      ctx.bezierCurveTo(250, y1, 345, y2, 400, y3);
+      
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 8;
+      ctx.stroke();
+     
+      
+      if (y1 === 100) {
+        y1Forward = true;
+      }
+      
+      if (y1 === 300) {
+        y1Forward = false;
+      }
+      
+      if (y2 === 100) {
+        y2Forward = true;
+      }
+      
+      if (y2 === 310) {
+        y2Forward = false;
+      }
+      
+      if (y3 === 100) {
+        y3Forward = true;
+      }
+      
+      if (y3 === 317) {
+        y3Forward = false;
+      }
+      
+      y1Forward ? y1 += 1 : y1 -= 1;
+      y2Forward ? y2 += 1 : y2 -= 1;
+      y3Forward ? y3 += 1 : y3 -= 1;
+    }
+
+    drawVisor();
+    animate();

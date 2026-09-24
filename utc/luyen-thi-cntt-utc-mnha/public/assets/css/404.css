@@ -1,0 +1,712 @@
+/* =========================================================
+   404 ERROR PAGE
+   ========================================================= */
+
+.error-page {
+  position: relative;
+
+  width: 100%;
+  min-height: 650px;
+
+  overflow: hidden;
+
+  background: linear-gradient(
+    90deg,
+    #2f3640 23%,
+    #181b20 100%
+  );
+
+  font-family: "Righteous", cursive;
+
+  isolation: isolate;
+}
+
+
+/* =========================================================
+   MOON
+   ========================================================= */
+
+.error-page .moon {
+  background: linear-gradient(
+    90deg,
+    #d0d0d0 48%,
+    #919191 100%
+  );
+
+  position: absolute;
+
+  top: -100px;
+  left: -300px;
+
+  width: 900px;
+  height: 900px;
+
+  border-radius: 100%;
+
+  box-shadow:
+    0px 0px 30px -4px rgba(0, 0, 0, 0.5);
+
+  z-index: 1;
+}
+
+
+/* =========================================================
+   MOON CRATERS
+   ========================================================= */
+
+.error-page .moon__crater {
+  position: absolute;
+
+  border-radius: 100%;
+
+  background: linear-gradient(
+    90deg,
+    #7a7a7a 38%,
+    #c3c3c3 100%
+  );
+
+  opacity: 0.6;
+}
+
+.error-page .moon__crater1 {
+  top: 250px;
+  left: 500px;
+
+  width: 60px;
+  height: 180px;
+}
+
+.error-page .moon__crater2 {
+  top: 650px;
+  left: 340px;
+
+  width: 40px;
+  height: 80px;
+
+  transform: rotate(55deg);
+}
+
+.error-page .moon__crater3 {
+  top: -20px;
+  left: 40px;
+
+  width: 65px;
+  height: 120px;
+
+  transform: rotate(250deg);
+}
+
+
+/* =========================================================
+   STARS
+   ========================================================= */
+
+.error-page .star {
+  background: grey;
+
+  position: absolute;
+
+  width: 5px;
+  height: 5px;
+
+  border-radius: 100%;
+
+  transform: rotate(250deg);
+
+  opacity: 0.4;
+
+  animation-name: shimmer;
+  animation-duration: 1.5s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+
+  z-index: 2;
+}
+
+@keyframes shimmer {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 0.7;
+  }
+}
+
+.error-page .star1 {
+  top: 40%;
+  left: 50%;
+
+  animation-delay: 1s;
+}
+
+.error-page .star2 {
+  top: 60%;
+  left: 90%;
+
+  animation-delay: 3s;
+}
+
+.error-page .star3 {
+  top: 10%;
+  left: 70%;
+
+  animation-delay: 2s;
+}
+
+.error-page .star4 {
+  top: 90%;
+  left: 40%;
+}
+
+.error-page .star5 {
+  top: 20%;
+  left: 30%;
+
+  animation-delay: 0.5s;
+}
+
+
+/* =========================================================
+   ERROR CONTENT
+   ========================================================= */
+
+.error-page .error {
+  position: absolute;
+
+  left: 100px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  color: #363e49;
+
+  z-index: 10;
+}
+
+
+/* =========================================================
+   404 TITLE
+   ========================================================= */
+
+.error-page .error__title {
+  font-size: 10em;
+
+  line-height: 0.9;
+
+  margin-bottom: 15px;
+}
+
+
+/* =========================================================
+   SUBTITLE
+   ========================================================= */
+
+.error-page .error__subtitle {
+  font-size: 2em;
+
+  margin-bottom: 10px;
+}
+
+
+/* =========================================================
+   DESCRIPTION
+   ========================================================= */
+
+.error-page .error__description {
+  max-width: 500px;
+
+  margin-top: 10px;
+  margin-bottom: 45px;
+
+  font-size: 1em;
+
+  line-height: 1.6;
+
+  opacity: 0.65;
+}
+
+
+/* =========================================================
+   BUTTON
+   ========================================================= */
+
+.error-page .error__button {
+  display: inline-block;
+
+  min-width: 7em;
+
+  padding: 0.6em 2em;
+
+  border: 2px solid #2f3640;
+
+  border-radius: 8em;
+
+  outline: none;
+
+  background-color: transparent;
+
+  color: #576375;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+
+  font-size: 0.75em;
+
+  font-family: "Righteous", cursive;
+
+  text-decoration: none;
+
+  text-align: center;
+}
+
+.error-page .error__button:hover {
+  color: #21252c;
+}
+
+
+/* =========================================================
+   ACTIVE BUTTON
+   ========================================================= */
+
+.error-page .error__button--active {
+  background-color: #e67e22;
+
+  border: 2px solid #e67e22;
+
+  color: white;
+}
+
+.error-page .error__button--active:hover {
+  color: white;
+
+  box-shadow:
+    0px 0px 8px 0px rgba(0, 0, 0, 0.5);
+}
+
+
+/* =========================================================
+   ASTRONAUT
+   ========================================================= */
+
+.error-page .astronaut {
+  position: absolute;
+
+  width: 185px;
+  height: 300px;
+
+  left: 70%;
+  top: 50%;
+
+  transform:
+    translate(-50%, -50%)
+    rotate(20deg)
+    scale(1.2);
+
+  z-index: 8;
+}
+
+
+/* =========================================================
+   ASTRONAUT HEAD
+   ========================================================= */
+
+.error-page .astronaut__head {
+  background-color: white;
+
+  position: absolute;
+
+  top: 60px;
+  left: 60px;
+
+  width: 60px;
+  height: 60px;
+
+  border-radius: 2em;
+}
+
+.error-page .astronaut__head-visor-flare1 {
+  background-color: #7f8fa6;
+
+  position: absolute;
+
+  top: 28px;
+  left: 40px;
+
+  width: 10px;
+  height: 10px;
+
+  border-radius: 2em;
+
+  opacity: 0.5;
+}
+
+.error-page .astronaut__head-visor-flare2 {
+  background-color: #718093;
+
+  position: absolute;
+
+  top: 40px;
+  left: 38px;
+
+  width: 5px;
+  height: 5px;
+
+  border-radius: 2em;
+
+  opacity: 0.3;
+}
+
+
+/* =========================================================
+   ASTRONAUT BACKPACK
+   ========================================================= */
+
+.error-page .astronaut__backpack {
+  background-color: #bfbfbf;
+
+  position: absolute;
+
+  top: 90px;
+  left: 47px;
+
+  width: 86px;
+  height: 90px;
+
+  border-radius: 8px;
+}
+
+
+/* =========================================================
+   ASTRONAUT BODY
+   ========================================================= */
+
+.error-page .astronaut__body {
+  background-color: #e6e6e6;
+
+  position: absolute;
+
+  top: 115px;
+  left: 55px;
+
+  width: 70px;
+  height: 80px;
+
+  border-radius: 8px;
+}
+
+.error-page .astronaut__body__chest {
+  background-color: #d9d9d9;
+
+  position: absolute;
+
+  top: 140px;
+  left: 68px;
+
+  width: 45px;
+  height: 25px;
+
+  border-radius: 6px;
+}
+
+
+/* =========================================================
+   LEFT ARM
+   ========================================================= */
+
+.error-page .astronaut__arm-left1 {
+  background-color: #e6e6e6;
+
+  position: absolute;
+
+  top: 127px;
+  left: 9px;
+
+  width: 65px;
+  height: 20px;
+
+  border-radius: 8px;
+
+  transform: rotate(-30deg);
+}
+
+.error-page .astronaut__arm-left2 {
+  background-color: #e6e6e6;
+
+  position: absolute;
+
+  top: 102px;
+  left: 7px;
+
+  width: 20px;
+  height: 45px;
+
+  border-radius: 8px;
+
+  transform: rotate(-12deg);
+
+  border-top-left-radius: 8em;
+  border-top-right-radius: 8em;
+}
+
+.error-page .astronaut__arm-thumb-left {
+  background-color: #e6e6e6;
+
+  position: absolute;
+
+  top: 110px;
+  left: 21px;
+
+  width: 10px;
+  height: 6px;
+
+  border-radius: 8em;
+
+  transform: rotate(-35deg);
+}
+
+
+/* =========================================================
+   RIGHT ARM
+   ========================================================= */
+
+.error-page .astronaut__arm-right1 {
+  background-color: #e6e6e6;
+
+  position: absolute;
+
+  top: 113px;
+  left: 100px;
+
+  width: 65px;
+  height: 20px;
+
+  border-radius: 8px;
+
+  transform: rotate(-10deg);
+}
+
+.error-page .astronaut__arm-right2 {
+  background-color: #e6e6e6;
+
+  position: absolute;
+
+  top: 78px;
+  left: 141px;
+
+  width: 20px;
+  height: 45px;
+
+  border-radius: 8px;
+
+  transform: rotate(-10deg);
+
+  border-top-left-radius: 8em;
+  border-top-right-radius: 8em;
+}
+
+.error-page .astronaut__arm-thumb-right {
+  background-color: #e6e6e6;
+
+  position: absolute;
+
+  top: 90px;
+  left: 133px;
+
+  width: 10px;
+  height: 6px;
+
+  border-radius: 8em;
+
+  transform: rotate(20deg);
+}
+
+
+/* =========================================================
+   WRISTS
+   ========================================================= */
+
+.error-page .astronaut__wrist-left {
+  background-color: #e67e22;
+
+  position: absolute;
+
+  top: 122px;
+  left: 6.5px;
+
+  width: 21px;
+  height: 4px;
+
+  border-radius: 8em;
+
+  transform: rotate(-15deg);
+}
+
+.error-page .astronaut__wrist-right {
+  background-color: #e67e22;
+
+  position: absolute;
+
+  top: 98px;
+  left: 141px;
+
+  width: 21px;
+  height: 4px;
+
+  border-radius: 8em;
+
+  transform: rotate(-10deg);
+}
+
+
+/* =========================================================
+   LEGS
+   ========================================================= */
+
+.error-page .astronaut__leg-left {
+  background-color: #e6e6e6;
+
+  position: absolute;
+
+  top: 188px;
+  left: 50px;
+
+  width: 23px;
+  height: 75px;
+
+  transform: rotate(10deg);
+}
+
+.error-page .astronaut__leg-right {
+  background-color: #e6e6e6;
+
+  position: absolute;
+
+  top: 188px;
+  left: 108px;
+
+  width: 23px;
+  height: 75px;
+
+  transform: rotate(-10deg);
+}
+
+
+/* =========================================================
+   FEET
+   ========================================================= */
+
+.error-page .astronaut__foot-left {
+  background-color: white;
+
+  position: absolute;
+
+  top: 240px;
+  left: 43px;
+
+  width: 28px;
+  height: 20px;
+
+  transform: rotate(10deg);
+
+  border-radius: 3px;
+
+  border-top-left-radius: 8em;
+  border-top-right-radius: 8em;
+
+  border-bottom: 4px solid #e67e22;
+}
+
+.error-page .astronaut__foot-right {
+  background-color: white;
+
+  position: absolute;
+
+  top: 240px;
+  left: 111px;
+
+  width: 28px;
+  height: 20px;
+
+  transform: rotate(-10deg);
+
+  border-radius: 3px;
+
+  border-top-left-radius: 8em;
+  border-top-right-radius: 8em;
+
+  border-bottom: 4px solid #e67e22;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  .error-page {
+    min-height: 700px;
+  }
+
+  .error-page .error {
+    left: 40px;
+  }
+
+  .error-page .error__title {
+    font-size: 7em;
+  }
+
+  .error-page .astronaut {
+    left: 75%;
+    transform:
+      translate(-50%, -50%)
+      rotate(20deg)
+      scale(0.9);
+  }
+}
+
+
+@media (max-width: 650px) {
+
+  .error-page {
+    min-height: 750px;
+  }
+
+  .error-page .error {
+    left: 25px;
+    top: 35%;
+
+    transform: translateY(-50%);
+  }
+
+  .error-page .error__title {
+    font-size: 5em;
+  }
+
+  .error-page .error__subtitle {
+    font-size: 1.5em;
+  }
+
+  .error-page .error__description {
+    max-width: 320px;
+    font-size: 0.9em;
+  }
+
+  .error-page .astronaut {
+    left: 65%;
+    top: 70%;
+
+    transform:
+      translate(-50%, -50%)
+      rotate(20deg)
+      scale(0.75);
+  }
+
+  .error-page .moon {
+    top: -200px;
+    left: -450px;
+    transform: scale(0.8);
+  }
+}
