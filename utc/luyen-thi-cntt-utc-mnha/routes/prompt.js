@@ -23,13 +23,33 @@ function requireLogin(req, res, next) {
     next();
 }
 
+// ============================================================
+// MIDDLEWARE — chỉ admin mới được thêm/sửa/xoá prompt
+// ============================================================
+function requireAdmin(req, res, next) {
+    const user = req.session?.user || req.user;
+    if (!user || user.role !== "admin") {
+        return res.redirect("/pages");
+    }
+    next();
+}
+
 router.use(requireLogin);
 
 // ============================================================
-// PROMPT ROUTES (public cho user đã login)
+// PROMPT ROUTES
 // ============================================================
 
-// Danh sách prompt đang active (chỉ xem, không sửa)
+// Danh sách prompt (xem)
 router.get("/", promptController.getPrompts);
+
+// CRUD — chỉ admin
+router.get("/create", requireAdmin, promptController.showCreatePrompt);
+router.post("/", requireAdmin, promptController.createPrompt);
+router.get("/:id/edit", requireAdmin, promptController.showEditPrompt);
+router.post("/:id/edit", requireAdmin, promptController.updatePrompt);
+router.post("/:id/set-default", requireAdmin, promptController.setDefault);
+router.post("/:id/delete", requireAdmin, promptController.deletePrompt);
+router.post("/:id/hard-delete", requireAdmin, promptController.hardDeletePrompt);
 
 module.exports = router;

@@ -70,11 +70,15 @@ const gradingPromptSchema = new mongoose.Schema(
             index: true
         },
 
-        // ★ Nếu scope = 'lesson' — tham chiếu Lesson
-        lessonId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Lesson',
-            default: null,
+        // ★ Nếu scope = 'lesson' — 1 prompt có thể gán cho NHIỀU bài
+        lessonIds: {
+            type: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'Lesson'
+                }
+            ],
+            default: [],
             index: true
         },
 
@@ -119,6 +123,6 @@ const gradingPromptSchema = new mongoose.Schema(
 // Index tổng hợp
 gradingPromptSchema.index({ active: 1, scope: 1, isDefault: -1 });
 gradingPromptSchema.index({ subjectId: 1, active: 1 });
-gradingPromptSchema.index({ lessonId: 1, active: 1 });
+gradingPromptSchema.index({ lessonIds: 1, active: 1 });
 
 module.exports = mongoose.model('GradingPrompt', gradingPromptSchema);

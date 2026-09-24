@@ -22,6 +22,36 @@ function validateRubric(rubric) {
     return { ok: true };
 }
 
+function normalizeIds(value) {
+    const arr = Array.isArray(value) ? value : (value ? [value] : []);
+    return arr.filter((id) => id && mongoose.Types.ObjectId.isValid(id));
+}
+
+// Đồng bộ Lesson.promptId theo danh sách lessonIds mới của 1 prompt.
+// - Bài mới được tick (added) → gán Lesson.promptId = prompt này.
+// - Bài bị bỏ tick (removed) → CHỈ gỡ nếu Lesson đó đang trỏ đúng prompt này
+//   (tránh đè lên trường hợp bài đã được gán prompt khác sau đó).
+async function syncLessonAssignments(promptId, oldLessonIds, newLessonIds) {
+    const oldSet = new Set(oldLessonIds.map(String));
+    const newSet = new Set(newLessonIds.map(String));
+
+    const added = newLessonIds.filter((id) => !oldSet.has(String(id)));
+    const removed = oldLessonIds.filter((id) => !newSet.has(String(id)));
+
+    if (added.length) {
+        await Lesson.updateMany(
+            { _id: { $in: added } },
+            { $set: { promptId } }
+        );
+    }
+    if (removed.length) {
+        await Lesson.updateMany(
+            { _id: { $in: removed }, promptId },
+            { $set: { promptId: null } }
+        );
+    }
+}
+
 function parseRubric(body) {
     // Hỗ trợ cả 2 dạng: rubricJson (text) hoặc 3 mảng song song
     if (body.rubricJson) {
@@ -63,7 +93,7 @@ exports.getPrompts = async (req, res, next) => {
         const [prompts, subjects, lessons] = await Promise.all([
             GradingPrompt.find(filter)
                 .populate('subjectId', 'name code')
-                .populate('lessonId', 'title')
+                .populate('lessonIds', 'title')
                 .populate('createdBy', 'name email')
                 .sort({ isDefault: -1, createdAt: -1 })
                 .lean(),
@@ -109,7 +139,7 @@ exports.createPrompt = async (req, res, next) => {
         const {
             name, description, content,
             strictness, maxScore,
-            scope, subjectId, lessonId,
+            scope, subjectId,
             isDefault, active
         } = req.body;
 
@@ -135,6 +165,8 @@ exports.createPrompt = async (req, res, next) => {
             );
         }
 
+        const lessonIds = scope === 'lesson' ? normalizeIds(req.body.lessonIds) : [];
+
         const prompt = await GradingPrompt.create({
             name: name.trim(),
             description: (description || '').trim(),
@@ -144,7 +176,7 @@ exports.createPrompt = async (req, res, next) => {
             maxScore: Number(maxScore) || 10,
             scope: scope || 'global',
             subjectId: scope === 'subject' && subjectId && mongoose.Types.ObjectId.isValid(subjectId) ? subjectId : null,
-            lessonId: scope === 'lesson' && lessonId && mongoose.Types.ObjectId.isValid(lessonId) ? lessonId : null,
+            lessonIds,
             isDefault: setDefault,
             active: active !== 'off',
             variables: ['{đề_bài}', '{bài_làm}', '{rubric}', '{max_score}', '{student_name}', '{lời_giải_mẫu}'],
@@ -152,6 +184,11 @@ exports.createPrompt = async (req, res, next) => {
             createdBy: getUserId(req),
             updatedBy: getUserId(req)
         });
+
+        // Gán prompt vừa tạo cho các bài được chọn (bài mới nên chỉ có "added", không có "removed")
+        if (lessonIds.length) {
+            await syncLessonAssignments(prompt._id, [], lessonIds);
+        }
 
         return res.redirect('/admin/prompts?success=' + encodeURIComponent(`Đã tạo prompt "${prompt.name}".`));
     } catch (err) {
@@ -248,7 +285,7 @@ exports.updatePrompt = async (req, res, next) => {
         const {
             name, description, content,
             strictness, maxScore,
-            scope, subjectId, lessonId,
+            scope, subjectId,
             isDefault, active
         } = req.body;
 
@@ -260,6 +297,10 @@ exports.updatePrompt = async (req, res, next) => {
 
         const contentChanged = content && content.trim() !== prompt.content;
 
+        // Danh sách bài cũ (trước khi sửa) để tính added/removed sau khi lưu
+        const oldLessonIds = (prompt.lessonIds || []).map((v) => String(v));
+        const newLessonIds = scope === 'lesson' ? normalizeIds(req.body.lessonIds) : [];
+
         if (name) prompt.name = name.trim();
         if (typeof description === 'string') prompt.description = description.trim();
         if (content) prompt.content = content.trim();
@@ -268,7 +309,7 @@ exports.updatePrompt = async (req, res, next) => {
         prompt.maxScore = Number(maxScore) || prompt.maxScore;
         prompt.scope = scope || prompt.scope;
         prompt.subjectId = scope === 'subject' && subjectId && mongoose.Types.ObjectId.isValid(subjectId) ? subjectId : null;
-        prompt.lessonId = scope === 'lesson' && lessonId && mongoose.Types.ObjectId.isValid(lessonId) ? lessonId : null;
+        prompt.lessonIds = newLessonIds;
 
         const setDefault = isDefault === 'on' || isDefault === true;
         if (setDefault && !prompt.isDefault) {
@@ -288,6 +329,10 @@ exports.updatePrompt = async (req, res, next) => {
         prompt.updatedBy = getUserId(req);
 
         await prompt.save();
+
+        // Đồng bộ Lesson.promptId: thêm cho bài mới tick, gỡ cho bài bị bỏ tick
+        // (chỉ gỡ nếu Lesson đó vẫn đang trỏ đúng prompt này).
+        await syncLessonAssignments(prompt._id, oldLessonIds, newLessonIds);
 
         return res.redirect(`/admin/prompts/${id}/edit?success=` + encodeURIComponent('Đã cập nhật prompt.'));
     } catch (err) {

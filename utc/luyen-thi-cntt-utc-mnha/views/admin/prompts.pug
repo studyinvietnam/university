@@ -109,9 +109,9 @@ block content
                         if prompt.scope === 'subject' && prompt.subjectId
                             p(class="text-xs text-gray-500 mb-2")
                                 | 📚 Môn: #{prompt.subjectId.name || '(đã xoá)'}
-                        if prompt.scope === 'lesson' && prompt.lessonId
+                        if prompt.scope === 'lesson' && prompt.lessonIds && prompt.lessonIds.length
                             p(class="text-xs text-gray-500 mb-2")
-                                | 📝 Bài: #{prompt.lessonId.title || '(đã xoá)'}
+                                | 📝 Bài (#{prompt.lessonIds.length}): #{prompt.lessonIds.map((l) => l.title || '(đã xoá)').join(', ')}
 
                         //- AUDIT
                         div(class="text-xs text-gray-400 mb-3")
