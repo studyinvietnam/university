@@ -1,8 +1,8 @@
-// routes/submission.js
+// routes/practice.js
 const express = require('express');
 const router = express.Router();
 
-const submissionController = require('../controllers/submission.controller');
+const practiceController = require('../controllers/practice.controller');
 const requireApproved = require('../middleware/requireApproved');
 
 // ============================================================
@@ -11,16 +11,8 @@ const requireApproved = require('../middleware/requireApproved');
 router.use(requireApproved);
 
 // ============================================================
-// SUBMISSION ROUTES
+// PRACTICE
 // ============================================================
-
-// Lịch sử — đặt TRƯỚC :id để không bị match nhầm
-router.get('/history', submissionController.getMySubmissions);
-
-// Chi tiết 1 bài nộp
-router.get('/:id', submissionController.getSubmission);
-
-// Tạo bài nộp
-router.post('/', submissionController.createSubmission);
+router.get('/', practiceController.listPractice);
 
 module.exports = router;

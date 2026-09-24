@@ -1,9 +1,10 @@
 extends ../layout
 
 block content
-    .max-w-7xl.mx-auto.px-4.sm\\:px-6.lg\\:px-8.py-8
+    div(class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8")
 
-        .flex.flex-col.sm\\:flex-row.sm\\:items-center.sm\\:justify-between.gap-4.mb-8
+        //- Header
+        div(class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8")
             div
                 h1(class="text-2xl sm:text-3xl font-bold text-gray-900")
                     | API Key AI
@@ -15,117 +16,187 @@ block content
                 onclick="document.getElementById('keyModal').classList.remove('hidden')"
                 class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
             )
-                i(data-lucide="plus" class="w-4 h-4")
+                i(data-lucide="plus", class="w-4 h-4")
                 | Thêm API Key
 
-        .bg-blue-50.border.border-blue-200.rounded-xl.p-4.mb-6
-            .flex.items-start.gap-3
-                i(data-lucide="shield-check" class="w-5 h-5 text-blue-600 mt-0.5")
+        //- Flash
+        if success
+            div(class="mb-6 p-4 rounded-xl bg-green-50 border border-green-200 text-green-800 text-sm")
+                = success
+        if error
+            div(class="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm")
+                = error
+
+        //- Security notice
+        div(class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6")
+            div(class="flex items-start gap-3")
+                i(data-lucide="shield-check", class="w-5 h-5 text-blue-600 mt-0.5")
                 div
                     p(class="font-medium text-blue-900")
                         | Bảo mật API Key
                     p(class="text-sm text-blue-700 mt-1")
-                        | API Key được lưu ở dạng mã hóa và không hiển thị đầy đủ trong giao diện.
+                        | API Key được lưu ở dạng mã hóa AES-256-GCM và không hiển thị đầy đủ trong giao diện.
 
-        .grid.grid-cols-1.lg\\:grid-cols-2.gap-5
+        //- Danh sách key
+        div(class="grid grid-cols-1 lg:grid-cols-2 gap-5")
             if aiKeys && aiKeys.length
                 each key in aiKeys
-                    .bg-white.border.border-gray-200.rounded-2xl.p-5.shadow-sm
-                        .flex.items-start.justify-between
+                    div(class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm")
+                        div(class="flex items-start justify-between")
                             div
-                                .flex.items-center.gap-3
-                                    .w-10.h-10.rounded-lg.bg-purple-100.text-purple-600.flex.items-center.justify-center
-                                        i(data-lucide="key-round" class="w-5 h-5")
+                                div(class="flex items-center gap-3")
+                                    div(class="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center")
+                                        i(data-lucide="key-round", class="w-5 h-5")
                                     div
                                         h2(class="font-semibold text-gray-900")
                                             = key.name || 'Gemini API Key'
-                                        p(class="text-xs text-gray-500")
-                                            = key.provider || 'Google Gemini'
+                                        div(class="flex items-center gap-2 mt-1")
+                                            span(class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700")
+                                                = key.model || 'Chưa chọn model'
+                                            span(class="text-xs text-gray-500")
+                                                = key.provider || 'gemini'
 
-                            if key.active
+                            if key.isActive && !key.isRevoked
                                 span(class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium")
                                     | Đang hoạt động
                             else
                                 span(class="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium")
                                     | Đã tắt
 
-                        .mt-5.p-3.bg-gray-50.rounded-lg.font-mono.text-sm.text-gray-600
-                            = key.maskedKey || '••••••••••••••••'
+                        //- Masked key
+                        div(class="mt-5 p-3 bg-gray-50 rounded-lg font-mono text-sm text-gray-600")
+                            = key.maskedKey || (key.lastFour ? '••••••••••••' + key.lastFour : '••••••••••••••••')
 
-                        .mt-4.flex.items-center.justify-between
+                        //- Meta
+                        div(class="mt-3 flex items-center gap-4 text-xs text-gray-500")
+                            div
+                                | Dùng: 
+                                span(class="font-semibold text-gray-700")
+                                    = key.usageCount || 0
+                            if key.lastUsedAt
+                                div
+                                    | Lần cuối: #{new Date(key.lastUsedAt).toLocaleString('vi-VN')}
+
+                        //- Audit + Actions
+                        div(class="mt-4 flex items-center justify-between pt-3 border-t border-gray-100")
                             p(class="text-xs text-gray-500")
                                 | Cập nhật:
                                 = ' ' + (key.updatedAt ? new Date(key.updatedAt).toLocaleString('vi-VN') : '—')
 
-                            .flex.items-center.gap-2
+                            div(class="flex items-center gap-2")
                                 form(
                                     action="/admin/ai-keys/" + key._id + "/toggle"
                                     method="POST"
+                                    class="inline"
                                 )
                                     button(
                                         type="submit"
                                         class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-medium"
                                     )
-                                        = key.active ? 'Tắt' : 'Bật'
+                                        = key.isActive ? 'Tắt' : 'Bật'
 
                                 form(
                                     action="/admin/ai-keys/" + key._id + "/delete"
                                     method="POST"
+                                    class="inline"
                                     onsubmit="return confirm('Bạn có chắc muốn xóa API Key này?')"
                                 )
                                     button(
                                         type="submit"
                                         class="w-8 h-8 rounded-lg text-red-500 hover:bg-red-50 flex items-center justify-center"
                                     )
-                                        i(data-lucide="trash-2" class="w-4 h-4")
+                                        i(data-lucide="trash-2", class="w-4 h-4")
             else
-                .lg\\:col-span-2.bg-white.border.border-gray-200.rounded-2xl.py-12.text-center
-                    i(data-lucide="key-round" class="w-10 h-10 mx-auto text-gray-300")
+                div(class="lg:col-span-2 bg-white border border-gray-200 rounded-2xl py-12 text-center")
+                    i(data-lucide="key-round", class="w-10 h-10 mx-auto text-gray-300")
                     p(class="text-gray-500 mt-3")
                         | Chưa có API Key.
+                    button(
+                        type="button"
+                        onclick="document.getElementById('keyModal').classList.remove('hidden')"
+                        class="inline-flex items-center gap-2 mt-5 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                    )
+                        i(data-lucide="plus", class="w-4 h-4")
+                        | Thêm API Key đầu tiên
 
-        #keyModal(class="hidden fixed inset-0 z-[100] bg-black/50 p-4")
-            .min-h-full.flex.items-center.justify-center
-                .bg-white.rounded-2xl.w-full.max-w-lg.shadow-xl
-                    .px-6.py-5.border-b.border-gray-200.flex.items-center.justify-between
+        //- Modal thêm key
+        div#keyModal(class="hidden fixed inset-0 z-50 bg-black/50 p-4")
+            div(class="min-h-full flex items-center justify-center")
+                div(class="bg-white rounded-2xl w-full max-w-lg shadow-xl")
+                    div(class="px-6 py-5 border-b border-gray-200 flex items-center justify-between")
                         h2(class="font-bold text-gray-900")
                             | Thêm API Key
                         button(
                             type="button"
                             onclick="document.getElementById('keyModal').classList.add('hidden')"
+                            class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center"
                         )
-                            i(data-lucide="x" class="w-5 h-5")
+                            i(data-lucide="x", class="w-5 h-5")
 
                     form(
                         action="/admin/ai-keys"
                         method="POST"
                         class="p-6 space-y-5"
                     )
+                        //- ★ MODEL ƯU TIÊN (tuỳ chọn) — chỉ để hiển thị/thống kê,
+                        //- KHÔNG khoá key vào 1 model. Key này vẫn dùng được cho
+                        //- mọi model khi chấm bài; model thực tế do lesson/prompt
+                        //- chọn tại thời điểm chấm.
                         div
                             label(class="block text-sm font-medium text-gray-700 mb-2")
-                                | Tên
+                                | Model ưu tiên (tuỳ chọn)
+                            select(
+                                name="model"
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                            )
+                                option(value="") — Không cố định (dùng mọi model) —
+                                each m in supportedModels
+                                    option(value=m)
+                                        = m
+                            p(class="text-xs text-gray-500 mt-1")
+                                | Chỉ là nhãn tham khảo. Key vẫn dùng được cho mọi model được hỗ trợ khi chấm bài.
+
+                        //- Tên
+                        div
+                            label(class="block text-sm font-medium text-gray-700 mb-2")
+                                | Tên gợi nhớ *
                             input(
                                 type="text"
                                 name="name"
                                 required
-                                placeholder="Gemini Key 01"
-                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg"
+                                placeholder="Ví dụ: Key chính - Gemini 3.6"
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
                             )
 
+                        //- Provider (ẩn, mặc định gemini)
+                        input(type="hidden", name="provider", value="gemini")
+
+                        //- API Key
                         div
                             label(class="block text-sm font-medium text-gray-700 mb-2")
-                                | API Key
+                                | API Key *
                             input(
                                 type="password"
                                 name="apiKey"
                                 required
                                 autocomplete="off"
-                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg font-mono"
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-indigo-500"
                                 placeholder="AIza..."
                             )
+                            p(class="text-xs text-gray-500 mt-1")
+                                | Key sẽ được mã hoá AES-256-GCM trước khi lưu vào DB.
 
-                        button(
-                            type="submit"
-                            class="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700"
-                        )
-                            | Lưu API Key
+                        //- Actions
+                        div(class="flex justify-end gap-3 pt-2")
+                            button(
+                                type="button"
+                                onclick="document.getElementById('keyModal').classList.add('hidden')"
+                                class="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50"
+                            )
+                                | Hủy
+
+                            button(
+                                type="submit"
+                                class="px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700"
+                            )
+                                | Lưu API Key

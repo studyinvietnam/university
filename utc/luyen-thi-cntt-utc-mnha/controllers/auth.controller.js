@@ -29,21 +29,34 @@ function normalizeCode(input) {
     return String(input || '').replace(/\D/g, '').slice(0, 6);
 }
 
-/**
- * Tạo object session user — ĐỒNG BỘ với server.js refresh middleware.
- * Dùng `_id` (không phải `id`) để middleware refresh tìm được User.
- * Cũng giữ `id` để tương thích với code cũ.
- */
 function buildSessionUser(user) {
     const idStr = String(user._id);
     return {
-        _id: idStr,       // ← BẮT BUỘC — server.js dùng để refresh từ DB
-        id: idStr,        // giữ để tương thích code cũ
+        _id: idStr,
+        id: idStr,
         name: user.name,
         email: user.email,
         role: user.role,
         status: user.status
     };
+}
+
+/**
+ * ★ FIX BUG SESSION: express-session lưu vào store BẤT ĐỒNG BỘ.
+ * Nếu redirect ngay sau khi set session, request tiếp theo có thể
+ * đến trước khi session ghi xong → mất dữ liệu session.
+ *
+ * → Bắt buộc await saveSession(req) trước mỗi res.redirect() / render()
+ *    khi vừa thay đổi session.
+ */
+function saveSession(req) {
+    return new Promise((resolve) => {
+        if (!req.session) return resolve();
+        req.session.save((err) => {
+            if (err) console.error('[saveSession] Lỗi lưu session:', err);
+            resolve();
+        });
+    });
 }
 
 // ============================================================
@@ -57,6 +70,7 @@ const showLogin = (req, res) => {
     return res.render('auth/login', {
         title: 'Đăng nhập',
         registered: req.query.registered === '1',
+        resetSuccess: req.query.reset === '1',
         email: req.query.email || '',
         error: null
     });
@@ -106,7 +120,6 @@ const login = async (req, res) => {
             });
         }
 
-        // ✅ Lưu session qua helper — đồng bộ với server.js refresh middleware
         req.session.user = buildSessionUser(user);
 
         if (remember) {
@@ -116,7 +129,9 @@ const login = async (req, res) => {
         user.lastLoginAt = new Date();
         await user.save({ validateBeforeSave: false });
 
-        // Phân nhánh điều hướng theo role + status
+        // ★ FIX: lưu session trước khi redirect
+        await saveSession(req);
+
         if (user.role === 'admin') {
             return res.redirect('/admin/dashboard');
         }
@@ -135,7 +150,7 @@ const login = async (req, res) => {
 };
 
 // ============================================================
-// ĐĂNG KÝ — GIAI ĐOẠN 1: nhập thông tin, gửi OTP
+// ĐĂNG KÝ — GIAI ĐOẠN 1
 // ============================================================
 const showRegister = (req, res) => {
     if (req.session && req.session.user) {
@@ -230,6 +245,9 @@ const register = async (req, res) => {
 
         req.session.pendingEmail = normalizedEmail;
 
+        // ★ FIX: lưu session trước khi redirect
+        await saveSession(req);
+
         console.log(`[register] Đã tạo OTP cho ${normalizedEmail}: ${code}`);
 
         return res.redirect('/auth/verify-otp');
@@ -278,7 +296,6 @@ const showVerifyOtp = async (req, res) => {
 
 // ============================================================
 // ĐĂNG KÝ — GIAI ĐOẠN 3: kiểm tra OTP, tạo User
-// ✅ FIX: role: 'client' thay vì 'student'
 // ============================================================
 const verifyOtp = async (req, res) => {
     try {
@@ -288,14 +305,6 @@ const verifyOtp = async (req, res) => {
 
         const rawInput = req.body.code || '';
         const code = normalizeCode(rawInput);
-
-        console.log('');
-        console.log('============================================================');
-        console.log('[verifyOtp] REQUEST');
-        console.log('  email   :', email);
-        console.log('  rawInput:', JSON.stringify(rawInput));
-        console.log('  cleaned :', JSON.stringify(code));
-        console.log('============================================================');
 
         if (!email || !code) {
             let debugOtp = null;
@@ -313,22 +322,6 @@ const verifyOtp = async (req, res) => {
         }
 
         const otpDoc = await OTP.findOne({ email, type: 'register' });
-
-        console.log('[verifyOtp] DB DOC');
-        console.log(
-            '  doc:',
-            otpDoc
-                ? {
-                      _id: otpDoc._id.toString(),
-                      code: otpDoc.code,
-                      attempts: otpDoc.attempts,
-                      expiresAt: otpDoc.expiresAt.toISOString(),
-                      payloadKeys: Object.keys(otpDoc.payload || {})
-                  }
-                : null
-        );
-        console.log('============================================================');
-        console.log('');
 
         const renderErr = async (msg, status = 400, useOtpDoc = otpDoc) => {
             let debugOtp = null;
@@ -378,10 +371,6 @@ const verifyOtp = async (req, res) => {
             otpDoc.attempts += 1;
             await otpDoc.save();
 
-            console.log(
-                `[verifyOtp] MISMATCH — dbCode="${dbCode}" inputCode="${code}" attempts=${otpDoc.attempts}`
-            );
-
             return renderErr(
                 `Mã không đúng. Còn ${
                     OTP_MAX_ATTEMPTS - otpDoc.attempts
@@ -389,7 +378,6 @@ const verifyOtp = async (req, res) => {
             );
         }
 
-        // ============ OTP ĐÚNG → TẠO USER ============
         const { name, passwordHash } = otpDoc.payload || {};
 
         if (!name || !passwordHash) {
@@ -405,18 +393,21 @@ const verifyOtp = async (req, res) => {
         if (dup) {
             await OTP.deleteOne({ _id: otpDoc._id });
             if (req.session) delete req.session.pendingEmail;
+
+            // ★ FIX: lưu session trước khi redirect
+            await saveSession(req);
+
             return res.redirect(
                 `/auth/login?registered=1&email=${encodeURIComponent(email)}`
             );
         }
 
-        // ✅ FIX CHÍNH: role='client', status='pending'
         await User.create({
             name,
             email,
             password: passwordHash,
-            role: 'client',         // ← user mới là CLIENT
-            status: 'pending'       // ← chờ admin duyệt
+            role: 'client',
+            status: 'pending'
         });
 
         await OTP.deleteOne({ _id: otpDoc._id });
@@ -425,7 +416,10 @@ const verifyOtp = async (req, res) => {
             delete req.session.pendingEmail;
         }
 
-        console.log(`[verifyOtp] ✅ Tạo user thành công: ${email} (role=client, status=pending)`);
+        // ★ FIX: lưu session trước khi redirect
+        await saveSession(req);
+
+        console.log(`[verifyOtp] ✅ Tạo user: ${email} (role=client, status=pending)`);
 
         return res.redirect(
             `/auth/login?registered=1&email=${encodeURIComponent(email)}`
@@ -443,7 +437,7 @@ const verifyOtp = async (req, res) => {
 };
 
 // ============================================================
-// GỬI LẠI OTP
+// GỬI LẠI OTP (register)
 // ============================================================
 const resendOtp = async (req, res) => {
     try {
@@ -504,22 +498,48 @@ const resendOtp = async (req, res) => {
 };
 
 // ============================================================
-// QUÊN MẬT KHẨU
+// ★ QUÊN MẬT KHẨU — BƯỚC 1: nhập email
+// ------------------------------------------------------------
+// FIX: Bỏ auto-redirect. Khi user vào /auth/forgot → LUÔN
+// clear session reset cũ + render form email.
+//
+// Lý do: trước đây auto-redirect khiến:
+//   - Vào /auth/forgot lần đầu (đã có session.resetEmail từ lần
+//     trước chưa hoàn tất) → bị đá sang /auth/reset-verify
+//   - Bấm link "Nhập lại email" trong reset-verify.pug → bị đá
+//     ngược lại /auth/reset-verify → VÒNG LẶP KHÔNG THOÁT.
+//
+// → Luôn render form email, coi như bắt đầu flow mới.
 // ============================================================
-const showForgot = (req, res) => {
+const showForgot = async (req, res) => {
+    // Clear session reset cũ → user luôn bắt đầu từ form email
+    if (req.session) {
+        delete req.session.resetEmail;
+        delete req.session.resetVerified;
+        delete req.session.resetOtpId;
+
+        // ★ Lưu session trước khi render để đảm bảo clear có hiệu lực
+        await saveSession(req);
+    }
+
     return res.render('auth/forgot', {
-        title: 'Quên mật khẩu'
+        title: 'Quên mật khẩu',
+        error: null,
+        success: null,
+        email: ''
     });
 };
 
 const forgotPassword = async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email } = req.body || {};
 
-        if (!email) {
+        if (!email || !email.trim()) {
             return res.status(400).render('auth/forgot', {
                 title: 'Quên mật khẩu',
-                error: 'Vui lòng nhập email.'
+                error: 'Vui lòng nhập email.',
+                success: null,
+                email: ''
             });
         }
 
@@ -527,35 +547,355 @@ const forgotPassword = async (req, res) => {
         const user = await User.findOne({ email: normalizedEmail });
 
         const genericMsg =
-            'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu sẽ được gửi đến email của bạn.';
+            'Nếu email tồn tại trong hệ thống, mã xác minh đã được gửi đến email của bạn.';
 
         if (!user) {
             return res.render('auth/forgot', {
                 title: 'Quên mật khẩu',
-                success: genericMsg
+                error: null,
+                success: genericMsg,
+                email: normalizedEmail
             });
         }
 
-        const resetToken = crypto.randomBytes(32).toString('hex');
-
-        user.resetPasswordToken = crypto
-            .createHash('sha256')
-            .update(resetToken)
-            .digest('hex');
-
-        user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
-        await user.save();
-
-        // TODO: gửi mail chứa resetToken
-
-        return res.render('auth/forgot', {
-            title: 'Quên mật khẩu',
-            success: genericMsg
+        const existingOTP = await OTP.findOne({
+            email: normalizedEmail,
+            type: 'reset'
         });
+
+        if (
+            existingOTP &&
+            Date.now() - existingOTP.updatedAt.getTime() <
+                OTP_RESEND_COOLDOWN_MS
+        ) {
+            return res.status(429).render('auth/forgot', {
+                title: 'Quên mật khẩu',
+                error: 'Vui lòng chờ một phút trước khi yêu cầu mã mới.',
+                success: null,
+                email: normalizedEmail
+            });
+        }
+
+        await OTP.deleteMany({ email: normalizedEmail, type: 'reset' });
+
+        const code = genOTP();
+
+        await OTP.create({
+            email: normalizedEmail,
+            code,
+            type: 'reset',
+            expiresAt: new Date(Date.now() + OTP_TTL_MS),
+            payload: null
+        });
+
+        await sendOTP(normalizedEmail, code, 'reset');
+
+        if (req.session) {
+            req.session.resetEmail = normalizedEmail;
+            req.session.resetVerified = false;
+            delete req.session.resetOtpId;
+        }
+
+        // ★ FIX: lưu session TRƯỚC khi redirect
+        await saveSession(req);
+
+        console.log(`[forgotPassword] Đã tạo OTP reset cho ${normalizedEmail}: ${code}`);
+
+        return res.redirect('/auth/reset-verify');
     } catch (error) {
         console.error('Forgot password error:', error);
         return res.status(500).render('auth/forgot', {
             title: 'Quên mật khẩu',
+            error: 'Đã xảy ra lỗi. Vui lòng thử lại sau.',
+            success: null,
+            email: req.body?.email || ''
+        });
+    }
+};
+
+// ============================================================
+// ★ QUÊN MẬT KHẨU — BƯỚC 2: nhập OTP
+// ============================================================
+const showResetVerify = async (req, res) => {
+    try {
+        const email = req.session?.resetEmail || '';
+
+        if (!email) {
+            return res.redirect('/auth/forgot');
+        }
+
+        let debugOtp = null;
+        if (IS_DEV) {
+            const otpDoc = await OTP.findOne({ email, type: 'reset' });
+            if (otpDoc && otpDoc.expiresAt > new Date()) {
+                debugOtp = otpDoc.code;
+            }
+        }
+
+        return res.render('auth/reset-verify', {
+            title: 'Xác minh OTP',
+            email,
+            error: null,
+            success: null,
+            debugOtp
+        });
+    } catch (err) {
+        console.error('[showResetVerify]', err);
+        return res.redirect('/auth/forgot');
+    }
+};
+
+const verifyResetOtp = async (req, res) => {
+    try {
+        const email = normalizeEmail(
+            req.session?.resetEmail || req.body.email
+        );
+        const code = normalizeCode(req.body?.code || '');
+
+        if (!email || !code) {
+            return res.status(400).render('auth/reset-verify', {
+                title: 'Xác minh OTP',
+                email,
+                error: 'Vui lòng nhập đủ 6 chữ số OTP.',
+                success: null,
+                debugOtp: null
+            });
+        }
+
+        const otpDoc = await OTP.findOne({ email, type: 'reset' });
+
+        if (!otpDoc) {
+            return res.status(400).render('auth/reset-verify', {
+                title: 'Xác minh OTP',
+                email,
+                error: 'Mã đã hết hạn hoặc không tồn tại. Vui lòng yêu cầu mã mới.',
+                success: null,
+                debugOtp: null
+            });
+        }
+
+        if (otpDoc.expiresAt < new Date()) {
+            await OTP.deleteOne({ _id: otpDoc._id });
+            return res.status(400).render('auth/reset-verify', {
+                title: 'Xác minh OTP',
+                email,
+                error: 'Mã đã hết hạn. Vui lòng yêu cầu mã mới.',
+                success: null,
+                debugOtp: null
+            });
+        }
+
+        if (otpDoc.attempts >= OTP_MAX_ATTEMPTS) {
+            await OTP.deleteOne({ _id: otpDoc._id });
+            if (req.session) {
+                delete req.session.resetEmail;
+                delete req.session.resetVerified;
+                delete req.session.resetOtpId;
+            }
+
+            await saveSession(req);
+
+            return res.status(429).render('auth/reset-verify', {
+                title: 'Xác minh OTP',
+                email,
+                error: 'Bạn đã nhập sai quá nhiều lần. Vui lòng yêu cầu mã mới.',
+                success: null,
+                debugOtp: null
+            });
+        }
+
+        const dbCode = normalizeCode(otpDoc.code);
+
+        if (dbCode !== code) {
+            otpDoc.attempts += 1;
+            await otpDoc.save();
+
+            return res.status(400).render('auth/reset-verify', {
+                title: 'Xác minh OTP',
+                email,
+                error: `Mã không đúng. Còn ${
+                    OTP_MAX_ATTEMPTS - otpDoc.attempts
+                } lần thử.`,
+                success: null,
+                debugOtp: IS_DEV ? otpDoc.code : null
+            });
+        }
+
+        // ✅ OTP đúng → set session
+        if (req.session) {
+            req.session.resetVerified = true;
+            req.session.resetOtpId = String(otpDoc._id);
+        }
+
+        // ★★★ FIX QUAN TRỌNG: lưu session TRƯỚC khi redirect ★★★
+        await saveSession(req);
+
+        return res.redirect('/auth/reset-password');
+    } catch (error) {
+        console.error('Verify reset OTP error:', error);
+        return res.status(500).render('auth/reset-verify', {
+            title: 'Xác minh OTP',
+            email: req.session?.resetEmail || '',
+            error: 'Đã xảy ra lỗi. Vui lòng thử lại.',
+            success: null,
+            debugOtp: null
+        });
+    }
+};
+
+// ============================================================
+// ★ QUÊN MẬT KHẨU — BƯỚC 2b: gửi lại OTP reset
+// ============================================================
+const resendResetOtp = async (req, res) => {
+    try {
+        const email = normalizeEmail(req.session?.resetEmail || '');
+
+        if (!email) {
+            return res.redirect('/auth/forgot');
+        }
+
+        const existing = await OTP.findOne({ email, type: 'reset' });
+
+        if (
+            existing &&
+            Date.now() - existing.updatedAt.getTime() <
+                OTP_RESEND_COOLDOWN_MS
+        ) {
+            return res.status(429).render('auth/reset-verify', {
+                title: 'Xác minh OTP',
+                email,
+                error: 'Vui lòng chờ một phút trước khi gửi lại.',
+                success: null,
+                debugOtp: IS_DEV ? existing.code : null
+            });
+        }
+
+        await OTP.deleteMany({ email, type: 'reset' });
+
+        const code = genOTP();
+
+        await OTP.create({
+            email,
+            code,
+            type: 'reset',
+            expiresAt: new Date(Date.now() + OTP_TTL_MS),
+            payload: null
+        });
+
+        await sendOTP(email, code, 'reset');
+
+        console.log(`[resendResetOtp] Đã gửi lại OTP reset cho ${email}: ${code}`);
+
+        return res.render('auth/reset-verify', {
+            title: 'Xác minh OTP',
+            email,
+            error: null,
+            success: 'Đã gửi lại mã mới. Vui lòng kiểm tra email.',
+            debugOtp: IS_DEV ? code : null
+        });
+    } catch (error) {
+        console.error('Resend reset OTP error:', error);
+        return res.status(500).render('auth/reset-verify', {
+            title: 'Xác minh OTP',
+            email: req.session?.resetEmail || '',
+            error: 'Không gửi lại được. Vui lòng thử lại sau.',
+            success: null,
+            debugOtp: null
+        });
+    }
+};
+
+// ============================================================
+// ★ QUÊN MẬT KHẨU — BƯỚC 3: đổi mật khẩu mới
+// ============================================================
+const showResetPassword = (req, res) => {
+    const email = req.session?.resetEmail;
+    const verified = req.session?.resetVerified === true;
+
+    if (!email || !verified) {
+        return res.redirect('/auth/forgot');
+    }
+
+    return res.render('auth/reset-password', {
+        title: 'Đặt lại mật khẩu',
+        email,
+        error: null
+    });
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const email = req.session?.resetEmail;
+        const verified = req.session?.resetVerified === true;
+        const otpId = req.session?.resetOtpId;
+
+        if (!email || !verified) {
+            return res.redirect('/auth/forgot');
+        }
+
+        const { password, confirmPassword } = req.body || {};
+
+        if (!password || !confirmPassword) {
+            return res.status(400).render('auth/reset-password', {
+                title: 'Đặt lại mật khẩu',
+                email,
+                error: 'Vui lòng nhập đầy đủ thông tin.'
+            });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).render('auth/reset-password', {
+                title: 'Đặt lại mật khẩu',
+                email,
+                error: 'Mật khẩu xác nhận không khớp.'
+            });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).render('auth/reset-password', {
+                title: 'Đặt lại mật khẩu',
+                email,
+                error: 'Mật khẩu phải có ít nhất 8 ký tự.'
+            });
+        }
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).render('auth/reset-password', {
+                title: 'Đặt lại mật khẩu',
+                email,
+                error: 'Không tìm thấy tài khoản.'
+            });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 12);
+        user.password = passwordHash;
+        user.resetPasswordToken = null;
+        user.resetPasswordExpires = null;
+        await user.save({ validateBeforeSave: false });
+
+        if (otpId) {
+            await OTP.deleteOne({ _id: otpId }).catch(() => {});
+        }
+        await OTP.deleteMany({ email, type: 'reset' });
+
+        if (req.session) {
+            delete req.session.resetEmail;
+            delete req.session.resetVerified;
+            delete req.session.resetOtpId;
+        }
+
+        // ★ FIX: lưu session trước khi redirect
+        await saveSession(req);
+
+        console.log(`[resetPassword] ✅ Đổi mật khẩu thành công cho ${email}`);
+
+        return res.redirect('/auth/login?reset=1');
+    } catch (error) {
+        console.error('Reset password error:', error);
+        return res.status(500).render('auth/reset-password', {
+            title: 'Đặt lại mật khẩu',
+            email: req.session?.resetEmail || '',
             error: 'Đã xảy ra lỗi. Vui lòng thử lại sau.'
         });
     }
@@ -587,7 +927,15 @@ module.exports = {
     showVerifyOtp,
     verifyOtp,
     resendOtp,
+
+    // ★ QUÊN MẬT KHẨU
     showForgot,
     forgotPassword,
+    showResetVerify,
+    verifyResetOtp,
+    resendResetOtp,
+    showResetPassword,
+    resetPassword,
+
     logout
 };

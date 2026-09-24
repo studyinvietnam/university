@@ -1,59 +1,46 @@
 // routes/subject.js
 const express = require("express");
 const router = express.Router();
+
 const subjectController = require("../controllers/subject.controller");
 
 // ============================================================
-// MIDDLEWARE — yêu cầu admin (dùng per-route, KHÔNG global)
+// MIDDLEWARE — ADMIN + STUDENT đều qua
+// Chỉ chặn CLIENT chưa duyệt (status=pending hoặc role=client)
 // ============================================================
-function requireAdmin(req, res, next) {
-    const user = req.user || req.session?.user;
+function requireLogin(req, res, next) {
+    const user = req.session?.user || req.user;
 
     if (!user) {
-        if (req.xhr || req.path.startsWith("/api")) {
-            return res.status(401).json({ error: "Chưa đăng nhập" });
-        }
         return res.redirect("/auth/login");
     }
 
-    if (user.role !== "admin") {
-        if (req.xhr || req.path.startsWith("/api")) {
-            return res.status(403).json({ error: "Không có quyền" });
-        }
-        return res.status(403).render("error", {
-            title: "Không có quyền truy cập",
-            message: "Bạn không có quyền truy cập trang quản trị.",
-            statusCode: 403,
-            stack: null
-        });
+    // Admin luôn qua
+    if (user.role === "admin") {
+        return next();
     }
 
+    // Student đã được duyệt → qua
+    if (user.role === "student" && user.status !== "pending") {
+        return next();
+    }
+
+    // Client chờ duyệt → trang chờ
+    if (user.role === "client" || user.status === "pending") {
+        return res.redirect("/pages");
+    }
+
+    // Fallback: mọi role khác đã login → cho qua
     next();
-};
+}
+
+router.use(requireLogin);
 
 // ============================================================
-// ADMIN ONLY — ĐẶT TRƯỚC /:id ĐỂ TRÁNH BỊ NUỐT
+// SUBJECT — dùng chung admin + student
 // ============================================================
 
-router.get("/admin/all", requireAdmin, subjectController.getAdminSubjects);
-
-router.get("/:id/edit", requireAdmin, subjectController.showEditSubject);
-router.post("/:id/edit", requireAdmin, subjectController.updateSubject);
-
-router.post("/:id/delete", requireAdmin, subjectController.deleteSubject);
-router.post("/:id/restore", requireAdmin, subjectController.restoreSubject);
-router.post("/:id/hard-delete", requireAdmin, subjectController.hardDeleteSubject);
-
-router.post("/", requireAdmin, subjectController.createSubject);
-
-// ============================================================
-// PUBLIC — student & admin đều xem được
-// ============================================================
-
-// Danh sách môn học (student xem)
 router.get("/", subjectController.getSubjects);
-
-// Chi tiết 1 môn — route này phải tồn tại sau khi bỏ comment
 router.get("/:id", subjectController.getSubject);
 
 module.exports = router;

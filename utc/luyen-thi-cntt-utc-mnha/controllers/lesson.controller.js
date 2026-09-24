@@ -30,47 +30,31 @@ function isObjectId(str) {
     return mongoose.Types.ObjectId.isValid(str) && String(str).length === 24;
 }
 
-/**
- * Tìm lesson theo slug HOẶC _id
- */
 async function findLessonByParam(param) {
     if (isObjectId(param)) {
-        return Lesson.findOne({ _id: param, deletedAt: null, deletedForever: false }).lean();
+        return Lesson.findOne({
+            _id: param,
+            deletedAt: null,
+            deletedForever: false,
+        }).lean();
     }
-    return Lesson.findOne({ slug: param, deletedAt: null, deletedForever: false }).lean();
+    return Lesson.findOne({
+        slug: param,
+        deletedAt: null,
+        deletedForever: false,
+    }).lean();
 }
 
-/**
- * Đọc file JSON đề bài từ GitHub
- */
 async function readLessonFromGithub(filePath) {
     const fn =
         (typeof githubService.readJsonFile === "function" && githubService.readJsonFile) ||
         (typeof githubService.getJSON === "function" && githubService.getJSON) ||
         null;
 
-    if (!fn) {
-        throw new Error("githubService không có method readJsonFile/getJSON");
-    }
+    if (!fn) throw new Error("githubService không có method readJsonFile/getJSON");
     return fn(filePath);
 }
 
-/**
- * Đẩy job lên queue — hỗ trợ cả 2 signature
- */
-function safeEnqueue(...args) {
-    if (!syncQueueService || typeof syncQueueService.enqueue !== "function") return;
-
-    if (args.length === 2 && typeof args[0] === "string" && typeof args[1] === "object") {
-        const [type, job] = args;
-        return syncQueueService.enqueue({ type, ...job });
-    }
-    return syncQueueService.enqueue(args[0]);
-}
-
-/**
- * Gắn subject vào list lesson mà KHÔNG dùng populate
- */
 async function attachSubjects(lessons) {
     const subjectIds = [
         ...new Set(
@@ -103,16 +87,19 @@ async function attachSubjects(lessons) {
 exports.listSubjects = async (req, res, next) => {
     try {
         const isAdmin = req.user?.role === "admin";
+
         const subjects = await Subject.find({
             deletedAt: null,
             deletedForever: false,
         }).sort({ createdAt: -1 }).lean();
 
         const subjectIds = subjects.map((s) => s._id);
+
         const lessonCounts = await Lesson.aggregate([
             { $match: { subjectId: { $in: subjectIds }, deletedAt: null, deletedForever: false } },
             { $group: { _id: "$subjectId", count: { $sum: 1 } } },
         ]);
+
         const countMap = Object.fromEntries(lessonCounts.map((l) => [String(l._id), l.count]));
 
         const data = subjects.map((s) => ({
@@ -137,6 +124,7 @@ exports.listSubjects = async (req, res, next) => {
 exports.listLessons = async (req, res, next) => {
     try {
         const { slug } = req.params;
+
         const subject = await Subject.findOne({
             slug,
             deletedAt: null,
@@ -193,9 +181,7 @@ exports.listLessons = async (req, res, next) => {
 };
 
 /* ============================================================
- * 2b. LIST ALL LESSONS — dùng chung cho admin + student
- * GET /lessons
- * GET /lessons?subject=<slug|id>
+ * 2b. LIST ALL LESSONS — admin + student
  * ============================================================ */
 exports.listAllLessons = async (req, res, next) => {
     try {
@@ -203,10 +189,7 @@ exports.listAllLessons = async (req, res, next) => {
         const isAdmin = user?.role === "admin";
 
         const subjectQuery = req.query.subject || req.query.subjectId || null;
-        const filter = {
-            deletedAt: null,
-            deletedForever: false,
-        };
+        const filter = { deletedAt: null, deletedForever: false };
 
         let currentSubject = null;
         if (subjectQuery) {
@@ -214,19 +197,12 @@ exports.listAllLessons = async (req, res, next) => {
                 ? await Subject.findById(subjectQuery).lean()
                 : await Subject.findOne({ slug: subjectQuery }).lean();
 
-            if (currentSubject) {
-                filter.subjectId = currentSubject._id;
-            }
+            if (currentSubject) filter.subjectId = currentSubject._id;
         }
 
-        const lessons = await Lesson.find(filter)
-            .sort({ createdAt: -1 })
-            .lean();
-
-        // Gắn subject vào từng lesson (không populate)
+        const lessons = await Lesson.find(filter).sort({ createdAt: -1 }).lean();
         const lessonsWithSubject = await attachSubjects(lessons);
 
-        // Map bài đã nộp (chỉ student cần)
         const submittedMap = {};
         if (!isAdmin && user) {
             const subs = await Submission.find({
@@ -247,7 +223,6 @@ exports.listAllLessons = async (req, res, next) => {
             });
         }
 
-        // Chọn view theo role — fallback nếu view admin chưa tồn tại
         const preferredView = isAdmin ? "admin/lessons" : "student/lessons";
         const viewFile = path.join(__dirname, "..", "views", preferredView + ".pug");
         const finalView = fs.existsSync(viewFile) ? preferredView : "student/lessons";
@@ -267,7 +242,7 @@ exports.listAllLessons = async (req, res, next) => {
 };
 
 /* ============================================================
- * 3. SHOW LESSON — dùng chung cho student + admin
+ * 3. SHOW LESSON
  * ============================================================ */
 exports.showLesson = async (req, res, next) => {
     try {
@@ -292,14 +267,9 @@ exports.showLesson = async (req, res, next) => {
 
 exports.getStudentLesson = exports.showLesson;
 
-/**
- * Helper render trang làm bài — DÙNG CHUNG cho admin + student
- */
 async function renderLessonPage(req, res, lesson) {
     const user = req.user;
-    if (!user) {
-        return res.redirect("/auth/login");
-    }
+    if (!user) return res.redirect("/auth/login");
 
     const subject = lesson.subjectId
         ? await Subject.findById(lesson.subjectId).lean()
@@ -307,9 +277,7 @@ async function renderLessonPage(req, res, lesson) {
 
     const subjectSlug = subject?.slug || `subject-${lesson.subjectId}`;
     const lessonSlug = lesson.slug || `lesson-${lesson._id}`;
-    const filePath =
-        lesson.githubFile ||
-        `subjects/${subjectSlug}/lessons/${lessonSlug}.json`;
+    const filePath = lesson.githubFile || `subjects/${subjectSlug}/lessons/${lessonSlug}.json`;
 
     let lessonContent = {
         title: lesson.title,
@@ -327,15 +295,19 @@ async function renderLessonPage(req, res, lesson) {
         console.warn("[lesson] Không đọc được file GitHub:", err.message);
     }
 
+    const finalContentHtml = lessonContent.contentHtml || lesson.contentHtml || "";
+    const finalSampleSolution = lessonContent.sampleSolution || lesson.sampleSolution || "";
+
     const lastSubmission = await Submission.findOne({
         userId: user._id,
         lessonId: lesson._id,
     }).sort({ submittedAt: -1 }).lean();
 
     const canSeeSample = !!lastSubmission;
-    const sampleSolution = canSeeSample
-        ? lessonContent.sampleSolution || lesson.sampleSolution || ""
-        : "";
+    const sampleSolution = canSeeSample ? finalSampleSolution : "";
+
+    // ★ duration từ DB — fallback 20 phút
+    const duration = Number(lesson.duration) || 20;
 
     res.render("student/lesson", {
         title: lessonContent.title || lesson.title,
@@ -343,8 +315,9 @@ async function renderLessonPage(req, res, lesson) {
         subject,
         lesson: {
             ...lesson,
-            contentHtml: lessonContent.contentHtml || "",
+            contentHtml: finalContentHtml,
             attachments: lessonContent.attachments || [],
+            duration,
         },
         sampleSolution,
         lastSubmission,
@@ -353,18 +326,13 @@ async function renderLessonPage(req, res, lesson) {
 }
 
 /* ============================================================
- * 5. GET ADMIN LESSONS — FIX: không dùng populate
+ * 5. GET ADMIN LESSONS
  * ============================================================ */
 exports.getAdminLessons = async (req, res, next) => {
     try {
-        const lessons = await Lesson.find()
-            .sort({ createdAt: -1 })
-            .lean();
-
-        // Gắn subject vào từng lesson (không populate)
+        const lessons = await Lesson.find().sort({ createdAt: -1 }).lean();
         const lessonsWithSubject = await attachSubjects(lessons);
 
-        // Danh sách môn cho dropdown filter
         const allSubjects = await Subject.find({
             deletedAt: null,
             deletedForever: false,
@@ -388,17 +356,24 @@ exports.getAdminLessons = async (req, res, next) => {
  * ============================================================ */
 exports.showCreateLesson = async (req, res, next) => {
     try {
-        const [subjects, prompts] = await Promise.all([
+        const AIKey = require("../models/AIKey");
+        const { SUPPORTED_MODELS, DEFAULT_MODEL } = require("../config/aiModels");
+
+        const [subjects, prompts, aiKeys] = await Promise.all([
             Subject.find({ deletedAt: null, deletedForever: false }).sort({ name: 1 }).lean(),
             GradingPrompt.find({ active: true }).lean(),
+            AIKey.find({ isActive: true, isRevoked: { $ne: true } }).sort({ createdAt: -1 }).lean(),
         ]);
 
-        res.render("admin/lesson_form", {
+        res.render("admin/lesson-form", {
             title: "Thêm Bài học",
             user: req.user,
             lesson: null,
             subjects,
             prompts,
+            aiKeys,
+            supportedModels: SUPPORTED_MODELS,
+            defaultModel: DEFAULT_MODEL,
             isAdminView: true,
         });
     } catch (err) {
@@ -407,13 +382,14 @@ exports.showCreateLesson = async (req, res, next) => {
 };
 
 /* ============================================================
- * 7. CREATE LESSON
+ * 7. CREATE LESSON  ✅ ĐÃ SỬA: dùng syncQueueService.enqueue
  * ============================================================ */
 exports.createLesson = async (req, res, next) => {
     try {
         const {
             subjectId, title, description,
             contentHtml, sampleSolution, promptId, githubFile,
+            duration, aiKeyId, model,
         } = req.body;
 
         if (!subjectId || !title || !title.trim()) {
@@ -438,24 +414,41 @@ exports.createLesson = async (req, res, next) => {
             sampleSolution: sampleSolution || "",
             promptId: promptId && mongoose.Types.ObjectId.isValid(promptId) ? promptId : null,
             githubFile: githubFile || `subjects/${subject.slug}/lessons/${slug}.json`,
+            duration: Number(duration) || 20,
+            aiKeyId: aiKeyId && mongoose.Types.ObjectId.isValid(aiKeyId) ? aiKeyId : null,
+            model: model ? String(model).trim() : null,
+            createdBy: req.user?._id || null,
+            updatedBy: req.user?._id || null,
             deletedAt: null,
             deletedForever: false,
         });
 
+        // ★ Đẩy lên GitHub qua queue
         try {
-            safeEnqueue("lesson", {
+            syncQueueService.enqueue({
+                type: 'putJson',
+                filePath: lesson.githubFile,
+                commitMessage: `[Lesson] Create: ${lesson.title}`,
                 lessonId: String(lesson._id),
-                path: lesson.githubFile,
-                payload: {
+                data: {
+                    lessonId: String(lesson._id),
                     title: lesson.title,
                     slug: lesson.slug,
-                    description: lesson.description,
-                    contentHtml: lesson.contentHtml,
-                    sampleSolution: lesson.sampleSolution,
+                    description: lesson.description || '',
+                    contentHtml: lesson.contentHtml || '',
+                    sampleSolution: lesson.sampleSolution || '',
+                    duration: lesson.duration || 20,
+                    model: lesson.model || null,
+                    isPublished: lesson.isPublished !== false,
+                    createdAt: lesson.createdAt || new Date(),
+                    updatedAt: new Date()
                 },
+                onSuccess: async (result) => {
+                    console.log(`📤 [lesson] Đã đẩy lên GitHub: ${result.url}`);
+                }
             });
         } catch (e) {
-            console.warn("[lesson] Queue enqueue failed:", e.message);
+            console.warn("[lesson] Enqueue fail:", e.message);
         }
 
         if (req.accepts("html") && !req.xhr) {
@@ -481,10 +474,14 @@ exports.showEditLesson = async (req, res, next) => {
             });
         }
 
-        const [lesson, subjects, prompts] = await Promise.all([
+        const AIKey = require("../models/AIKey");
+        const { SUPPORTED_MODELS, DEFAULT_MODEL } = require("../config/aiModels");
+
+        const [lesson, subjects, prompts, aiKeys] = await Promise.all([
             Lesson.findById(id).lean(),
             Subject.find({ deletedAt: null, deletedForever: false }).sort({ name: 1 }).lean(),
             GradingPrompt.find({ active: true }).lean(),
+            AIKey.find({ isActive: true, isRevoked: { $ne: true } }).sort({ createdAt: -1 }).lean(),
         ]);
 
         if (!lesson) {
@@ -494,12 +491,15 @@ exports.showEditLesson = async (req, res, next) => {
             });
         }
 
-        res.render("admin/lesson_form", {
+        res.render("admin/lesson-form", {
             title: "Sửa Bài học",
             user: req.user,
             lesson,
             subjects,
             prompts,
+            aiKeys,
+            supportedModels: SUPPORTED_MODELS,
+            defaultModel: DEFAULT_MODEL,
             isAdminView: true,
         });
     } catch (err) {
@@ -508,7 +508,7 @@ exports.showEditLesson = async (req, res, next) => {
 };
 
 /* ============================================================
- * 9. UPDATE LESSON
+ * 9. UPDATE LESSON  ✅ ĐÃ SỬA: fallback githubFile + dùng enqueue
  * ============================================================ */
 exports.updateLesson = async (req, res, next) => {
     try {
@@ -516,6 +516,7 @@ exports.updateLesson = async (req, res, next) => {
         const {
             subjectId, title, description,
             contentHtml, sampleSolution, promptId, githubFile,
+            duration, aiKeyId, model,
         } = req.body;
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -537,23 +538,59 @@ exports.updateLesson = async (req, res, next) => {
         if (promptId !== undefined) {
             lesson.promptId = promptId && mongoose.Types.ObjectId.isValid(promptId) ? promptId : null;
         }
+        if (duration !== undefined) lesson.duration = Number(duration) || 20;
 
+        // ★ AI KEY + MODEL
+        if (aiKeyId !== undefined) {
+            lesson.aiKeyId = aiKeyId && mongoose.Types.ObjectId.isValid(aiKeyId) ? aiKeyId : null;
+        }
+        if (model !== undefined) {
+            lesson.model = model ? String(model).trim() : null;
+        }
+
+        // ★ FALLBACK: nếu bài cũ không có githubFile → tự tạo từ subject.slug + lesson.slug
+        if (!lesson.githubFile) {
+            const subjectDoc = await Subject.findById(lesson.subjectId).lean();
+            if (subjectDoc && subjectDoc.slug) {
+                const subjectSlug = subjectDoc.slug;
+                const lessonSlug = lesson.slug || String(lesson._id);
+                lesson.githubFile = `subjects/${subjectSlug}/lessons/${lessonSlug}.json`;
+                console.log(`📁 [lesson] Fallback githubFile: ${lesson.githubFile}`);
+            }
+        }
+
+        lesson.updatedBy = req.user?._id || null;
         await lesson.save();
 
+        // ★ Đẩy lên GitHub qua queue
         try {
-            safeEnqueue("lesson", {
-                lessonId: String(lesson._id),
-                path: lesson.githubFile,
-                payload: {
-                    title: lesson.title,
-                    slug: lesson.slug,
-                    description: lesson.description,
-                    contentHtml: lesson.contentHtml,
-                    sampleSolution: lesson.sampleSolution,
-                },
-            });
+            if (lesson.githubFile) {
+                syncQueueService.enqueue({
+                    type: 'putJson',
+                    filePath: lesson.githubFile,
+                    commitMessage: `[Lesson] Update: ${lesson.title}`,
+                    lessonId: String(lesson._id),
+                    data: {
+                        lessonId: String(lesson._id),
+                        title: lesson.title,
+                        slug: lesson.slug,
+                        description: lesson.description || '',
+                        contentHtml: lesson.contentHtml || '',
+                        sampleSolution: lesson.sampleSolution || '',
+                        duration: lesson.duration || 20,
+                        model: lesson.model || null,
+                        isPublished: lesson.isPublished !== false,
+                        updatedAt: new Date()
+                    },
+                    onSuccess: async (result) => {
+                        console.log(`📤 [lesson] Đã cập nhật GitHub: ${result.url}`);
+                    }
+                });
+            } else {
+                console.warn(`[lesson] Bỏ qua enqueue — lesson không có githubFile`);
+            }
         } catch (e) {
-            console.warn("[lesson] Queue enqueue failed:", e.message);
+            console.warn("[lesson] Enqueue fail:", e.message);
         }
 
         if (req.accepts("html") && !req.xhr) {
@@ -569,7 +606,6 @@ exports.updateLesson = async (req, res, next) => {
 /* ============================================================
  * 10-12. DELETE / RESTORE / HARD DELETE
  * ============================================================ */
-
 exports.deleteLesson = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -579,6 +615,7 @@ exports.deleteLesson = async (req, res, next) => {
         if (!lesson) return res.status(404).json({ error: "Không tìm thấy" });
 
         lesson.deletedAt = new Date();
+        lesson.updatedBy = req.user?._id || null;
         await lesson.save();
 
         if (req.accepts("html") && !req.xhr) {
@@ -598,6 +635,7 @@ exports.restoreLesson = async (req, res, next) => {
         if (!lesson) return res.status(404).json({ error: "Không tìm thấy" });
 
         lesson.deletedAt = null;
+        lesson.updatedBy = req.user?._id || null;
         await lesson.save();
 
         if (req.accepts("html") && !req.xhr) {

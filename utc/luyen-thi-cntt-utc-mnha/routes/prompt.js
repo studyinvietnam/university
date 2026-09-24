@@ -1,45 +1,35 @@
+// routes/prompt.js
 const express = require("express");
 const router = express.Router();
+
 const promptController = require("../controllers/prompt.controller");
 
-function requireAuth(req, res, next) {
-    const user = req.user || req.session?.user;
-    if (!user) return res.redirect("/auth/login");
-    next();
-}
+// ============================================================
+// MIDDLEWARE — chỉ check login
+// ============================================================
+function requireLogin(req, res, next) {
+    const user = req.session?.user || req.user;
 
-function requireAdmin(req, res, next) {
-    const user = req.user || req.session?.user;
-    if (!user) return res.redirect("/auth/login");
-    if (user.role !== "admin") {
-        return res.status(403).render("error", {
-            title: "Không có quyền",
-            message: "Chỉ admin mới quản lý prompt.",
-            statusCode: 403,
-            stack: null
-        });
+    if (!user) {
+        return res.redirect("/auth/login");
     }
+
+    if (user.role !== "admin") {
+        if (user.status === "pending" || user.role === "client") {
+            return res.redirect("/pages");
+        }
+    }
+
     next();
 }
 
-router.use(requireAuth);
+router.use(requireLogin);
 
-// Danh sách prompt — admin
-router.get("/", requireAdmin, promptController.getPrompts);
+// ============================================================
+// PROMPT ROUTES (public cho user đã login)
+// ============================================================
 
-// Tạo mới — admin
-router.post("/", requireAdmin, promptController.createPrompt);
-
-// Lấy prompt hiệu lực cho lesson/subject (dùng cho chấm bài)
-router.get("/effective", promptController.getEffectivePrompt);
-
-// Test prompt — admin
-router.post("/:id/test", requireAdmin, promptController.testPrompt);
-
-// Cập nhật — admin
-router.post("/:id/update", requireAdmin, promptController.updatePrompt);
-
-// Xoá — admin
-router.post("/:id/delete", requireAdmin, promptController.deletePrompt);
+// Danh sách prompt đang active (chỉ xem, không sửa)
+router.get("/", promptController.getPrompts);
 
 module.exports = router;

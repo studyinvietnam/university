@@ -1,12 +1,14 @@
 // ============================================================
-// AI CONTROLLER - Gemini
+// AI CONTROLLER - Gemini (chấm bài code CNTT + quản lý prompt)
 // ============================================================
 
+const mongoose = require("mongoose");
+
 const {
-    checkWritingByGemini,
+    checkSubmissionByGemini,
     runCustomPrompt,
     testGeminiConnection,
-    createWritingPrompt,
+    createCodeGradingPrompt,
     SUPPORTED_MODELS,
     DEFAULT_MODEL,
     getSafeModel,
@@ -14,11 +16,20 @@ const {
 
 const { writeJsonFile } = require("../services/githubService");
 
+const GradingPrompt = (() => {
+    try { return require("../models/GradingPrompt"); } catch (_) { return null; }
+})();
+const Subject = (() => {
+    try { return require("../models/Subject"); } catch (_) { return null; }
+})();
+const Lesson = (() => {
+    try { return require("../models/Lesson"); } catch (_) { return null; }
+})();
 const ModelComparison = (() => {
     try { return require("../models/ModelComparison"); } catch (_) { return null; }
 })();
-const GradingPrompt = (() => {
-    try { return require("../models/GradingPrompt"); } catch (_) { return null; }
+const AIKey = (() => {
+    try { return require("../models/AIKey"); } catch (_) { return null; }
 })();
 const promptService = (() => {
     try { return require("../services/promptService"); } catch (_) { return null; }
@@ -48,35 +59,637 @@ async function measure(fn) {
 function pickModels(body) {
     const { models, model } = body || {};
     if (Array.isArray(models) && models.length) {
-        const filtered = models.map((m) => String(m).trim()).filter((m) => SUPPORTED_MODELS.includes(m));
+        const filtered = models
+            .map((m) => String(m).trim())
+            .filter((m) => !SUPPORTED_MODELS.length || SUPPORTED_MODELS.includes(m));
         return filtered.length ? filtered : [DEFAULT_MODEL];
     }
     if (models === "all") return [...SUPPORTED_MODELS];
-    if (model) return [getSafeModel(model)];
+    if (model && (!SUPPORTED_MODELS.length || SUPPORTED_MODELS.includes(model))) {
+        return [model];
+    }
     return [DEFAULT_MODEL];
 }
 
-// ============================================================
-// 1. CHECK WRITING
-// POST /ai/check  hoặc  POST /api/ai/check
-// ============================================================
+function toObjId(v) {
+    if (!v) return null;
+    const s = String(v).trim();
+    return mongoose.Types.ObjectId.isValid(s) ? s : null;
+}
 
+/**
+ * Chuẩn hoá rubric → mảng object gọn gàng để trả về FE
+ */
+function normalizeRubric(rubric) {
+    if (!Array.isArray(rubric)) return [];
+    return rubric.map((r) => ({
+        criterion: r?.criterion || "",
+        weight: Number(r?.weight) || 0,
+        description: r?.description || ""
+    }));
+}
+
+/**
+ * Render prompt template với biến (dùng promptService nếu có)
+ */
+function renderTemplate(prompt, vars = {}) {
+    if (promptService && typeof promptService.renderPromptTemplate === "function") {
+        return promptService.renderPromptTemplate(prompt, vars);
+    }
+
+    // Fallback
+    const rubricText = Array.isArray(prompt?.rubric) && prompt.rubric.length
+        ? prompt.rubric
+              .map((r, i) =>
+                  `${i + 1}. ${r.criterion} (${r.weight}%): ${r.description || ''}`
+              )
+              .join('\n')
+        : '(không có rubric)';
+
+    return String(prompt?.content || '')
+        .replace(/\{đề_bài\}/g, vars.topic || '(không có đề bài)')
+        .replace(/\{bài_làm\}/g, vars.essay || '(không có bài làm)')
+        .replace(/\{lời_giải_mẫu\}/g, vars.sampleSolution || '(không có)')
+        .replace(/\{student_name\}/g, vars.studentName || '')
+        .replace(/\{max_score\}/g, String(vars.maxScore ?? prompt?.maxScore ?? 10))
+        .replace(/\{strictness\}/g, vars.strictness || prompt?.strictness || 'normal')
+        .replace(/\{rubric\}/g, rubricText);
+}
+
+// ============================================================
+// ★ RESOLVE PROMPT DOC (dùng nội bộ cho checkWriting)
+// Ưu tiên: promptId → lesson.promptId → lesson.subject.promptId
+//          → subjectId.promptId → global default → null
+// ============================================================
+async function resolvePromptDoc({ promptId, lessonId, subjectId } = {}) {
+    if (!GradingPrompt) return { prompt: null, source: "fallback" };
+
+    // 1. Explicit promptId
+    if (promptId && mongoose.Types.ObjectId.isValid(promptId)) {
+        const p = await GradingPrompt.findOne({ _id: promptId, active: true }).lean();
+        if (p) return { prompt: p, source: "explicit" };
+    }
+
+    // 2. Lesson → lesson.promptId → subject.promptId
+    if (lessonId && mongoose.Types.ObjectId.isValid(lessonId) && Lesson) {
+        const lesson = await Lesson.findById(lessonId).lean();
+        if (lesson?.promptId) {
+            const p = await GradingPrompt.findOne({ _id: lesson.promptId, active: true }).lean();
+            if (p) return { prompt: p, source: "lesson" };
+        }
+        if (lesson?.subjectId && Subject) {
+            const subj = await Subject.findById(lesson.subjectId).lean();
+            if (subj?.promptId) {
+                const p = await GradingPrompt.findOne({ _id: subj.promptId, active: true }).lean();
+                if (p) return { prompt: p, source: "subject" };
+            }
+        }
+    }
+
+    // 3. SubjectId trực tiếp
+    if (subjectId && mongoose.Types.ObjectId.isValid(subjectId) && Subject) {
+        const subj = await Subject.findById(subjectId).lean();
+        if (subj?.promptId) {
+            const p = await GradingPrompt.findOne({ _id: subj.promptId, active: true }).lean();
+            if (p) return { prompt: p, source: "subject" };
+        }
+    }
+
+    // 4. Global default
+    const def = await GradingPrompt.findOne({
+        scope: "global",
+        isDefault: true,
+        active: true
+    }).lean();
+    if (def) return { prompt: def, source: "global" };
+
+    return { prompt: null, source: "fallback" };
+}
+
+// ============================================================
+// 0. LIST AI KEYS — cho dropdown ở lesson.pug
+// GET /api/ai/keys
+// ============================================================
+async function listKeys(req, res) {
+    try {
+        if (!AIKey) {
+            return res.json({ success: true, total: 0, keys: [] });
+        }
+
+        const now = new Date();
+
+        const keys = await AIKey.find({
+            isRevoked: { $ne: true }
+        })
+            .select("_id name model lastFour lastUsedAt usageCount isActive disabledUntil quotaErrorCount")
+            .sort({ isActive: -1, lastUsedAt: 1, usageCount: 1 })
+            .lean();
+
+        const mapped = keys.map((k) => {
+            const isDisabledTemp =
+                k.disabledUntil && new Date(k.disabledUntil) > now;
+            const isUsable = k.isActive === true && !isDisabledTemp;
+
+            return {
+                _id: String(k._id),
+                name: k.name || "AI Key",
+                model: k.model || null,
+                lastFour: k.lastFour || null,
+                maskedKey: k.lastFour
+                    ? "••••••••••••" + k.lastFour
+                    : "••••••••••••••••",
+                usable: isUsable,
+                isActive: k.isActive === true,
+                isDisabledTemp,
+                disabledUntil: k.disabledUntil || null,
+                usageCount: k.usageCount || 0,
+                quotaErrorCount: k.quotaErrorCount || 0
+            };
+        });
+
+        mapped.sort((a, b) => {
+            if (a.usable !== b.usable) return a.usable ? -1 : 1;
+            return 0;
+        });
+
+        return res.json({
+            success: true,
+            total: mapped.length,
+            usableCount: mapped.filter((k) => k.usable).length,
+            keys: mapped
+        });
+    } catch (error) {
+        console.error("❌ listKeys:", error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+// ============================================================
+// ★ 0.5. LIST ACTIVE PROMPTS (JSON) — kèm FULL RUBRIC
+// GET /api/ai/prompts
+// ------------------------------------------------------------
+// Dùng cho dropdown "Prompt chấm điểm" ở form bài học (admin)
+// ============================================================
+async function listActivePrompts(req, res) {
+    try {
+        if (!GradingPrompt) {
+            return res.json({ success: true, total: 0, prompts: [] });
+        }
+
+        const prompts = await GradingPrompt.find({ active: true })
+            .select(
+                "_id name description content scope strictness maxScore " +
+                "isDefault rubric variables version subjectId lessonId"
+            )
+            .populate("subjectId", "name code")
+            .populate("lessonId", "title")
+            .sort({ isDefault: -1, name: 1 })
+            .lean();
+
+        return res.json({
+            success: true,
+            total: prompts.length,
+            prompts: prompts.map((p) => ({
+                _id: String(p._id),
+                name: p.name,
+                description: p.description || "",
+                content: p.content || "",
+                scope: p.scope || "global",
+                strictness: p.strictness || "normal",
+                maxScore: p.maxScore ?? 10,
+                isDefault: p.isDefault === true,
+                version: p.version || 1,
+                variables: Array.isArray(p.variables) ? p.variables : [],
+
+                // ★ FULL RUBRIC
+                rubric: normalizeRubric(p.rubric),
+                rubricCount: Array.isArray(p.rubric) ? p.rubric.length : 0,
+
+                subjectId: p.subjectId ? String(p.subjectId._id || p.subjectId) : null,
+                subjectName: p.subjectId?.name || null,
+                lessonId: p.lessonId ? String(p.lessonId._id || p.lessonId) : null,
+                lessonTitle: p.lessonId?.title || null
+            }))
+        });
+    } catch (error) {
+        console.error("❌ listActivePrompts:", error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+// ============================================================
+// ★ 0.6. GET ONE PROMPT (JSON) — kèm full rubric
+// GET /api/ai/prompts/:id
+// ============================================================
+async function getPromptById(req, res) {
+    try {
+        if (!GradingPrompt) {
+            return res.status(501).json({ success: false, message: "Chưa có model GradingPrompt." });
+        }
+
+        const { id } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: "ID không hợp lệ." });
+        }
+
+        const prompt = await GradingPrompt.findById(id)
+            .populate("subjectId", "name code")
+            .populate("lessonId", "title")
+            .lean();
+
+        if (!prompt) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy prompt." });
+        }
+
+        return res.json({
+            success: true,
+            prompt: {
+                ...prompt,
+                _id: String(prompt._id),
+                rubric: normalizeRubric(prompt.rubric),
+                rubricCount: Array.isArray(prompt.rubric) ? prompt.rubric.length : 0,
+                variables: Array.isArray(prompt.variables) ? prompt.variables : []
+            }
+        });
+    } catch (error) {
+        console.error("❌ getPromptById:", error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+// ============================================================
+// ★ 0.7. RESOLVE PROMPT CHO LESSON — kèm full rubric
+// GET /api/ai/prompts/resolve/:lessonId
+// ------------------------------------------------------------
+// Trả về prompt SẼ ĐƯỢC DÙNG khi chấm bài lesson này
+// Ưu tiên: lesson.promptId → subject.promptId → global default → fallback
+// ============================================================
+async function resolvePromptForLesson(req, res) {
+    try {
+        if (!GradingPrompt || !Lesson || !Subject) {
+            return res.status(501).json({ success: false, message: "Thiếu model cần thiết." });
+        }
+
+        const { lessonId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(lessonId)) {
+            return res.status(400).json({ success: false, message: "lessonId không hợp lệ." });
+        }
+
+        const lesson = await Lesson.findById(lessonId).lean();
+        if (!lesson) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy bài học." });
+        }
+
+        const { prompt: resolved, source } = await resolvePromptDoc({
+            lessonId,
+            subjectId: lesson.subjectId ? String(lesson.subjectId) : null
+        });
+
+        if (!resolved) {
+            return res.json({
+                success: true,
+                source: "fallback",
+                prompt: null,
+                message:
+                    "Không có prompt trong DB → hệ thống sẽ dùng prompt mặc định (hardcoded)."
+            });
+        }
+
+        return res.json({
+            success: true,
+            source,
+            prompt: {
+                _id: String(resolved._id),
+                name: resolved.name,
+                description: resolved.description || "",
+                content: resolved.content || "",
+                variables: Array.isArray(resolved.variables) ? resolved.variables : [],
+
+                // ★ FULL RUBRIC
+                rubric: normalizeRubric(resolved.rubric),
+                rubricCount: Array.isArray(resolved.rubric) ? resolved.rubric.length : 0,
+
+                strictness: resolved.strictness || "normal",
+                maxScore: resolved.maxScore ?? 10,
+                scope: resolved.scope || "global",
+                isDefault: resolved.isDefault === true,
+                version: resolved.version || 1
+            }
+        });
+    } catch (error) {
+        console.error("❌ resolvePromptForLesson:", error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+// ============================================================
+// ★ 0.8. PREVIEW PROMPT (không gọi AI) — kèm full rubric
+// POST /api/ai/prompts/preview
+// ------------------------------------------------------------
+// Body: { promptId, topic, essay, sampleSolution, studentName }
+// ============================================================
+async function previewPrompt(req, res) {
+    try {
+        if (!GradingPrompt) {
+            return res.status(501).json({ success: false, message: "Chưa có model GradingPrompt." });
+        }
+
+        const {
+            promptId,
+            topic = "",
+            essay = "",
+            sampleSolution = "",
+            studentName = ""
+        } = req.body || {};
+
+        if (!mongoose.Types.ObjectId.isValid(promptId)) {
+            return res.status(400).json({ success: false, message: "promptId không hợp lệ." });
+        }
+
+        const prompt = await GradingPrompt.findById(promptId).lean();
+        if (!prompt) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy prompt." });
+        }
+
+        const renderedContent = renderTemplate(prompt, {
+            topic,
+            essay,
+            sampleSolution,
+            studentName,
+            maxScore: prompt.maxScore ?? 10,
+            strictness: prompt.strictness || "normal"
+        });
+
+        return res.json({
+            success: true,
+            promptId: String(prompt._id),
+            promptName: prompt.name,
+            version: prompt.version || 1,
+            maxScore: prompt.maxScore ?? 10,
+            strictness: prompt.strictness || "normal",
+
+            // ★ FULL RUBRIC + content gốc
+            content: prompt.content || "",
+            variables: Array.isArray(prompt.variables) ? prompt.variables : [],
+            rubric: normalizeRubric(prompt.rubric),
+            rubricCount: Array.isArray(prompt.rubric) ? prompt.rubric.length : 0,
+
+            promptLength: renderedContent.length,
+            renderedContent
+        });
+    } catch (error) {
+        console.error("❌ previewPrompt:", error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+// ============================================================
+// ★ 0.9. TEST PROMPT VỚI AI — kèm full rubric
+// POST /api/ai/prompts/test
+//   hoặc /api/ai/prompts/:id/test
+// ------------------------------------------------------------
+// Body:
+//   { promptId|:id, topic, answer|essay, sampleSolution, studentName, model, aiKeyId }
+//   hoặc { models: 'all' } để chạy hết model + lưu ModelComparison
+// ============================================================
+async function testPrompt(req, res) {
+    try {
+        if (!GradingPrompt) {
+            return res.status(501).json({ success: false, message: "Chưa có model GradingPrompt." });
+        }
+
+        // Hỗ trợ cả 2 kiểu route: /test (body.promptId) và /:id/test (params.id)
+        const promptId =
+            req.params?.id || req.body?.promptId || req.body?.id;
+
+        if (!mongoose.Types.ObjectId.isValid(promptId)) {
+            return res.status(400).json({ success: false, message: "promptId không hợp lệ." });
+        }
+
+        const topic = safeStr(req.body?.topic).trim();
+        const essay = safeStr(req.body?.answer || req.body?.essay).trim();
+        const sampleSolution = safeStr(req.body?.sampleSolution).trim();
+        const studentName = safeStr(req.body?.studentName).trim();
+        const aiKeyId = safeStr(req.body?.aiKeyId).trim() || null;
+        const timeout = clampTimeout(req.body?.timeoutMs, 45000);
+
+        if (!essay) {
+            return res.status(400).json({ success: false, message: "Bài làm đang trống." });
+        }
+
+        const gp = await GradingPrompt.findById(promptId).lean();
+        if (!gp) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy prompt." });
+        }
+        if (gp.active === false) {
+            return res.status(400).json({
+                success: false,
+                message: "Prompt đã bị vô hiệu hoá, không thể test."
+            });
+        }
+
+        // Render template
+        const renderedContent = renderTemplate(gp, {
+            topic,
+            essay,
+            sampleSolution,
+            studentName,
+            maxScore: gp.maxScore ?? 10,
+            strictness: gp.strictness || "normal"
+        });
+
+        // Chọn model(s) để chạy
+        const runAll = req.body?.models === "all";
+        const modelsToRun = runAll
+            ? [...SUPPORTED_MODELS]
+            : pickModels(req.body);
+
+        const results = [];
+        for (const m of modelsToRun) {
+            const { data, latencyMs, error } = await measure(() =>
+                runCustomPrompt(renderedContent, m, timeout, aiKeyId)
+            );
+
+            results.push({
+                model: m,
+                score: data?.score ?? null,
+                feedback:
+                    data?.feedback ??
+                    data?.overall_comment ??
+                    (typeof data?.raw === "string" ? data.raw : "") ??
+                    "",
+                breakdown: Array.isArray(data?.breakdown) ? data.breakdown : [],
+                latencyMs,
+                error,
+                success: !error
+            });
+
+            await new Promise((r) => setTimeout(r, 400));
+        }
+
+        // Lưu ModelComparison nếu chạy hết model
+        let comparisonId = null;
+        if (runAll && ModelComparison) {
+            try {
+                const doc = await ModelComparison.create({
+                    promptId: gp._id,
+                    promptSnapshot: renderedContent,
+                    topic: topic || null,
+                    essay,
+                    studentName: studentName || null,
+                    results: results.map((r) => ({
+                        model: r.model,
+                        score: r.score,
+                        latencyMs: r.latencyMs,
+                        feedback: r.feedback,
+                        error: r.error
+                    })),
+                    createdBy: req.session?.user?._id || req.user?._id || null
+                });
+                comparisonId = doc._id;
+            } catch (e) {
+                console.warn("⚠️ Lưu ModelComparison:", e.message);
+            }
+        }
+
+        return res.json({
+            success: true,
+            promptId: String(gp._id),
+            promptName: gp.name,
+            version: gp.version || 1,
+            promptLength: renderedContent.length,
+            renderedPreview: renderedContent.slice(0, 2000),
+
+            // ★ FULL RUBRIC
+            rubric: normalizeRubric(gp.rubric),
+            rubricCount: Array.isArray(gp.rubric) ? gp.rubric.length : 0,
+            maxScore: gp.maxScore ?? 10,
+            strictness: gp.strictness || "normal",
+
+            comparisonId,
+            totalModels: modelsToRun.length,
+            successCount: results.filter((r) => r.success).length,
+            results
+        });
+    } catch (error) {
+        console.error("❌ testPrompt:", error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+// ============================================================
+// 1. CHECK SUBMISSION — chấm 1 bài
+// POST /api/ai/check
+// ------------------------------------------------------------
+// Body: topic, answer|essay, model, aiKeyId, timeoutMs,
+//       sampleSolution, studentName, maxScore,
+//       (tùy chọn) promptId | lessonId | subjectId
+//
+// Nếu có prompt DB (explicit/lesson/subject/global default) →
+// dùng runCustomPrompt với prompt đã render + rubric.
+// Ngược lại → fallback hardcoded (checkSubmissionByGemini).
+// ============================================================
 async function checkWriting(req, res) {
     try {
         const topic = safeStr(req.body?.topic || req.body?.prompt).trim();
-        const essay = safeStr(req.body?.essay || req.body?.answer).trim();
+        const answer = safeStr(req.body?.answer || req.body?.essay).trim();
         const model = getSafeModel(req.body?.model);
         const timeout = clampTimeout(req.body?.timeoutMs, 45000);
+        const aiKeyId = safeStr(req.body?.aiKeyId).trim() || null;
 
-        if (!essay) return res.status(400).json({ success: false, message: "Bài viết đang trống." });
+        const sampleSolution = safeStr(req.body?.sampleSolution).trim();
+        const studentName = safeStr(req.body?.studentName).trim();
+        const maxScore = Number(req.body?.maxScore) || 10;
 
-        console.log(`🤖 [ai.checkWriting] model=${model}`);
-        const { data, latencyMs, error } = await measure(() =>
-            checkWritingByGemini(topic, essay, timeout, model)
+        const promptId = toObjId(req.body?.promptId);
+        const lessonId = toObjId(req.body?.lessonId);
+        const subjectId = toObjId(req.body?.subjectId);
+
+        if (!answer) {
+            return res.status(400).json({ success: false, message: "Bài làm đang trống." });
+        }
+
+        console.log(
+            `🤖 [ai.checkWriting] model=${model} keyId=${aiKeyId || "auto"} ` +
+            `promptId=${promptId || "-"} lessonId=${lessonId || "-"} subjectId=${subjectId || "-"}`
         );
-        if (error) return res.status(502).json({ success: false, model, message: error });
 
-        return res.json({ success: true, model, latencyMs, result: data });
+        // 1. Thử resolve prompt từ DB
+        const { prompt: dbPrompt, source } = await resolvePromptDoc({
+            promptId,
+            lessonId,
+            subjectId
+        });
+
+        // 2. Nếu có prompt DB → render + runCustomPrompt
+        if (dbPrompt) {
+            const rendered = renderTemplate(dbPrompt, {
+                topic,
+                essay: answer,
+                sampleSolution,
+                studentName,
+                maxScore: dbPrompt.maxScore ?? maxScore,
+                strictness: dbPrompt.strictness || "normal"
+            });
+
+            const { data, latencyMs, error } = await measure(() =>
+                runCustomPrompt(rendered, model, timeout, aiKeyId)
+            );
+
+            if (error) {
+                return res.status(502).json({
+                    success: false,
+                    model,
+                    source,
+                    promptId: String(dbPrompt._id),
+                    message: error
+                });
+            }
+
+            return res.json({
+                success: true,
+                model,
+                latencyMs,
+                source,
+                promptId: String(dbPrompt._id),
+                promptName: dbPrompt.name,
+                promptVersion: dbPrompt.version || 1,
+                rubric: normalizeRubric(dbPrompt.rubric),
+                rubricCount: Array.isArray(dbPrompt.rubric) ? dbPrompt.rubric.length : 0,
+                maxScore: dbPrompt.maxScore ?? maxScore,
+                strictness: dbPrompt.strictness || "normal",
+                result: data
+            });
+        }
+
+        // 3. Fallback: prompt hardcoded
+        const { data, latencyMs, error } = await measure(() =>
+            checkSubmissionByGemini(
+                topic,
+                answer,
+                timeout,
+                model,
+                aiKeyId,
+                { sampleSolution, studentName, maxScore }
+            )
+        );
+
+        if (error) {
+            return res.status(502).json({ success: false, model, source: "fallback", message: error });
+        }
+
+        return res.json({
+            success: true,
+            model,
+            latencyMs,
+            source: "fallback",
+            promptId: null,
+            promptName: null,
+            rubric: [],
+            rubricCount: 0,
+            maxScore,
+            result: data
+        });
     } catch (error) {
         console.error("❌ checkWriting:", error);
         return res.status(500).json({ success: false, message: error.message });
@@ -84,27 +697,38 @@ async function checkWriting(req, res) {
 }
 
 // ============================================================
-// 2. COMPARE MODELS
-// POST /ai/compare
+// 2. COMPARE MODELS — so sánh nhiều model
+// POST /api/ai/compare
 // ============================================================
-
 async function compareModels(req, res) {
     try {
         const topic = safeStr(req.body?.topic).trim();
-        const essay = safeStr(req.body?.essay).trim();
+        const answer = safeStr(req.body?.answer || req.body?.essay).trim();
         const timeout = clampTimeout(req.body?.timeoutMs, 45000);
         const saveComp = Boolean(req.body?.saveComparison);
         const studentName = safeStr(req.body?.studentName).trim() || null;
+        const aiKeyId = safeStr(req.body?.aiKeyId).trim() || null;
+        const sampleSolution = safeStr(req.body?.sampleSolution).trim();
+        const maxScore = Number(req.body?.maxScore) || 10;
 
-        if (!essay) return res.status(400).json({ success: false, message: "Bài viết đang trống." });
+        if (!answer) {
+            return res.status(400).json({ success: false, message: "Bài làm đang trống." });
+        }
 
         const modelsToRun = pickModels(req.body);
-        console.log(`🤖 [ai.compareModels] ${modelsToRun.length} models`);
+        console.log(`🤖 [ai.compareModels] ${modelsToRun.length} models keyId=${aiKeyId || "auto"}`);
 
         const results = [];
         for (const m of modelsToRun) {
             const { data, latencyMs, error } = await measure(() =>
-                checkWritingByGemini(topic, essay, timeout, m)
+                checkSubmissionByGemini(
+                    topic,
+                    answer,
+                    timeout,
+                    m,
+                    aiKeyId,
+                    { sampleSolution, studentName, maxScore }
+                )
             );
             results.push({
                 model: m,
@@ -118,6 +742,7 @@ async function compareModels(req, res) {
                 strengths: data?.strengths ?? [],
                 weaknesses: data?.weaknesses ?? [],
                 improvements: data?.improvements ?? [],
+                breakdown: data?.breakdown ?? [],
                 grammarErrors: data?.grammar?.errors ?? [],
                 latencyMs, error, success: !error,
             });
@@ -130,8 +755,14 @@ async function compareModels(req, res) {
         if (saveComp && ModelComparison) {
             try {
                 const doc = await ModelComparison.create({
-                    topic: topic || null, essay, studentName,
-                    promptSnapshot: createWritingPrompt(topic, essay),
+                    topic: topic || null,
+                    essay: answer,
+                    studentName,
+                    promptSnapshot: createCodeGradingPrompt(topic, answer, {
+                        sampleSolution,
+                        studentName,
+                        maxScore
+                    }),
                     results: results.map((r) => ({
                         model: r.model, score: r.score, latencyMs: r.latencyMs,
                         feedback: r.overallComment, error: r.error,
@@ -160,23 +791,36 @@ async function compareModels(req, res) {
 
 // ============================================================
 // 3. TEST CONNECTION
-// GET /ai/test?model=...
+// GET /api/ai/ai-status
 // ============================================================
-
 async function testConnection(req, res) {
     try {
         const model = req.query?.model || req.body?.model || null;
-        const timeout = clampTimeout(req.query?.timeoutMs, 15000);
+        const aiKeyId = safeStr(req.query?.aiKeyId || req.body?.aiKeyId).trim() || null;
+        const timeout = clampTimeout(req.query?.timeoutMs, 30000);
         const selectedModel = getSafeModel(model);
 
         const { data, latencyMs, error } = await measure(() =>
-            testGeminiConnection(selectedModel, timeout)
+            testGeminiConnection(selectedModel, timeout, aiKeyId)
         );
-        if (error) return res.status(502).json({ success: false, model: selectedModel, connected: false, message: error });
+
+        if (error) {
+            return res.status(502).json({
+                success: false,
+                connected: false,
+                model: selectedModel,
+                message: error
+            });
+        }
 
         return res.json({
-            success: true, connected: true, model: selectedModel, latencyMs,
+            success: true,
+            connected: true,
+            model: selectedModel,
+            latencyMs,
             response: data?.response || "OK",
+            keyName: data?.keyUsed?.name || null,
+            keyId: data?.keyUsed?.id || null,
         });
     } catch (error) {
         return res.status(500).json({ success: false, connected: false, message: error.message });
@@ -185,18 +829,22 @@ async function testConnection(req, res) {
 
 // ============================================================
 // 4. TEST ALL
-// GET /ai/test-all
 // ============================================================
-
 async function testAllConnections(req, res) {
     try {
-        const timeout = clampTimeout(req.query?.timeoutMs, 15000);
+        const timeout = clampTimeout(req.query?.timeoutMs, 30000);
         const results = [];
         for (const m of SUPPORTED_MODELS) {
             const { data, latencyMs, error } = await measure(() =>
                 testGeminiConnection(m, timeout)
             );
-            results.push({ model: m, connected: !error, latencyMs, response: data?.response || null, error });
+            results.push({
+                model: m,
+                connected: !error,
+                latencyMs,
+                response: data?.response || null,
+                error
+            });
             await new Promise((r) => setTimeout(r, 250));
         }
         const connectedCount = results.filter((r) => r.connected).length;
@@ -214,9 +862,7 @@ async function testAllConnections(req, res) {
 
 // ============================================================
 // 5. LIST MODELS
-// GET /ai/models
 // ============================================================
-
 async function listModels(_req, res) {
     return res.json({
         success: true,
@@ -227,57 +873,47 @@ async function listModels(_req, res) {
 }
 
 // ============================================================
-// 6. PREVIEW PROMPT
-// POST /ai/preview-prompt
+// 6. SAVE TO GITHUB (adhoc)
 // ============================================================
-
-async function previewPrompt(req, res) {
-    try {
-        const topic = safeStr(req.body?.topic).trim();
-        const essay = safeStr(req.body?.essay).trim();
-        if (!essay) return res.status(400).json({ success: false, message: "Bài viết đang trống." });
-
-        const prompt = createWritingPrompt(topic, essay);
-        return res.json({ success: true, promptLength: prompt.length, prompt });
-    } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
-    }
-}
-
-// ============================================================
-// 7. SAVE TO GITHUB
-// POST /ai/save-to-github
-// ============================================================
-
 async function saveToGithub(req, res) {
     try {
         const topic = safeStr(req.body?.topic).trim();
-        const essay = safeStr(req.body?.essay).trim();
+        const answer = safeStr(req.body?.answer).trim();
         const model = getSafeModel(req.body?.model);
         const result = req.body?.result || null;
+        const sampleSolution = safeStr(req.body?.sampleSolution).trim();
+        const studentName = safeStr(req.body?.studentName).trim();
 
-        if (!essay || !result) {
-            return res.status(400).json({ success: false, message: "Thiếu essay hoặc result." });
+        if (!answer || !result) {
+            return res.status(400).json({ success: false, message: "Thiếu answer hoặc result." });
         }
 
         const user = req.session?.user || req.user;
-        const userId = user?._id || "anonymous";
+        const userId = user?._id || user?.id || "anonymous";
         const ts = Date.now();
         const path = `submissions/_adhoc/${userId}-${ts}.json`;
 
         const payload = {
             userId: String(userId),
             userName: user?.name || null,
-            topic, essay,
+            topic,
+            answer,
             wordCount: result?.wordCount ?? 0,
             score: result?.score ?? null,
             model,
             submittedAt: new Date().toISOString(),
             feedback: result,
-            promptSnapshot: createWritingPrompt(topic, essay),
+            promptSnapshot: createCodeGradingPrompt(topic, answer, {
+                sampleSolution,
+                studentName
+            }),
         };
 
-        const saved = await writeJsonFile(path, payload, `ai.check: ${userId} - ${result?.score ?? "?"}/10`);
+        const saved = await writeJsonFile(
+            path,
+            payload,
+            `ai.check: ${userId} - ${result?.score ?? "?"}/10`
+        );
         return res.json({ success: true, github: { path: saved.path, url: saved.url } });
     } catch (error) {
         console.error("❌ saveToGithub:", error);
@@ -286,101 +922,8 @@ async function saveToGithub(req, res) {
 }
 
 // ============================================================
-// 8. TEST PROMPT (admin)
-// POST /prompts/:id/test
-// ============================================================
-
-async function testPrompt(req, res) {
-    try {
-        if (!GradingPrompt) {
-            return res.status(501).json({ success: false, message: "Chưa có model GradingPrompt." });
-        }
-
-        const promptId = req.params.id;
-        const topic = safeStr(req.body?.topic).trim();
-        const essay = safeStr(req.body?.essay).trim();
-        const timeout = clampTimeout(req.body?.timeoutMs, 45000);
-        const studentName = safeStr(req.body?.studentName).trim();
-        const sampleSolution = safeStr(req.body?.sampleSolution).trim();
-
-        if (!essay) return res.status(400).json({ success: false, message: "Bài viết đang trống." });
-
-        const gp = await GradingPrompt.findById(promptId);
-        if (!gp || gp.active === false) {
-            return res.status(404).json({ success: false, message: "Prompt không tồn tại hoặc đã bị vô hiệu hoá." });
-        }
-
-        let renderedContent;
-        if (promptService && typeof promptService.renderPromptTemplate === "function") {
-            renderedContent = promptService.renderPromptTemplate(gp, {
-                topic, essay, studentName, sampleSolution,
-            });
-        } else {
-            renderedContent = String(gp.content || "")
-                .replace(/\{đề_bài\}/g, topic || "(Không có đề bài)")
-                .replace(/\{bài_làm\}/g, essay)
-                .replace(/\{max_score\}/g, String(gp.maxScore ?? 10))
-                .replace(/\{strictness\}/g, gp.strictness || "normal")
-                .replace(/\{rubric\}/g, JSON.stringify(gp.rubric || [], null, 2));
-        }
-
-        const runAll = req.body?.models === "all";
-        const modelsToRun = runAll ? [...SUPPORTED_MODELS] : pickModels(req.body);
-
-        const results = [];
-        for (const m of modelsToRun) {
-            const { data, latencyMs, error } = await measure(() =>
-                runCustomPrompt(renderedContent, m, timeout)
-            );
-            results.push({
-                model: m,
-                score: data?.score ?? null,
-                feedback: data?.feedback ?? data?.overall_comment ?? data?.raw ?? "",
-                breakdown: data?.breakdown ?? [],
-                latencyMs, error, success: !error,
-            });
-            await new Promise((r) => setTimeout(r, 400));
-        }
-
-        let comparisonId = null;
-        if (runAll && ModelComparison) {
-            try {
-                const doc = await ModelComparison.create({
-                    promptId: gp._id,
-                    promptSnapshot: renderedContent,
-                    topic: topic || null,
-                    essay,
-                    results: results.map((r) => ({
-                        model: r.model, score: r.score, latencyMs: r.latencyMs,
-                        feedback: r.feedback, error: r.error,
-                    })),
-                    createdBy: req.session?.user?._id || req.user?._id || null,
-                });
-                comparisonId = doc._id;
-            } catch (e) {
-                console.warn("⚠️ Lưu ModelComparison:", e.message);
-            }
-        }
-
-        return res.json({
-            success: true,
-            promptId: gp._id,
-            promptName: gp.name,
-            version: gp.version,
-            renderedPreview: renderedContent.slice(0, 1000),
-            comparisonId,
-            results,
-        });
-    } catch (error) {
-        console.error("❌ testPrompt:", error);
-        return res.status(500).json({ success: false, message: error.message });
-    }
-}
-
-// ============================================================
 // 9. LỊCH SỬ SO SÁNH
 // ============================================================
-
 async function getComparison(req, res) {
     try {
         if (!ModelComparison) {
@@ -400,26 +943,37 @@ async function listComparisons(req, res) {
             return res.status(501).json({ success: false, message: "Chưa có model ModelComparison." });
         }
         const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
-        const docs = await ModelComparison.find({}).sort({ createdAt: -1 }).limit(limit).lean();
+        const docs = await ModelComparison.find({})
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean();
         return res.json({ success: true, total: docs.length, comparisons: docs });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
 }
 
-// ============================================================
-// EXPORT
-// ============================================================
-
 module.exports = {
+    // AI keys
+    listKeys,
+
+    // ★ PROMPTS — BỔ SUNG + FULL RUBRIC
+    listActivePrompts,
+    getPromptById,
+    resolvePromptForLesson,
+    previewPrompt,
+    testPrompt,
+
+    // AI chấm
     checkWriting,
     compareModels,
     testConnection,
     testAllConnections,
     listModels,
-    previewPrompt,
     saveToGithub,
-    testPrompt,
     getComparison,
     listComparisons,
+
+    // Debug/Internal (không dùng trong route nhưng hữu ích)
+    resolvePromptDoc
 };

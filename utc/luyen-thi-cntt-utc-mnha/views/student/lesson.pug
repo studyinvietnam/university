@@ -1,88 +1,878 @@
 extends ../layout
 
 block content
-    .max-w-5xl.mx-auto.px-4.sm:px-6.lg:px-8.py-8
-        // Breadcrumb
-        .flex.items-center.gap-2.text-sm.text-gray-500.mb-6
-            a.hover:text-blue-600.transition-colors(href="/student/subjects")
-                | Môn học
-            i(data-lucide="chevron-right").w-4.h-4
-            if subject
-                span #{subject.name}
-                i(data-lucide="chevron-right").w-4.h-4
-            span.text-gray-900.font-medium
-                | #{lesson.name}
+    style.
+        .lesson-page {
+            max-width: 1400px;
+            margin: 28px auto 60px;
+            padding: 0 4%;
+        }
+        .lesson-page * { box-sizing: border-box; }
 
-        // Lesson header
-        .bg-white.rounded-2xl.border.border-gray-200.overflow-hidden.mb-6
-            .bg-gradient-to-r.from-blue-600.to-indigo-600.p-6.md:p-8.text-white
-                .flex.flex-col.md:flex-row.md:items-start.md:justify-between.gap-6
-                    div
-                        if lesson.code
-                            span.inline-flex.items-center.px-3.py-1.rounded-full.bg-white.bg-opacity-20.text-sm.font-medium.mb-3
-                                | #{lesson.code}
+        .ai-bar {
+            background: #fff;
+            border: 1px solid #e3e3e3;
+            border-radius: 9px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+            padding: 14px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .ai-bar-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .ai-icon {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: #f8e9ec;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            font-size: 18px;
+        }
+        .ai-title { font-weight: 800; font-size: 14px; }
+        .ai-desc { color: #6f6f6f; font-size: 12px; }
+        .ai-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            border: 1px solid #e3e3e3;
+            background: #f8fafc;
+            color: #64748b;
+            white-space: nowrap;
+        }
+        .ai-status-pill .dot {
+            width: 9px; height: 9px;
+            border-radius: 50%;
+            background: #94a3b8;
+        }
+        .ai-status-pill.checking {
+            background: #eff6ff; color: #2563eb; border-color: #bfdbfe;
+        }
+        .ai-status-pill.checking .dot {
+            background: #2563eb;
+            animation: pulse 1s infinite;
+        }
+        .ai-status-pill.connected {
+            background: #f0fdf4; color: #16834b; border-color: #bbf7d0;
+        }
+        .ai-status-pill.connected .dot { background: #16834b; }
+        .ai-status-pill.error {
+            background: #fef2f2; color: #dc2626; border-color: #fecaca;
+        }
+        .ai-status-pill.error .dot { background: #dc2626; }
+        @keyframes pulse {
+            0% { opacity: 1; } 50% { opacity: .35; } 100% { opacity: 1; }
+        }
 
-                        h1.text-2xl.md:text-3xl.font-bold
-                            | #{lesson.name}
+        .ai-selectors {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .ai-selectors .field {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ai-selectors label { font-weight: 700; font-size: 13px; }
+        .ai-selectors select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #e3e3e3;
+            background: white;
+            font-size: 13px;
+            outline: none;
+            max-width: 260px;
+        }
+        .ai-selectors select:disabled {
+            background: #f1f5f9;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
 
-                        if lesson.description
-                            p.mt-3.text-blue-100
-                                | #{lesson.description}
+        .btn-outline {
+            background: #f3f4f6;
+            border: 1px solid #e3e3e3;
+            padding: 8px 14px;
+            border-radius: 7px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            color: #334155;
+        }
+        .btn-outline:hover { background: #e5e7eb; }
+        .btn-outline:disabled { opacity: .5; cursor: not-allowed; }
 
-                    if lesson.assignmentCount !== undefined
-                        .bg-white.bg-opacity-10.rounded-xl.px-5.py-4.text-center
-                            .text-2xl.font-bold #{lesson.assignmentCount}
-                            .text-sm.text-blue-100 Bài tập
+        .btn-check {
+            background: #eff6ff;
+            color: #2563eb;
+            border: 1px solid #dbeafe;
+            padding: 8px 12px;
+            border-radius: 7px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .btn-check:hover { background: #dbeafe; }
+        .btn-check:disabled { opacity: .6; cursor: not-allowed; }
 
-            .p-6.md:p-8
-                if lesson.content
-                    .prose.max-w-none.text-gray-700
-                        != lesson.content
+        .lesson-header {
+            background: white;
+            border: 1px solid #e3e3e3;
+            border-left: 5px solid #a61c2f;
+            border-radius: 10px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+        }
+        .lesson-header h1 {
+            color: #a61c2f;
+            font-size: 23px;
+            font-weight: 800;
+            margin: 0 0 4px 0;
+        }
+        .lesson-header p { color: #6f6f6f; font-size: 14px; margin: 0; }
 
-                // Assignment list
-                if assignments && assignments.length
-                    .mt-8
-                        .flex.items-center.justify-between.mb-5
-                            h2.text-xl.font-bold.text-gray-900 Danh sách bài tập
-                            span.text-sm.text-gray-500 #{assignments.length} bài
+        .lesson-layout {
+            display: grid;
+            grid-template-columns: minmax(0, .95fr) minmax(0, 1.25fr);
+            gap: 20px;
+            align-items: start;
+        }
+        .panel {
+            background: white;
+            border: 1px solid #e3e3e3;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        .panel-head {
+            padding: 18px 22px;
+            border-bottom: 1px solid #e3e3e3;
+            background: linear-gradient(135deg, #fff, #fafafa);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        .panel-head h3 { color: #a61c2f; font-size: 18px; margin: 0; }
+        .panel-head span { color: #6f6f6f; font-size: 13px; }
+        .panel-body { padding: 22px; }
 
-                        .space-y-4
-                            each assignment in assignments
-                                .border.border-gray-200.rounded-xl.p-5.hover:border-blue-300.hover:shadow-sm.transition-all
-                                    .flex.flex-col.md:flex-row.md:items-center.md:justify-between.gap-4
-                                        div.flex-1
-                                            .flex.items-start.gap-3
-                                                .w-10.h-10.rounded-lg.bg-blue-50.flex.items-center.justify-center.flex-shrink-0
-                                                    i(data-lucide="file-text").w-5.h-5.text-blue-600
+        .timer {
+            background: #fff1f2; color: #a61c2f; border: 1px solid #fecdd3;
+            padding: 7px 12px; border-radius: 7px;
+            font-weight: 800; font-size: 14px;
+            min-width: 67px; text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+        .timer.waiting { background: #f8fafc; color: #64748b; border-color: #cbd5e1; }
+        .timer.warning { background: #fff7ed; color: #d97706; border-color: #fed7aa; }
+        .timer.danger { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+        .timer.finished { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
 
-                                                div
-                                                    h3.font-semibold.text-gray-900
-                                                        | #{assignment.title}
+        .writing-input {
+            width: 100%; min-height: 480px; resize: vertical;
+            border: 1px solid #d7d7d7; border-radius: 8px;
+            padding: 20px; outline: none;
+            font-family: inherit; font-size: 16px; line-height: 1.8;
+            color: #222;
+            background: repeating-linear-gradient(to bottom, #fff 0, #fff 31px, #eeeeee 32px);
+        }
+        .writing-input:focus {
+            border-color: #a61c2f;
+            box-shadow: 0 0 0 3px rgba(166,28,47,0.08);
+        }
+        .writing-input:disabled { background-color: #f1f5f9; cursor: not-allowed; }
 
-                                                    if assignment.description
-                                                        p.mt-1.text-sm.text-gray-500
-                                                            | #{assignment.description}
+        .writing-info {
+            display: flex; justify-content: space-between;
+            gap: 15px; margin-top: 12px;
+            color: #6f6f6f; font-size: 13px;
+        }
+        .word-count { font-weight: 700; }
+        .word-count.good { color: #16834b; }
+        .word-count.low { color: #d97706; }
 
-                                                    .mt-2.flex.flex-wrap.items-center.gap-3.text-xs.text-gray-500
-                                                        if assignment.deadline
-                                                            span
-                                                                i(data-lucide="clock").w-3.5.h-3.5.inline-block.mr-1
-                                                                | Hạn: #{assignment.deadline}
+        .actions { display: flex; gap: 10px; margin-top: 18px; }
+        .btn-submit {
+            flex: 1; min-height: 48px; padding: 12px 20px;
+            border-radius: 7px; background: #a61c2f; color: white;
+            font-size: 15px; font-weight: 800;
+            border: none; cursor: pointer;
+        }
+        .btn-submit:hover { background: #861426; }
+        .btn-submit:disabled { background: #999; cursor: not-allowed; }
 
-                                                        if assignment.maxScore
-                                                            span
-                                                                i(data-lucide="award").w-3.5.h-3.5.inline-block.mr-1
-                                                                | #{assignment.maxScore} điểm
+        .lock-msg {
+            display: none; margin-bottom: 12px; padding: 10px 13px;
+            border-radius: 7px; background: #eff6ff;
+            border: 1px solid #bfdbfe; color: #1d4ed8;
+            font-size: 13px; font-weight: 700;
+        }
+        .lock-msg.show { display: block; }
 
-                                        a.inline-flex.items-center.justify-center.px-4.py-2.rounded-lg.bg-blue-600.text-white.text-sm.font-medium.hover:bg-blue-700.transition-colors(
-                                            href=`/student/lessons/${lesson._id}/assignments/${assignment._id}`
-                                        )
-                                            | Làm bài
-                                            i(data-lucide="arrow-right").w-4.h-4.ml-2
+        .result-box {
+            display: none; margin-top: 20px;
+            border: 1px solid #e3e3e3; border-radius: 9px;
+            overflow: hidden; background: white;
+        }
+        .result-box.show { display: block; }
+        .result-head {
+            padding: 17px 20px; background: #fafafa;
+            border-bottom: 1px solid #e3e3e3;
+        }
+        .result-head h3 { color: #a61c2f; font-size: 17px; margin: 0; }
+        .result-body { padding: 20px; }
 
-                else
-                    .mt-8.bg-gray-50.rounded-xl.p-8.text-center
-                        i(data-lucide="file-text").w-10.h-10.mx-auto.text-gray-400
-                        h3.mt-3.font-semibold.text-gray-900 Chưa có bài tập
-                        p.mt-1.text-sm.text-gray-500
-                            | Bài học này hiện chưa có bài tập nào.
+        .overall {
+            display: flex; align-items: center;
+            gap: 15px; margin-bottom: 20px;
+        }
+        .score-circle {
+            width: 70px; height: 70px; border-radius: 50%;
+            background: #f8e9ec; color: #a61c2f;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 900;
+        }
+        .score-meta { color: #6f6f6f; font-size: 13px; }
+        .score-meta strong { display: block; color: #222; font-size: 17px; }
+
+        .feedback {
+            margin-top: 15px; padding: 15px;
+            background: #f8fafc; border: 1px solid #e2e8f0;
+            border-radius: 7px; font-size: 14px;
+        }
+        .feedback h4 { margin: 0 0 7px 0; color: #334155; }
+
+        .sample-box {
+            margin-top: 20px; padding: 18px;
+            background: #f0fdf4; border: 1px solid #bbf7d0;
+            border-radius: 9px;
+        }
+        .sample-box h3 { color: #166534; margin: 0 0 10px 0; font-size: 16px; }
+        .sample-box pre {
+            white-space: pre-wrap; font-family: inherit;
+            font-size: 14px; color: #14532d; margin: 0;
+        }
+
+        @media (max-width: 1000px) {
+            .lesson-layout { grid-template-columns: 1fr; }
+            .writing-panel { order: -1; }
+        }
+        @media (max-width: 700px) {
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .actions { flex-direction: column; }
+            .ai-selectors { width: 100%; }
+            .ai-selectors .field { width: 100%; }
+            .ai-selectors select { flex: 1; max-width: none; }
+        }
+
+    div(class="lesson-page")
+
+        div(class="mb-5")
+            a(
+                href="/practice"
+                class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+            )
+                i(data-lucide="arrow-left", class="w-4 h-4")
+                | Quay lại luyện tập
+
+        if isAdminView
+            div(class="mb-5 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm")
+                | 👁 Bạn đang xem với tư cách Admin. Có thể nộp thử để kiểm tra prompt chấm.
+
+        div(class="ai-bar")
+            div(class="ai-bar-info")
+                div(class="ai-icon") 🤖
+                div
+                    div(class="ai-title") Trạng thái AI chấm bài
+                    div(class="ai-desc", id="aiDesc") Chưa kiểm tra kết nối.
+
+            div(class="ai-selectors")
+                div(class="field")
+                    label(for="aiKeySelect") 🔑 AI Key:
+                    select(id="aiKeySelect")
+                        option(value="") — Mặc định hệ thống —
+
+                div(class="field")
+                    label(for="modelSelect") 🤖 Model:
+                    select(id="modelSelect", disabled)
+                        option(value="") — Chọn AI Key trước —
+
+                button(
+                    type="button"
+                    class="btn-outline"
+                    onclick="randomModel()"
+                    title="Chọn ngẫu nhiên model"
+                )
+                    | 🎲
+
+            div(class="flex items-center gap-2")
+                div(id="aiStatusPill", class="ai-status-pill")
+                    span(class="dot")
+                    span(id="aiStatusText") Chưa kiểm tra
+
+                button(
+                    type="button"
+                    id="aiCheckBtn"
+                    class="btn-check"
+                    onclick="checkAIConnection()"
+                )
+                    | 🔄 Kiểm tra AI
+
+        div(class="lesson-header")
+            h1= lesson.title
+            p
+                if lesson.subject
+                    = (lesson.subject.name || '') + ' • '
+                | Nộp bài — AI chấm tự động
+
+        div(class="lesson-layout")
+
+            div(class="panel")
+                div(class="panel-head")
+                    h3 Đề bài
+                    span #{lesson.duration || 20} phút
+
+                div(class="panel-body")
+                    if lesson.contentHtml
+                        div(class="prose prose-sm max-w-none text-gray-800")
+                            != lesson.contentHtml
+                    else
+                        p(class="text-gray-500 italic")
+                            | (Chưa có nội dung đề bài)
+
+            div(class="panel writing-panel")
+                div(class="panel-head")
+                    h3 ✍️ Bài viết của bạn
+                    div(id="timer", class="timer waiting")
+                        = String(lesson.duration || 20).padStart(2, '0') + ':00'
+
+                div(class="panel-body")
+                    div(id="lockMessage", class="lock-msg show")
+                        | 🔒 Hãy kết nối AI thành công để bắt đầu tính giờ.
+
+                    textarea(
+                        id="writingInput"
+                        class="writing-input"
+                        placeholder="Nhập bài làm của bạn vào đây..."
+                        disabled
+                    )
+
+                    div(class="writing-info")
+                        span(id="wordCount", class="word-count low") 0 từ
+                        span Mục tiêu: xem đề bài
+
+                    div(class="actions")
+                        button(
+                            type="button"
+                            id="clearBtn"
+                            class="btn-outline"
+                            onclick="clearWriting()"
+                        )
+                            | 🗑 Xoá bài
+
+                        button(
+                            type="button"
+                            id="submitBtn"
+                            class="btn-submit"
+                            onclick="submitWriting()"
+                            disabled
+                        )
+                            | 🚀 Nộp bài & chấm AI
+
+                    div(id="resultBox", class="result-box")
+                        div(class="result-head")
+                            h3 🤖 Kết quả chấm bài AI
+                        div(id="resultBody", class="result-body")
+
+        if lesson.sampleSolution && lastSubmission && lastSubmission.status === 'graded'
+            div(class="sample-box")
+                h3 💡 Lời giải mẫu
+                pre= lesson.sampleSolution
+
+        if lastSubmission
+            div(class="panel mt-5")
+                div(class="panel-head")
+                    h3 Bài nộp gần nhất
+                    a(
+                        href=`/submissions/${lastSubmission._id}`
+                        class="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                    )
+                        | Xem chi tiết →
+
+                div(class="panel-body")
+                    div(class="flex items-center gap-4 mb-3 flex-wrap")
+                        if lastSubmission.status === 'graded'
+                            span(class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700")
+                                i(data-lucide="check-circle-2", class="w-4 h-4")
+                                | Đã chấm: #{lastSubmission.score}
+                        else if lastSubmission.status === 'grading' || lastSubmission.status === 'pending'
+                            span(class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700")
+                                | Đang chấm...
+                        else if lastSubmission.status === 'failed'
+                            span(class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700")
+                                | Chấm lỗi
+
+                        if lastSubmission.model
+                            span(class="text-xs text-gray-500")
+                                | 🤖 #{lastSubmission.model}
+                        if lastSubmission.aiKeyName
+                            span(class="text-xs text-gray-500")
+                                | 🔑 #{lastSubmission.aiKeyName}
+
+                        span(class="text-xs text-gray-500")
+                            = new Date(lastSubmission.createdAt).toLocaleString('vi-VN')
+
+                    if lastSubmission.feedback
+                        div(class="p-3 rounded-lg bg-gray-50 text-sm text-gray-700 whitespace-pre-wrap")
+                            = lastSubmission.feedback
+
+    script.
+        (function () {
+            const LESSON_ID = "!{lesson._id}";
+            const API_AI = "/api/ai";
+
+            let aiConnected = false;
+            let checkingAI = false;
+            let submitting = false;
+            let submitted = false;
+
+            const TIMER_TOTAL = (!{lesson.duration || 20}) * 60;
+            let timeLeft = TIMER_TOTAL;
+            let timerInterval = null;
+
+            const textarea = document.getElementById("writingInput");
+            const wordCountEl = document.getElementById("wordCount");
+            const timerEl = document.getElementById("timer");
+            const submitBtn = document.getElementById("submitBtn");
+            const clearBtn = document.getElementById("clearBtn");
+            const lockMsg = document.getElementById("lockMessage");
+            const aiStatusPill = document.getElementById("aiStatusPill");
+            const aiStatusText = document.getElementById("aiStatusText");
+            const aiDesc = document.getElementById("aiDesc");
+            const resultBox = document.getElementById("resultBox");
+            const resultBody = document.getElementById("resultBody");
+            const aiKeySelect = document.getElementById("aiKeySelect");
+            const modelSelect = document.getElementById("modelSelect");
+
+            // ============================================
+            // HELPERS
+            // ============================================
+            function setAIStatus(type, text, desc) {
+                aiStatusPill.classList.remove("checking", "connected", "error");
+                if (type) aiStatusPill.classList.add(type);
+                aiStatusText.textContent = text;
+                if (desc) aiDesc.textContent = desc;
+            }
+
+            function countWords(t) {
+                if (!t || !t.trim()) return 0;
+                return t.trim().split(/\s+/).filter(Boolean).length;
+            }
+
+            function updateWordCount() {
+                const n = countWords(textarea.value);
+                wordCountEl.textContent = n + " từ";
+                wordCountEl.classList.remove("good", "low");
+                if (n >= 80) wordCountEl.classList.add("good");
+                else wordCountEl.classList.add("low");
+            }
+
+            function fmtTime(s) {
+                const m = Math.floor(s / 60);
+                const ss = s % 60;
+                return String(m).padStart(2, "0") + ":" + String(ss).padStart(2, "0");
+            }
+
+            function updateTimer() {
+                timerEl.textContent = fmtTime(timeLeft);
+                timerEl.classList.remove("waiting", "warning", "danger", "finished");
+                if (!aiConnected) { timerEl.classList.add("waiting"); return; }
+                if (submitted) { timerEl.classList.add("finished"); return; }
+                if (timeLeft <= 0) { timerEl.classList.add("finished"); return; }
+                if (timeLeft <= 60) { timerEl.classList.add("danger"); return; }
+                if (timeLeft <= 300) { timerEl.classList.add("warning"); }
+            }
+
+            function startTimer() {
+                if (timerInterval || !aiConnected || submitted) return;
+                timerInterval = setInterval(() => {
+                    if (!aiConnected || submitted || timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                        updateTimer();
+                        return;
+                    }
+                    timeLeft--;
+                    updateTimer();
+                }, 1000);
+            }
+
+            function stopTimer() {
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+            }
+
+            function updateLock() {
+                if (submitted) {
+                    lockMsg.classList.remove("show");
+                    textarea.disabled = true;
+                    submitBtn.disabled = true;
+                    clearBtn.disabled = true;
+                    return;
+                }
+                if (!aiConnected) {
+                    lockMsg.textContent = "🔒 Hãy kết nối AI thành công để bắt đầu tính giờ.";
+                    lockMsg.classList.add("show");
+                    textarea.disabled = true;
+                    submitBtn.disabled = true;
+                    clearBtn.disabled = false;
+                    return;
+                }
+                lockMsg.classList.remove("show");
+                textarea.disabled = false;
+                submitBtn.disabled = false;
+                clearBtn.disabled = false;
+            }
+
+            function escapeHTML(s) {
+                const d = document.createElement("div");
+                d.textContent = String(s ?? "");
+                return d.innerHTML;
+            }
+
+            // ============================================
+            // LOAD MODELS
+            // ============================================
+            async function loadModels() {
+                try {
+                    const res = await fetch(API_AI + "/models");
+                    const data = await res.json();
+                    if (data.success) {
+                        modelSelect.innerHTML = '<option value="">— Chọn AI Key trước —</option>';
+                        data.models.forEach((m) => {
+                            const opt = document.createElement("option");
+                            opt.value = m;
+                            opt.textContent = m;
+                            modelSelect.appendChild(opt);
+                        });
+                        modelSelect.dataset.default = data.defaultModel || "";
+                    }
+                } catch (e) {
+                    console.warn("loadModels:", e);
+                }
+            }
+
+            // ============================================
+            // ★ LOAD AI KEYS — FIX: hiển thị TẤT CẢ key
+            // ============================================
+            async function loadKeys() {
+                try {
+                    const res = await fetch(API_AI + "/keys");
+                    const data = await res.json();
+
+                    if (data.success && Array.isArray(data.keys)) {
+                        aiKeySelect.innerHTML =
+                            '<option value="">— Mặc định hệ thống —</option>';
+
+                        data.keys.forEach((k) => {
+                            const opt = document.createElement("option");
+                            opt.value = k._id;
+                            opt.setAttribute("data-model", k.model || "");
+
+                            // ★ Hiển thị trạng thái + tên
+                            let label = k.name;
+                            if (k.model) label += " (" + k.model + ")";
+
+                            if (!k.usable) {
+                                if (!k.isActive) {
+                                    label += " [Đã tắt]";
+                                } else if (k.isDisabledTemp) {
+                                    // Hiển thị thời gian còn lại
+                                    if (k.disabledUntil) {
+                                        const remain = Math.ceil(
+                                            (new Date(k.disabledUntil) - new Date()) / 60000
+                                        );
+                                        if (remain > 0) {
+                                            label += " [Tạm nghỉ ~" + remain + "p]";
+                                        } else {
+                                            label += " [Tạm nghỉ]";
+                                        }
+                                    } else {
+                                        label += " [Tạm nghỉ]";
+                                    }
+                                }
+                                opt.disabled = true;
+                            }
+
+                            opt.textContent = label;
+                            aiKeySelect.appendChild(opt);
+                        });
+
+                        // Chọn key usable đầu tiên
+                        const firstUsable = data.keys.find((k) => k.usable);
+                        if (firstUsable) {
+                            aiKeySelect.value = firstUsable._id;
+                            syncModelFromKey();
+                        } else {
+                            // Không có key usable → dùng default model
+                            modelSelect.disabled = false;
+                            const def = modelSelect.dataset.default;
+                            if (def) {
+                                for (let i = 0; i < modelSelect.options.length; i++) {
+                                    if (modelSelect.options[i].value === def) {
+                                        modelSelect.selectedIndex = i;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn("loadKeys:", e);
+                }
+            }
+
+            // Auto-fill model theo key
+            function syncModelFromKey() {
+                const opt = aiKeySelect.options[aiKeySelect.selectedIndex];
+                const keyModel = opt ? opt.getAttribute("data-model") || "" : "";
+
+                if (!aiKeySelect.value) {
+                    modelSelect.disabled = false;
+                    const def = modelSelect.dataset.default;
+                    if (def) {
+                        for (let i = 0; i < modelSelect.options.length; i++) {
+                            if (modelSelect.options[i].value === def) {
+                                modelSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                modelSelect.disabled = false;
+                if (keyModel) {
+                    for (let i = 0; i < modelSelect.options.length; i++) {
+                        if (modelSelect.options[i].value === keyModel) {
+                            modelSelect.selectedIndex = i;
+                            return;
+                        }
+                    }
+                }
+            }
+
+            window.randomModel = function () {
+                const opts = modelSelect.options;
+                if (!opts.length) return;
+                let idx;
+                do {
+                    idx = Math.floor(Math.random() * opts.length);
+                } while (!opts[idx].value && opts.length > 1);
+                modelSelect.selectedIndex = idx;
+            };
+
+            // ============================================
+            // CHECK AI
+            // ============================================
+            window.checkAIConnection = async function () {
+                if (checkingAI) return;
+                checkingAI = true;
+
+                const btn = document.getElementById("aiCheckBtn");
+                btn.disabled = true;
+                btn.textContent = "Đang kiểm tra...";
+                setAIStatus("checking", "Đang kiểm tra", "Đang kết nối AI...");
+
+                try {
+                    const model = modelSelect.value || "";
+                    const aiKeyId = aiKeySelect.value || "";
+
+                    const params = new URLSearchParams();
+                    if (model) params.append("model", model);
+                    if (aiKeyId) params.append("aiKeyId", aiKeyId);
+
+                    const url = API_AI + "/ai-status?" + params.toString();
+                    const res = await fetch(url, { cache: "no-store" });
+                    const data = await res.json();
+
+                    if (!res.ok || !data.success || data.connected !== true) {
+                        throw new Error(data.message || "AI chưa kết nối.");
+                    }
+
+                    aiConnected = true;
+                    const keyLabel = data.keyName ? " • Key: " + data.keyName : "";
+                    setAIStatus(
+                        "connected",
+                        "Đã kết nối (" + (data.model || "") + ")",
+                        "AI hoạt động" + keyLabel
+                    );
+                    updateLock();
+                    startTimer();
+                } catch (err) {
+                    aiConnected = false;
+                    setAIStatus("error", "Chưa kết nối", err.message);
+                    updateLock();
+                    updateTimer();
+                } finally {
+                    checkingAI = false;
+                    btn.disabled = false;
+                    btn.textContent = "🔄 Kiểm tra AI";
+                }
+            };
+
+            // ============================================
+            // SUBMIT
+            // ============================================
+            window.submitWriting = async function () {
+                if (submitting || submitted) return;
+                if (!aiConnected) {
+                    alert("AI chưa kết nối. Hãy bấm 'Kiểm tra AI' trước.");
+                    return;
+                }
+
+                const text = textarea.value.trim();
+                const words = countWords(text);
+
+                if (!text) {
+                    alert("Bạn chưa viết bài.");
+                    textarea.focus();
+                    return;
+                }
+
+                if (words < 30) {
+                    if (!confirm("Bài chỉ có " + words + " từ. Vẫn nộp?")) return;
+                }
+
+                submitting = true;
+                submitBtn.disabled = true;
+                submitBtn.textContent = "🤖 AI đang chấm...";
+                setAIStatus("checking", "Đang chấm bài", "AI đang phân tích...");
+
+                try {
+                    const body = new URLSearchParams();
+                    body.append("lessonId", LESSON_ID);
+                    body.append("answerHtml", text);
+                    body.append("model", modelSelect.value || "");
+                    body.append("aiKeyId", aiKeySelect.value || "");
+
+                    const res = await fetch("/submissions", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "Accept": "application/json"
+                        },
+                        body: body.toString()
+                    });
+
+                    let data;
+                    try {
+                        data = await res.json();
+                    } catch (e) {
+                        throw new Error("Server không trả JSON. Kiểm tra log backend.");
+                    }
+
+                    if (!res.ok || !data.success) {
+                        throw new Error(data.message || "Chấm bài thất bại.");
+                    }
+
+                    submitted = true;
+                    stopTimer();
+                    setAIStatus("connected", "Đã chấm xong", "AI chấm thành công.");
+                    updateLock();
+                    renderResult(data);
+                } catch (err) {
+                    console.error("submitWriting:", err);
+                    aiConnected = false;
+                    setAIStatus("error", "Lỗi chấm bài", err.message);
+                    updateLock();
+                    alert("❌ " + err.message);
+                } finally {
+                    submitting = false;
+                    submitBtn.disabled = submitted;
+                    submitBtn.textContent = submitted
+                        ? "✓ Đã chấm"
+                        : "🚀 Nộp bài & chấm AI";
+                }
+            };
+
+            // ============================================
+            // RENDER RESULT
+            // ============================================
+            function renderResult(data) {
+                const score = data.score ?? 0;
+                const words = countWords(textarea.value);
+
+                let meta = "";
+                if (data.model) meta += "🤖 " + escapeHTML(data.model);
+                if (data.aiKeyName) meta += (meta ? " • " : "") + "🔑 " + escapeHTML(data.aiKeyName);
+
+                resultBody.innerHTML =
+                    '<div class="overall">' +
+                    '<div class="score-circle">' + score + '</div>' +
+                    '<div class="score-meta">' +
+                    '<span>Điểm tổng</span>' +
+                    '<strong>' + words + ' từ</strong>' +
+                    (meta ? '<span style="font-size:12px;color:#6f6f6f;display:block;margin-top:4px">' + meta + '</span>' : '') +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="feedback">' +
+                    '<h4>📝 Nhận xét</h4>' +
+                    '<div>' + escapeHTML(data.feedback || 'Không có nhận xét chi tiết.') + '</div>' +
+                    '</div>' +
+                    '<div class="mt-4">' +
+                    '<a href="' +
+                    (data.redirect || ('/submissions/' + data.submissionId)) +
+                    '" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">' +
+                    'Xem chi tiết đầy đủ →</a>' +
+                    '</div>';
+
+                resultBox.classList.add("show");
+                resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+
+            // ============================================
+            // CLEAR
+            // ============================================
+            window.clearWriting = function () {
+                if (submitted) {
+                    alert("Bài đã nộp, không thể xoá.");
+                    return;
+                }
+                if (!textarea.value.trim()) return;
+                if (!confirm("Xoá toàn bộ bài viết?")) return;
+                textarea.value = "";
+                updateWordCount();
+            };
+
+            // ============================================
+            // INIT
+            // ============================================
+            textarea.addEventListener("input", updateWordCount);
+            aiKeySelect.addEventListener("change", syncModelFromKey);
+
+            updateWordCount();
+            updateTimer();
+            updateLock();
+
+            Promise.all([loadModels(), loadKeys()]).then(() => {
+                checkAIConnection();
+            });
+        })();

@@ -41,6 +41,26 @@ html(lang="vi")
                         p(class="text-sm text-gray-500 mt-2")
                             | Đăng nhập để tiếp tục sử dụng hệ thống.
 
+                    //- ★ Đăng ký thành công
+                    if registered
+                        .mb-5.flex.items-start.gap-3.p-4.bg-green-50.border.border-green-200.rounded-xl
+                            i(
+                                data-lucide="circle-check"
+                                class="w-5 h-5 text-green-500 flex-shrink-0"
+                            )
+                            p(class="text-sm text-green-700")
+                                | Đăng ký thành công! Vui lòng chờ Admin duyệt tài khoản trước khi đăng nhập.
+
+                    //- ★ Đổi mật khẩu thành công
+                    if resetSuccess
+                        .mb-5.flex.items-start.gap-3.p-4.bg-green-50.border.border-green-200.rounded-xl
+                            i(
+                                data-lucide="circle-check"
+                                class="w-5 h-5 text-green-500 flex-shrink-0"
+                            )
+                            p(class="text-sm text-green-700")
+                                | Đổi mật khẩu thành công! Vui lòng đăng nhập lại bằng mật khẩu mới.
+
                     //- Error
                     if error
                         .mb-5.flex.items-start.gap-3.p-4.bg-red-50.border.border-red-200.rounded-xl
@@ -51,7 +71,7 @@ html(lang="vi")
                             p(class="text-sm text-red-700")
                                 = error
 
-                    //- Success
+                    //- Success (dùng chung — nếu controller render trực tiếp)
                     if success
                         .mb-5.flex.items-start.gap-3.p-4.bg-green-50.border.border-green-200.rounded-xl
                             i(

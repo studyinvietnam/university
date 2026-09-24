@@ -1,3 +1,5 @@
+// controllers/subject.controller.js
+const mongoose = require('mongoose');
 const Subject = require('../models/Subject');
 const Lesson = require('../models/Lesson');
 
@@ -31,45 +33,42 @@ async function generateUniqueSlug(name, excludeId = null) {
 
         i++;
         slug = `${base}-${i}`;
-        if (i > 1000) {
-            slug = `${base}-${Date.now().toString(36)}`;
-            return slug;
-        }
+        if (i > 1000) return `${base}-${Date.now().toString(36)}`;
     }
 }
 
 function getUserId(req) {
-    return req.session?.user?.id || null;
+    return req.session?.user?._id || req.user?._id || null;
 }
 
 // ============================================================
-// STUDENT ROUTES (public cho user đã login)
+// STUDENT
 // ============================================================
 
-// GET /subjects — danh sách môn học cho sinh viên
-const getSubjects = async (req, res) => {
+// GET /subjects
+exports.getSubjects = async (req, res, next) => {
     try {
         const subjects = await Subject.find({
             isPublished: true,
             deletedAt: null,
-            deletedForever: { $ne: true }
+            deletedForever: { $ne: true },
         })
             .sort({ order: 1, createdAt: -1 })
             .lean();
 
-        // Đếm số bài học cho mỗi môn
         for (const subject of subjects) {
             subject.lessonCount = await Lesson.countDocuments({
                 subject: subject._id,
                 isPublished: true,
                 deletedAt: null,
-                deletedForever: { $ne: true }
+                deletedForever: { $ne: true },
             });
         }
 
         return res.render('student/subjects', {
             title: 'Môn học',
-            subjects
+            user: req.user,
+            subjects,
         });
     } catch (error) {
         console.error('getSubjects error:', error);
@@ -77,19 +76,19 @@ const getSubjects = async (req, res) => {
             title: 'Lỗi',
             message: 'Không thể tải danh sách môn học.',
             statusCode: 500,
-            stack: null
+            stack: null,
         });
     }
 };
 
-// GET /subjects/:id — chi tiết môn học cho sinh viên
-const getSubject = async (req, res) => {
+// GET /subjects/:id
+exports.getSubject = async (req, res, next) => {
     try {
         const subject = await Subject.findOne({
             _id: req.params.id,
             isPublished: true,
             deletedAt: null,
-            deletedForever: { $ne: true }
+            deletedForever: { $ne: true },
         }).lean();
 
         if (!subject) {
@@ -97,7 +96,7 @@ const getSubject = async (req, res) => {
                 title: 'Không tìm thấy',
                 message: 'Không tìm thấy môn học.',
                 statusCode: 404,
-                stack: null
+                stack: null,
             });
         }
 
@@ -105,15 +104,16 @@ const getSubject = async (req, res) => {
             subject: subject._id,
             isPublished: true,
             deletedAt: null,
-            deletedForever: { $ne: true }
+            deletedForever: { $ne: true },
         })
             .sort({ order: 1, createdAt: 1 })
             .lean();
 
         return res.render('student/subject', {
             title: subject.name,
+            user: req.user,
             subject,
-            lessons
+            lessons,
         });
     } catch (error) {
         console.error('getSubject error:', error);
@@ -121,17 +121,16 @@ const getSubject = async (req, res) => {
             title: 'Lỗi',
             message: 'Không thể tải môn học.',
             statusCode: 500,
-            stack: null
+            stack: null,
         });
     }
 };
 
 // ============================================================
-// ADMIN ROUTES
+// ADMIN — LIST
+// GET /admin/subjects
 // ============================================================
-
-// GET /admin/subjects — danh sách
-const getAdminSubjects = async (req, res) => {
+exports.getAdminSubjects = async (req, res, next) => {
     try {
         const showDeleted = req.query.deleted === '1';
 
@@ -148,20 +147,20 @@ const getAdminSubjects = async (req, res) => {
             .sort({ order: 1, createdAt: -1 })
             .lean();
 
-        // Đếm số bài học
         for (const subject of subjects) {
             subject.lessonCount = await Lesson.countDocuments({
                 subject: subject._id,
-                deletedForever: { $ne: true }
+                deletedForever: { $ne: true },
             });
         }
 
         return res.render('admin/subjects', {
             title: 'Quản lý môn học',
+            user: req.user,
             subjects,
             showDeleted,
             success: req.query.success || null,
-            error: req.query.error || null
+            error: req.query.error || null,
         });
     } catch (error) {
         console.error('getAdminSubjects error:', error);
@@ -169,13 +168,16 @@ const getAdminSubjects = async (req, res) => {
             title: 'Lỗi',
             message: 'Không thể tải danh sách môn học.',
             statusCode: 500,
-            stack: null
+            stack: null,
         });
     }
 };
 
-// POST /admin/subjects — tạo mới
-const createSubject = async (req, res) => {
+// ============================================================
+// ADMIN — CREATE POST
+// POST /admin/subjects
+// ============================================================
+exports.createSubject = async (req, res, next) => {
     try {
         const { name, code, description, order, isPublished } = req.body;
 
@@ -186,10 +188,9 @@ const createSubject = async (req, res) => {
             );
         }
 
-        // Check trùng tên
         const existed = await Subject.findOne({
             name: name.trim(),
-            deletedForever: { $ne: true }
+            deletedForever: { $ne: true },
         });
 
         if (existed) {
@@ -208,8 +209,8 @@ const createSubject = async (req, res) => {
             slug,
             order: Number(order) || 0,
             isPublished: isPublished === 'on' || isPublished === true,
-            createdBy: getUserId(req),   // ★ AUDIT
-            updatedBy: getUserId(req)
+            createdBy: getUserId(req),
+            updatedBy: getUserId(req),
         });
 
         return res.redirect(
@@ -225,12 +226,15 @@ const createSubject = async (req, res) => {
     }
 };
 
-// GET /admin/subjects/:id/edit — form sửa
-const showEditSubject = async (req, res) => {
+// ============================================================
+// ADMIN — EDIT FORM
+// GET /admin/subjects/:id/edit
+// ============================================================
+exports.showEditSubject = async (req, res, next) => {
     try {
         const subject = await Subject.findOne({
             _id: req.params.id,
-            deletedForever: { $ne: true }
+            deletedForever: { $ne: true },
         })
             .populate('createdBy', 'name email')
             .populate('updatedBy', 'name email')
@@ -245,9 +249,10 @@ const showEditSubject = async (req, res) => {
 
         return res.render('admin/subject-edit', {
             title: 'Chỉnh sửa môn học',
+            user: req.user,
             subject,
             success: req.query.success || null,
-            error: req.query.error || null
+            error: req.query.error || null,
         });
     } catch (error) {
         console.error('showEditSubject error:', error);
@@ -258,15 +263,18 @@ const showEditSubject = async (req, res) => {
     }
 };
 
-// POST /admin/subjects/:id/edit — cập nhật
-const updateSubject = async (req, res) => {
+// ============================================================
+// ADMIN — UPDATE
+// POST /admin/subjects/:id/edit
+// ============================================================
+exports.updateSubject = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { name, code, description, order, isPublished } = req.body;
 
         const subject = await Subject.findOne({
             _id: id,
-            deletedForever: { $ne: true }
+            deletedForever: { $ne: true },
         });
 
         if (!subject) {
@@ -276,19 +284,20 @@ const updateSubject = async (req, res) => {
             );
         }
 
-        // Check trùng tên (nếu đổi tên)
         if (name && name.trim() !== subject.name) {
             const dup = await Subject.findOne({
                 _id: { $ne: id },
                 name: name.trim(),
-                deletedForever: { $ne: true }
+                deletedForever: { $ne: true },
             });
+
             if (dup) {
                 return res.redirect(
                     `/admin/subjects/${id}/edit?error=` +
                         encodeURIComponent('Tên môn học đã tồn tại.')
                 );
             }
+
             subject.name = name.trim();
             subject.slug = await generateUniqueSlug(name, id);
         }
@@ -298,9 +307,9 @@ const updateSubject = async (req, res) => {
             subject.description = (description || '').trim();
         if (order !== undefined) subject.order = Number(order) || 0;
         if (isPublished !== undefined)
-            subject.isPublished = isPublished === 'on' || isPublished === true;
+            subject.isPublished =
+                isPublished === 'on' || isPublished === true;
 
-        // ★ AUDIT
         subject.updatedBy = getUserId(req);
 
         await subject.save();
@@ -318,14 +327,15 @@ const updateSubject = async (req, res) => {
     }
 };
 
-// POST /admin/subjects/:id/delete — xoá tạm (soft)
-const deleteSubject = async (req, res) => {
+// ============================================================
+// ADMIN — DELETE (soft)
+// POST /admin/subjects/:id/delete
+// ============================================================
+exports.deleteSubject = async (req, res, next) => {
     try {
-        const { id } = req.params;
-
         const subject = await Subject.findOne({
-            _id: id,
-            deletedForever: { $ne: true }
+            _id: req.params.id,
+            deletedForever: { $ne: true },
         });
 
         if (!subject) {
@@ -336,7 +346,7 @@ const deleteSubject = async (req, res) => {
         }
 
         subject.deletedAt = new Date();
-        subject.deletedBy = getUserId(req);    // ★ AUDIT
+        subject.deletedBy = getUserId(req);
         subject.updatedBy = getUserId(req);
         await subject.save();
 
@@ -353,14 +363,15 @@ const deleteSubject = async (req, res) => {
     }
 };
 
-// POST /admin/subjects/:id/restore — khôi phục
-const restoreSubject = async (req, res) => {
+// ============================================================
+// ADMIN — RESTORE
+// POST /admin/subjects/:id/restore
+// ============================================================
+exports.restoreSubject = async (req, res, next) => {
     try {
-        const { id } = req.params;
-
         const subject = await Subject.findOne({
-            _id: id,
-            deletedForever: { $ne: true }
+            _id: req.params.id,
+            deletedForever: { $ne: true },
         });
 
         if (!subject) {
@@ -388,12 +399,13 @@ const restoreSubject = async (req, res) => {
     }
 };
 
-// POST /admin/subjects/:id/hard-delete — xoá vĩnh viễn
-const hardDeleteSubject = async (req, res) => {
+// ============================================================
+// ADMIN — HARD DELETE
+// POST /admin/subjects/:id/hard-delete
+// ============================================================
+exports.hardDeleteSubject = async (req, res, next) => {
     try {
-        const { id } = req.params;
-
-        const subject = await Subject.findById(id);
+        const subject = await Subject.findById(req.params.id);
 
         if (!subject) {
             return res.redirect(
@@ -402,17 +414,16 @@ const hardDeleteSubject = async (req, res) => {
             );
         }
 
-        // Đếm lesson còn lại
         const lessonCount = await Lesson.countDocuments({
-            subject: id,
-            deletedForever: { $ne: true }
+            subject: subject._id,
+            deletedForever: { $ne: true },
         });
 
         if (lessonCount > 0) {
             return res.redirect(
                 '/admin/subjects?deleted=1&error=' +
                     encodeURIComponent(
-                        `Không thể xoá vĩnh viễn: còn ${lessonCount} bài học. Hãy xoá bài học trước.`
+                        `Không thể xoá vĩnh viễn: còn ${lessonCount} bài học.`
                     )
             );
         }
@@ -432,19 +443,4 @@ const hardDeleteSubject = async (req, res) => {
                 encodeURIComponent('Không thể xoá vĩnh viễn.')
         );
     }
-};
-
-module.exports = {
-    // Student
-    getSubjects,
-    getSubject,
-
-    // Admin
-    getAdminSubjects,
-    createSubject,
-    showEditSubject,
-    updateSubject,
-    deleteSubject,
-    restoreSubject,
-    hardDeleteSubject
 };

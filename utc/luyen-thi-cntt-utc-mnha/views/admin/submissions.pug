@@ -1,15 +1,17 @@
 extends ../layout
 
 block content
-    .max-w-7xl.mx-auto.px-4.sm\\:px-6.lg\\:px-8.py-8
+    div(class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8")
 
-        .mb-8
+        //- Header
+        div(class="mb-8")
             h1(class="text-2xl sm:text-3xl font-bold text-gray-900")
                 | Quản lý bài nộp
             p(class="text-gray-500 mt-1")
                 | Theo dõi và xử lý các bài nộp của sinh viên
 
-        .bg-white.border.border-gray-200.rounded-xl.p-4.mb-6
+        //- Filter
+        div(class="bg-white border border-gray-200 rounded-xl p-4 mb-6")
             form(
                 action="/admin/submissions"
                 method="GET"
@@ -18,43 +20,44 @@ block content
                 input(
                     type="text"
                     name="search"
-                    value=filters?.search || ''
+                    value=(filters && filters.search) || ''
                     placeholder="Tên hoặc email sinh viên..."
-                    class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+                    class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                 )
 
                 select(
                     name="status"
-                    class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+                    class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                 )
                     option(value="") Tất cả trạng thái
-                    option(value="pending" selected=filters?.status === 'pending') Chờ chấm
-                    option(value="grading" selected=filters?.status === 'grading') Đang chấm
-                    option(value="graded" selected=filters?.status === 'graded') Đã chấm
-                    option(value="failed" selected=filters?.status === 'failed') Lỗi
+                    option(value="pending", selected=(filters && filters.status === 'pending')) Chờ chấm
+                    option(value="grading", selected=(filters && filters.status === 'grading')) Đang chấm
+                    option(value="graded", selected=(filters && filters.status === 'graded')) Đã chấm
+                    option(value="failed", selected=(filters && filters.status === 'failed')) Lỗi
 
                 select(
                     name="subject"
-                    class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+                    class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                 )
                     option(value="") Tất cả môn học
                     if subjects
                         each subject in subjects
                             option(
                                 value=subject._id
-                                selected=filters?.subject == subject._id
+                                selected=(filters && String(filters.subject) === String(subject._id))
                             )
                                 = subject.name
 
                 button(
                     type="submit"
-                    class="px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium"
+                    class="px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
                 )
                     | Lọc
 
-        .bg-white.border.border-gray-200.rounded-2xl.shadow-sm.overflow-hidden
+        //- Table
+        div(class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden")
             if submissions && submissions.length
-                .overflow-x-auto
+                div(class="overflow-x-auto")
                     table(class="w-full text-sm")
                         thead(class="bg-gray-50")
                             tr
@@ -69,30 +72,37 @@ block content
                                 th(class="px-5 py-3 text-left font-semibold text-gray-600")
                                     | Thời gian
                                 th(class="px-5 py-3 text-right font-semibold text-gray-600")
-                                    | 
 
                         tbody(class="divide-y divide-gray-100")
                             each submission in submissions
                                 tr(class="hover:bg-gray-50")
+
+                                    //- Sinh viên
                                     td(class="px-5 py-4")
                                         p(class="font-medium text-gray-900")
-                                            = submission.student?.name || 'Chưa có tên'
+                                            = (submission.userId && submission.userId.name) || 'Chưa có tên'
                                         p(class="text-xs text-gray-500")
-                                            = submission.student?.email || ''
+                                            = (submission.userId && submission.userId.email) || ''
 
+                                    //- Bài học
                                     td(class="px-5 py-4")
                                         p(class="text-gray-800")
-                                            = submission.lesson?.title || '—'
+                                            = (submission.lessonId && submission.lessonId.title) || '—'
                                         p(class="text-xs text-gray-500")
-                                            = submission.lesson?.subject?.name || ''
+                                            = (submission.subjectId && submission.subjectId.name) || ''
 
+                                    //- Điểm
                                     td(class="px-5 py-4")
                                         if submission.score !== undefined && submission.score !== null
                                             span(class="font-bold text-gray-900")
                                                 = submission.score
+                                            span(class="text-gray-400 text-xs")
+                                                |  / 10
                                         else
-                                            | —
+                                            span(class="text-gray-400")
+                                                | —
 
+                                    //- Trạng thái
                                     td(class="px-5 py-4")
                                         if submission.status === 'graded'
                                             span(class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium")
@@ -107,18 +117,20 @@ block content
                                             span(class="px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium")
                                                 | Chờ chấm
 
-                                    td(class="px-5 py-4 text-gray-500")
+                                    //- Thời gian
+                                    td(class="px-5 py-4 text-gray-500 text-xs")
                                         = submission.createdAt ? new Date(submission.createdAt).toLocaleString('vi-VN') : '—'
 
-                                    td(class="px-5 py-4")
+                                    //- Hành động
+                                    td(class="px-5 py-4 text-right")
                                         a(
-                                            href="/admin/submissions/" + submission._id
+                                            href="/submissions/" + submission._id
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-medium"
                                         )
-                                            i(data-lucide="eye" class="w-3.5 h-3.5")
+                                            i(data-lucide="eye", class="w-3.5 h-3.5")
                                             | Xem
             else
-                .py-16.text-center
-                    i(data-lucide="file-x" class="w-10 h-10 mx-auto text-gray-300")
+                div(class="py-16 text-center")
+                    i(data-lucide="file-x", class="w-10 h-10 mx-auto text-gray-300")
                     p(class="text-gray-500 mt-3")
                         | Không có bài nộp phù hợp.

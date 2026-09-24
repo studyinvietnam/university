@@ -1,54 +1,40 @@
-// routes/admin.js
 const express = require("express");
 
-const lessonController     = require("../controllers/lesson.controller");
-const subjectController    = require("../controllers/subject.controller");
+const lessonController = require("../controllers/lesson.controller");
+const subjectController = require("../controllers/subject.controller");
 const submissionController = require("../controllers/submission.controller");
-const disputeController    = require("../controllers/dispute.controller");
-const promptController     = require("../controllers/prompt.controller");
-const aiKeyController      = require("../controllers/aikey.controller");
-const userController       = require("../controllers/user.controller");  // ✅ MỚI
+const disputeController = require("../controllers/dispute.controller");
+const promptController = require("../controllers/prompt.controller");
+const aiKeyController = require("../controllers/aikey.controller");
 
 const router = express.Router();
+
 
 // ============================================================
 // MIDDLEWARE — yêu cầu admin
 // ============================================================
 
 function requireAdmin(req, res, next) {
-    const user = req.user || req.session?.user;
+    const user = req.session?.user;
 
     if (!user) {
-        if (req.xhr || req.path.startsWith("/api")) {
-            return res.status(401).json({ error: "Chưa đăng nhập" });
-        }
         return res.redirect("/auth/login");
     }
 
     if (user.role !== "admin") {
-        if (req.xhr || req.path.startsWith("/api")) {
-            return res.status(403).json({ error: "Không có quyền" });
-        }
         return res.status(403).render("error", {
             title: "Không có quyền truy cập",
             message: "Bạn không có quyền truy cập trang quản trị.",
             statusCode: 403,
-            stack: null,
+            stack: null
         });
     }
-
-    // ✅ FIX: đảm bảo req.user luôn được gán, kể cả khi hệ thống
-    // đăng nhập bằng session (req.session.user) chứ không phải
-    // Passport (req.user). Nếu không có dòng này, mọi controller
-    // đọc req.user (vd lessonController.listSubjects render
-    // "user: req.user") sẽ nhận undefined và đè mất res.locals.user
-    // của layout, khiến header hiện như chưa đăng nhập.
-    req.user = user;
 
     next();
 }
 
 router.use(requireAdmin);
+
 
 // ============================================================
 // DASHBOARD
@@ -66,7 +52,7 @@ router.get("/dashboard", async (req, res) => {
             subjectsCount,
             lessonsCount,
             submissionsCount,
-            recentSubmissions,
+            recentSubmissions
         ] = await Promise.all([
             User.countDocuments({ deletedForever: { $ne: true } }),
             Subject.countDocuments({ deletedForever: { $ne: true }, deletedAt: null }),
@@ -77,14 +63,14 @@ router.get("/dashboard", async (req, res) => {
                 .populate("lessonId", "title")
                 .sort({ createdAt: -1 })
                 .limit(10)
-                .lean(),
+                .lean()
         ]);
 
         const stats = {
             users: usersCount,
             subjects: subjectsCount,
             lessons: lessonsCount,
-            submissions: submissionsCount,
+            submissions: submissionsCount
         };
 
         const mappedRecent = recentSubmissions.map((s) => ({
@@ -93,13 +79,14 @@ router.get("/dashboard", async (req, res) => {
             lesson: s.lessonId || null,
             score: s.score,
             status: s.status || (s.gradedAt ? "graded" : "pending"),
-            createdAt: s.createdAt,
+            createdAt: s.createdAt
         }));
 
         return res.render("admin/dashboard", {
             title: "Dashboard",
+            user: req.user,
             stats,
-            recentSubmissions: mappedRecent,
+            recentSubmissions: mappedRecent
         });
     } catch (error) {
         console.error("dashboard error:", error);
@@ -107,21 +94,11 @@ router.get("/dashboard", async (req, res) => {
             title: "Lỗi",
             message: "Không thể tải dashboard.",
             statusCode: 500,
-            stack: null,
+            stack: null
         });
     }
 });
 
-// ============================================================
-// PRACTICE — PHẢI ĐẶT TRƯỚC CÁC ROUTE CÓ :id
-// ============================================================
-
-router.get("/practice", lessonController.listSubjects);
-router.get("/practice/subject/:slug", lessonController.listLessons);
-router.get("/practice/lesson/:slug", lessonController.showLesson);
-router.get("/practice/history", submissionController.history);
-router.post("/practice/submit", submissionController.submit);
-router.get("/practice/submission/:id", submissionController.detail);
 
 // ============================================================
 // SUBJECTS — CRUD
@@ -137,11 +114,12 @@ router.post("/subjects/:id/delete", subjectController.deleteSubject);
 router.post("/subjects/:id/restore", subjectController.restoreSubject);
 router.post("/subjects/:id/hard-delete", subjectController.hardDeleteSubject);
 
+
 // ============================================================
 // LESSONS — CRUD
-// /lessons/create PHẢI đặt TRƯỚC /lessons/:id/edit
 // ============================================================
 
+// ⚠️ QUAN TRỌNG: /lessons/create PHẢI đặt TRƯỚC /lessons/:id
 router.get("/lessons", lessonController.getAdminLessons);
 
 router.get("/lessons/create", lessonController.showCreateLesson);
@@ -154,47 +132,49 @@ router.post("/lessons/:id/delete", lessonController.deleteLesson);
 router.post("/lessons/:id/restore", lessonController.restoreLesson);
 router.post("/lessons/:id/hard-delete", lessonController.hardDeleteLesson);
 
+
 // ============================================================
-// SUBMISSIONS / PROMPTS / AI KEYS / DISPUTES
+// SUBMISSIONS
 // ============================================================
 
 router.get("/submissions", submissionController.getAdminSubmissions);
+
+
+// ============================================================
+// PROMPTS — CRUD
+// ============================================================
+
 router.get("/prompts", promptController.getPrompts);
+
+// ⚠️ QUAN TRỌNG: /prompts/create PHẢI đặt TRƯỚC /prompts/:id/edit
+router.get("/prompts/create", promptController.showCreatePrompt);
+router.post("/prompts", promptController.createPrompt);
+
+router.get("/prompts/:id/edit", promptController.showEditPrompt);
+router.post("/prompts/:id/edit", promptController.updatePrompt);
+
+router.post("/prompts/:id/set-default", promptController.setDefault);
+router.post("/prompts/:id/delete", promptController.deletePrompt);
+router.post("/prompts/:id/hard-delete", promptController.hardDeletePrompt);
+
+
+// ============================================================
+// AI KEYS — CRUD  ★ ĐÃ THÊM
+// ============================================================
+
 router.get("/ai-keys", aiKeyController.getAIKeys);
+
+router.post("/ai-keys", aiKeyController.createAIKey);
+router.post("/ai-keys/:id/toggle", aiKeyController.toggleAIKey);
+router.post("/ai-keys/:id/delete", aiKeyController.deleteAIKey);
+
+
+// ============================================================
+// DISPUTES
+// ============================================================
+
 router.get("/disputes", disputeController.getDisputes);
 
-// ============================================================
-// OVERRIDE SCORE
-// ============================================================
-
-router.post("/submission/:id/override", submissionController.override);
-
-// ============================================================
-// USERS — Quản lý tài khoản  ✅ MỚI (thay handler inline cũ)
-// ============================================================
-
-router.get("/users", userController.getUsers);
-
-// Chi tiết 1 user (dùng cho modal hoặc AJAX)
-router.get("/users/:id/detail", userController.getUser);
-
-// Cập nhật role + status + name
-router.post("/users/:id/update", userController.updateUser);
-
-// Đổi role riêng
-router.post("/users/:id/role", userController.changeRole);
-
-// Duyệt nhanh (client + pending → student + approved)
-router.post("/users/:id/approve", userController.approveUser);
-
-// Từ chối
-router.post("/users/:id/reject", userController.rejectUser);
-
-// Bật / tắt trạng thái disabled
-router.post("/users/:id/toggle", userController.toggleStatus);
-
-// Xoá vĩnh viễn
-router.post("/users/:id/delete", userController.deleteUser);
 
 // ============================================================
 // ROLES
@@ -207,17 +187,145 @@ router.get("/roles", async (req, res) => {
 
         return res.render("admin/roles", {
             title: "Quản lý quyền",
-            roles,
+            user: req.user,
+            roles
         });
     } catch (error) {
         console.error("roles error:", error);
         return res.status(500).render("admin/roles", {
             title: "Quản lý quyền",
+            user: req.user,
             roles: [],
-            error: error.message,
+            error: error.message
         });
     }
 });
+
+
+// ============================================================
+// USERS
+// ============================================================
+
+router.get("/users", async (req, res) => {
+    try {
+        const User = require("../models/User");
+
+        const q = (req.query.q || "").trim();
+        const role = req.query.role || "all";
+        const status = req.query.status || "all";
+
+        const filter = {};
+
+        if (q) {
+            filter.$or = [
+                { name: { $regex: q, $options: "i" } },
+                { email: { $regex: q, $options: "i" } }
+            ];
+        }
+
+        if (role !== "all") {
+            filter.role = role;
+        }
+
+        if (status !== "all") {
+            filter.status = status;
+        }
+
+        const [users, total, pending, student, admin, client] = await Promise.all([
+            User.find(filter)
+                .select("-password")
+                .populate("approvedBy", "name email")
+                .sort({ createdAt: -1 })
+                .lean(),
+            User.countDocuments(),
+            User.countDocuments({ status: "pending" }),
+            User.countDocuments({ role: "student" }),
+            User.countDocuments({ role: "admin" }),
+            User.countDocuments({ role: "client" })
+        ]);
+
+        const stats = { total, pending, student, admin, client };
+        const filters = { q, role, status };
+
+        return res.render("admin/users", {
+            title: "Quản lý người dùng",
+            user: req.user,
+            users,
+            stats,
+            filters
+        });
+    } catch (error) {
+        console.error("users error:", error);
+        return res.status(500).render("admin/users", {
+            title: "Quản lý người dùng",
+            user: req.user,
+            users: [],
+            stats: { total: 0, pending: 0, student: 0, admin: 0, client: 0 },
+            filters: { q: "", role: "all", status: "all" },
+            error: error.message
+        });
+    }
+});
+
+router.post("/users/:id/approve", async (req, res) => {
+    try {
+        const User = require("../models/User");
+        const targetUser = await User.findById(req.params.id);
+
+        if (!targetUser) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
+        }
+
+        targetUser.status = "approved";
+        targetUser.approvedBy = req.user?._id || req.session?.user?._id;
+        await targetUser.save();
+
+        return res.json({ success: true });
+    } catch (error) {
+        console.error("approve user error:", error);
+        return res.status(500).json({ success: false, message: "Lỗi máy chủ khi duyệt người dùng." });
+    }
+});
+
+router.post("/users/:id/update", async (req, res) => {
+    try {
+        const User = require("../models/User");
+        const { name, role, status } = req.body;
+
+        const targetUser = await User.findById(req.params.id);
+        if (!targetUser) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
+        }
+
+        if (name !== undefined) targetUser.name = name;
+        if (role !== undefined) targetUser.role = role;
+        if (status !== undefined) targetUser.status = status;
+
+        await targetUser.save();
+
+        return res.json({ success: true });
+    } catch (error) {
+        console.error("update user error:", error);
+        return res.status(500).json({ success: false, message: "Lỗi máy chủ khi cập nhật người dùng." });
+    }
+});
+
+router.post("/users/:id/delete", async (req, res) => {
+    try {
+        const User = require("../models/User");
+        const deleted = await User.findByIdAndDelete(req.params.id);
+
+        if (!deleted) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
+        }
+
+        return res.json({ success: true });
+    } catch (error) {
+        console.error("delete user error:", error);
+        return res.status(500).json({ success: false, message: "Lỗi máy chủ khi xoá người dùng." });
+    }
+});
+
 
 // ============================================================
 // AUDIT LOG
@@ -228,23 +336,25 @@ router.get("/audit-log", async (req, res) => {
         const AuditLog = require("../models/AuditLog");
         const logs = await AuditLog.find()
             .populate("actor", "name email")
-            .populate("adminId", "name email")
             .sort({ createdAt: -1 })
             .limit(200)
             .lean();
 
         return res.render("admin/auditlog", {
             title: "Audit Log",
-            logs,
+            user: req.user,
+            logs
         });
     } catch (error) {
         console.error("audit-log error:", error);
         return res.status(500).render("admin/auditlog", {
             title: "Audit Log",
+            user: req.user,
             logs: [],
-            error: error.message,
+            error: error.message
         });
     }
 });
+
 
 module.exports = router;

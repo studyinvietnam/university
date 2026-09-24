@@ -1,228 +1,182 @@
 extends ../layout
 
 block content
-    div(class="max-w-7xl mx-auto px-4 sm\:px-6 lg\:px-8 py-8")
+    div(class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8")
 
-        div(class="flex flex-col sm\:flex-row sm\:items-center sm\:justify-between gap-4 mb-8")
+        //- HEADER
+        div(class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8")
             div
                 h1(class="text-2xl sm:text-3xl font-bold text-gray-900")
-                    | Prompt AI
+                    | Quản lý Prompt chấm điểm
                 p(class="text-gray-500 mt-1")
-                    | Cấu hình prompt dùng để chấm bài tự động
+                    | Cấu hình prompt AI dùng để chấm bài
 
-            button(
-                type="button"
-                onclick="document.getElementById('promptModal').classList.remove('hidden')"
-                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+            a(
+                href="/admin/prompts/create"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
             )
-                i(data-lucide="plus" class="w-4 h-4")
-                | Tạo prompt
+                i(data-lucide="plus", class="w-4 h-4")
+                | Thêm Prompt
 
-        .bg-blue-50.border.border-blue-200.rounded-xl.p-4.mb-6
-            .flex.items-start.gap-3
-                i(data-lucide="info" class="w-5 h-5 text-blue-600 mt-0.5")
-                div
-                    p(class="font-medium text-blue-900")
-                        | Thứ tự ưu tiên prompt
-                    p(class="text-sm text-blue-700 mt-1")
-                        | Prompt bài học → Prompt môn học → Prompt mặc định → Fallback hệ thống.
+        //- FLASH
+        if success
+            div(class="mb-6 p-4 rounded-xl bg-green-50 border border-green-200 text-green-800 text-sm")
+                = success
+        if error
+            div(class="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm")
+                = error
 
+        //- FILTER
+        div(class="bg-white border border-gray-200 rounded-xl p-4 mb-6")
+            form(action="/admin/prompts", method="GET", class="flex flex-col sm:flex-row gap-3")
+                select(
+                    name="scope"
+                    class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                )
+                    option(value="") Tất cả scope
+                    option(value="global", selected=(filters && filters.scope === 'global')) Global
+                    option(value="subject", selected=(filters && filters.scope === 'subject')) Theo môn
+                    option(value="lesson", selected=(filters && filters.scope === 'lesson')) Theo bài
+
+                select(
+                    name="active"
+                    class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                )
+                    option(value="") Tất cả trạng thái
+                    option(value="1", selected=(filters && filters.active === '1')) Đang hoạt động
+                    option(value="0", selected=(filters && filters.active === '0')) Đã tắt
+
+                input(
+                    type="text"
+                    name="search"
+                    value=(filters && filters.search) || ''
+                    placeholder="Tìm theo tên prompt..."
+                    class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                )
+
+                button(
+                    type="submit"
+                    class="px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+                )
+                    | Lọc
+
+        //- LIST
         if prompts && prompts.length
-            .space-y-4
+            div(class="grid grid-cols-1 md:grid-cols-2 gap-5")
                 each prompt in prompts
                     .bg-white.border.border-gray-200.rounded-2xl.p-5.shadow-sm
-                        div(class="flex flex-col lg\:flex-row lg\:items-start justify-between gap-4")
+
+                        //- HEADER CARD
+                        div(class="flex items-start justify-between gap-3 mb-3")
                             div(class="flex-1 min-w-0")
-                                .flex.items-center.gap-3
-                                    .w-10.h-10.rounded-lg.bg-purple-100.text-purple-600.flex.items-center.justify-center
-                                        i(data-lucide="bot" class="w-5 h-5")
+                                div(class="flex items-center gap-2 flex-wrap")
+                                    h3(class="font-bold text-gray-900 truncate")
+                                        = prompt.name
+                                    if prompt.isDefault
+                                        span(class="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800")
+                                            | ⭐ Mặc định
+                                    if !prompt.active
+                                        span(class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600")
+                                            | Đã tắt
 
-                                    div
-                                        h2(class="font-semibold text-gray-900")
-                                            = prompt.name || 'Prompt không tên'
+                                div(class="flex items-center gap-2 mt-2 flex-wrap text-xs")
+                                    span(class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium")
+                                        = prompt.scope || 'global'
+                                    span(class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium")
+                                        = prompt.strictness || 'normal'
+                                    span(class="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium")
+                                        | Max: #{prompt.maxScore || 10}
+                                    span(class="text-gray-400")
+                                        | v#{prompt.version || 1}
 
-                                        .flex.flex-wrap.items-center.gap-2.mt-1
-                                            if prompt.scope === 'lesson'
-                                                span(class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700")
-                                                    | Bài học
-                                            else if prompt.scope === 'subject'
-                                                span(class="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700")
-                                                    | Môn học
-                                            else
-                                                span(class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700")
-                                                    | Mặc định
+                        if prompt.description
+                            p(class="text-sm text-gray-600 mb-3 line-clamp-2")
+                                = prompt.description
 
-                                            if prompt.active
-                                                span(class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700")
-                                                    | Đang dùng
+                        //- RUBRIC PREVIEW
+                        if prompt.rubric && prompt.rubric.length
+                            div(class="mb-3 p-3 rounded-lg bg-gray-50 border border-gray-100")
+                                div(class="text-xs font-semibold text-gray-500 mb-2")
+                                    | Rubric (#{prompt.rubric.length} tiêu chí)
+                                each r in prompt.rubric
+                                    div(class="flex items-center justify-between text-xs mb-1")
+                                        span(class="text-gray-700 truncate")
+                                            = r.criterion
+                                        span(class="font-semibold text-gray-900")
+                                            = r.weight + '%'
 
-                                pre(class="mt-4 p-4 bg-gray-50 rounded-xl text-xs text-gray-700 whitespace-pre-wrap font-mono overflow-x-auto")
-                                    = prompt.content
+                        //- SCOPE INFO
+                        if prompt.scope === 'subject' && prompt.subjectId
+                            p(class="text-xs text-gray-500 mb-2")
+                                | 📚 Môn: #{prompt.subjectId.name || '(đã xoá)'}
+                        if prompt.scope === 'lesson' && prompt.lessonId
+                            p(class="text-xs text-gray-500 mb-2")
+                                | 📝 Bài: #{prompt.lessonId.title || '(đã xoá)'}
 
-                            .flex.items-center.gap-2.flex-shrink-0
-                                button(
-                                    type="button"
-                                    class="test-prompt-btn px-3 py-2 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-sm font-medium"
-                                    data-prompt-id=prompt._id
-                                    data-prompt-name=prompt.name || 'Prompt không tên'
-                                )
-                                    | Test / So sánh model
+                        //- AUDIT
+                        div(class="text-xs text-gray-400 mb-3")
+                            if prompt.createdAt
+                                | Tạo: #{new Date(prompt.createdAt).toLocaleString('vi-VN')}
 
-                                a(
-                                    href="/admin/prompts/" + prompt._id + "/edit"
-                                    class="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm font-medium"
-                                )
-                                    | Sửa
+                        //- ACTIONS
+                        div(class="flex items-center gap-2 pt-3 border-t border-gray-100")
+                            a(
+                                href=`/admin/prompts/${prompt._id}/edit`
+                                class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200"
+                            )
+                                i(data-lucide="pencil", class="w-3.5 h-3.5")
+                                | Sửa
 
+                            if !prompt.isDefault
                                 form(
-                                    action="/admin/prompts/" + prompt._id + "/delete"
+                                    action=`/admin/prompts/${prompt._id}/set-default`
                                     method="POST"
-                                    onsubmit="return confirm('Bạn có chắc muốn xóa prompt này?')"
+                                    class="inline"
                                 )
                                     button(
                                         type="submit"
-                                        class="px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-lg text-xs font-medium hover:bg-yellow-100"
                                     )
-                                        | Xóa
+                                        | ⭐ Đặt default
+
+                            if prompt.active
+                                form(
+                                    action=`/admin/prompts/${prompt._id}/delete`
+                                    method="POST"
+                                    class="inline"
+                                    onsubmit="return confirm('Vô hiệu hoá prompt này?')"
+                                )
+                                    button(
+                                        type="submit"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100"
+                                    )
+                                        i(data-lucide="power", class="w-3.5 h-3.5")
+                                        | Tắt
+                            else
+                                form(
+                                    action=`/admin/prompts/${prompt._id}/hard-delete`
+                                    method="POST"
+                                    class="inline"
+                                    onsubmit="return confirm('XOÁ VĨNH VIỄN không thể hoàn tác. Chắc chắn?')"
+                                )
+                                    button(
+                                        type="submit"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-xs font-medium hover:bg-red-100"
+                                    )
+                                        i(data-lucide="trash-2", class="w-3.5 h-3.5")
+                                        | Xoá vĩnh viễn
+
         else
             .bg-white.border.border-gray-200.rounded-2xl.py-16.text-center
-                i(data-lucide="bot" class="w-10 h-10 mx-auto text-gray-300")
-                p(class="text-gray-500 mt-3")
-                    | Chưa có prompt nào.
-
-        //- ============================================================
-        //- MODAL: TẠO PROMPT
-        //- ============================================================
-        #promptModal(class="hidden fixed inset-0 z-[100] bg-black/50 p-4 overflow-y-auto")
-            .min-h-full.flex.items-center.justify-center.py-8
-                .bg-white.rounded-2xl.w-full.max-w-2xl.shadow-xl
-                    .px-6.py-5.border-b.border-gray-200.flex.items-center.justify-between
-                        h2(class="font-bold text-gray-900")
-                            | Tạo prompt
-                        button(
-                            type="button"
-                            onclick="document.getElementById('promptModal').classList.add('hidden')"
-                        )
-                            i(data-lucide="x" class="w-5 h-5")
-
-                    form(
-                        action="/admin/prompts"
-                        method="POST"
-                        class="p-6 space-y-5"
-                    )
-                        div
-                            label(class="block text-sm font-medium text-gray-700 mb-2")
-                                | Tên prompt
-                            input(
-                                type="text"
-                                name="name"
-                                required
-                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg"
-                                placeholder="Prompt chấm bài mặc định"
-                            )
-
-                        div
-                            label(class="block text-sm font-medium text-gray-700 mb-2")
-                                | Phạm vi
-                            select(
-                                name="scope"
-                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg"
-                            )
-                                option(value="global") Mặc định toàn hệ thống
-                                option(value="subject") Theo môn học
-                                option(value="lesson") Theo bài học
-
-                        div
-                            label(class="block text-sm font-medium text-gray-700 mb-2")
-                                | Nội dung prompt
-                            textarea(
-                                name="content"
-                                required
-                                rows="12"
-                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg resize-y font-mono text-sm"
-                                placeholder="Nhập prompt chấm bài... (dùng {đề_bài}, {bài_làm}, {lời_giải_mẫu}, {rubric}, {max_score})"
-                            )
-
-                        button(
-                            type="submit"
-                            class="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium"
-                        )
-                            | Tạo prompt
-
-        //- ============================================================
-        //- MODAL: TEST / SO SÁNH MODEL
-        //- ============================================================
-        #testPromptModal(class="hidden fixed inset-0 z-[100] bg-black/50 p-4 overflow-y-auto")
-            .min-h-full.flex.items-center.justify-center.py-8
-                .bg-white.rounded-2xl.w-full.max-w-4xl.shadow-xl
-                    .px-6.py-5.border-b.border-gray-200.flex.items-center.justify-between
-                        div
-                            h2(class="font-bold text-gray-900")
-                                | Test prompt
-                            p#testPromptName(class="text-sm text-gray-500 mt-0.5")
-                        button(
-                            type="button"
-                            onclick="document.getElementById('testPromptModal').classList.add('hidden')"
-                        )
-                            i(data-lucide="x" class="w-5 h-5")
-
-                    .p-6.space-y-5
-
-                        div
-                            label(class="block text-sm font-medium text-gray-700 mb-2") Đề bài (tùy chọn)
-                            textarea#tp-topic(
-                                rows="2"
-                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
-                                placeholder="Dán đề bài để test..."
-                            )
-
-                        div
-                            label(class="block text-sm font-medium text-gray-700 mb-2") Bài làm mẫu để test
-                            textarea#tp-essay(
-                                rows="5"
-                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
-                                placeholder="Dán bài làm học sinh (mẫu) để chấm thử..."
-                            )
-
-                        div
-                            label(class="block text-sm font-medium text-gray-700 mb-2") Lời giải mẫu (tùy chọn, nếu đề có sẵn)
-                            textarea#tp-sample(
-                                rows="3"
-                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
-                                placeholder="Dán lời giải mẫu để AI đối chiếu..."
-                            )
-
-                        div(class="flex flex-col sm\:flex-row gap-3 items-start sm\:items-end")
-                            div(class="flex-1")
-                                label(class="block text-sm font-medium text-gray-700 mb-2") Model
-                                select#tp-model(class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm")
-                                    if supportedModels && supportedModels.length
-                                        each m in supportedModels
-                                            option(value=m selected=(m === defaultModel)) #{m}
-
-                            button#tp-run-single(
-                                type="button"
-                                class="px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 whitespace-nowrap"
-                            )
-                                | Chạy model này
-
-                            button#tp-run-all(
-                                type="button"
-                                class="px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 whitespace-nowrap"
-                            )
-                                | Chạy tất cả model
-
-                        #tp-status(class="text-sm text-gray-500 hidden")
-
-                        #tp-results(class="hidden")
-                            //- filled by public/js/modelCompare.js
-                            table(class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden")
-                                thead(class="bg-gray-50")
-                                    tr(class="text-left text-xs font-semibold text-gray-500 uppercase")
-                                        th(class="px-4 py-3") Model
-                                        th(class="px-4 py-3") Điểm
-                                        th(class="px-4 py-3") Thời gian
-                                        th(class="px-4 py-3") Feedback / Lỗi
-                                tbody#tp-results-body(class="divide-y divide-gray-100")
-
-script(src="/js/modelCompare.js")
+                .w-14.h-14.rounded-full.bg-gray-100.text-gray-400.flex.items-center.justify-center.mx-auto
+                    i(data-lucide="bot", class="w-6 h-6")
+                h2(class="font-semibold text-gray-900 mt-4")
+                    | Chưa có prompt nào
+                p(class="text-sm text-gray-500 mt-1")
+                    | Tạo prompt đầu tiên để cấu hình AI chấm bài.
+                a(
+                    href="/admin/prompts/create"
+                    class="inline-flex items-center gap-2 mt-5 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                )
+                    i(data-lucide="plus", class="w-4 h-4")
+                    | Thêm Prompt

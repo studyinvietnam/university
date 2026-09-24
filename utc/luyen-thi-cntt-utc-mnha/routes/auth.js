@@ -31,10 +31,17 @@ router.post("/verify-otp", authController.verifyOtp);
 router.post("/resend-otp", authController.resendOtp);
 
 // ============================================================
-// QUÊN MẬT KHẨU
+// ★ QUÊN MẬT KHẨU (3 bước)
 // ============================================================
 router.get("/forgot", authController.showForgot);
 router.post("/forgot", authController.forgotPassword);
+
+router.get("/reset-verify", authController.showResetVerify);
+router.post("/reset-verify", authController.verifyResetOtp);
+router.post("/reset-verify/resend", authController.resendResetOtp);
+
+router.get("/reset-password", authController.showResetPassword);
+router.post("/reset-password", authController.resetPassword);
 
 // ============================================================
 // ĐĂNG XUẤT

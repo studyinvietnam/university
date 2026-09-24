@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const lessonSchema = new mongoose.Schema(
     {
-        subject: {
+        subjectId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Subject',
             required: true,
@@ -35,29 +35,49 @@ const lessonSchema = new mongoose.Schema(
             default: ''
         },
 
-        // Lời giải mẫu (chỉ hiện sau khi chấm)
+        // Lời giải mẫu
         sampleSolution: {
             type: String,
             default: ''
         },
 
-        // Thứ tự trong môn
+        // ★ THỜI GIAN LÀM BÀI (phút) — đọc từ đây để set timer ở student
+        duration: {
+            type: Number,
+            default: 20,
+            min: 1,
+            max: 600
+        },
+
         order: {
             type: Number,
             default: 0,
             index: true
         },
 
-        // File JSON trên GitHub
         githubFile: {
             type: String,
             default: null
         },
 
-        // Prompt riêng cho bài (fallback: prompt môn → global)
+        // ★ PROMPT CHẤM ĐIỂM
         promptId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'GradingPrompt',
+            default: null
+        },
+
+        // ★ AI KEY dùng để chấm bài này (nếu trống → key mặc định)
+        aiKeyId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'AIKey',
+            default: null,
+            index: true
+        },
+
+        // ★ MODEL AI dùng để chấm bài này
+        model: {
+            type: String,
             default: null
         },
 
@@ -67,7 +87,7 @@ const lessonSchema = new mongoose.Schema(
             index: true
         },
 
-        // ============ AUDIT ============
+        // AUDIT
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -99,11 +119,9 @@ const lessonSchema = new mongoose.Schema(
             index: true
         }
     },
-    {
-        timestamps: true
-    }
+    { timestamps: true }
 );
 
-lessonSchema.index({ subject: 1, deletedForever: 1, isPublished: 1, order: 1 });
+lessonSchema.index({ subjectId: 1, deletedForever: 1, isPublished: 1, order: 1 });
 
 module.exports = mongoose.model('Lesson', lessonSchema);

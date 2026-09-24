@@ -1,277 +1,380 @@
+// controllers/prompt.controller.js
+const mongoose = require('mongoose');
 const GradingPrompt = require('../models/GradingPrompt');
-const ModelComparison = require('../models/ModelComparison');
-const { renderPromptTemplate } = require('../services/promptService');
-const {
-    runCustomPrompt,
-    runCustomPromptAllModels,
-    SUPPORTED_MODELS,
-    DEFAULT_MODEL
-} = require('../services/aiService');
+const Subject = require('../models/Subject');
+const Lesson = require('../models/Lesson');
 
-const getPrompts = async (req, res) => {
+// ============================================================
+// HELPERS
+// ============================================================
+function getUserId(req) {
+    return req.session?.user?._id || req.user?._id || null;
+}
+
+function validateRubric(rubric) {
+    if (!Array.isArray(rubric) || rubric.length === 0) {
+        return { ok: false, error: 'Rubric phải có ít nhất 1 tiêu chí.' };
+    }
+    const sum = rubric.reduce((acc, r) => acc + Number(r.weight || 0), 0);
+    if (Math.round(sum) !== 100) {
+        return { ok: false, error: `Tổng weight phải = 100% (hiện tại: ${sum}%).` };
+    }
+    return { ok: true };
+}
+
+function parseRubric(body) {
+    // Hỗ trợ cả 2 dạng: rubricJson (text) hoặc 3 mảng song song
+    if (body.rubricJson) {
+        try {
+            const parsed = JSON.parse(body.rubricJson);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+    const criteria = [].concat(body.criterion || []);
+    const weights = [].concat(body.weight || []);
+    const descriptions = [].concat(body.rubricDescription || []);
+
+    return criteria
+        .map((c, i) => ({
+            criterion: (c || '').trim(),
+            weight: Number(weights[i]) || 0,
+            description: (descriptions[i] || '').trim()
+        }))
+        .filter((r) => r.criterion);
+}
+
+// ============================================================
+// LIST — GET /admin/prompts
+// ============================================================
+exports.getPrompts = async (req, res, next) => {
     try {
-        const prompts = await GradingPrompt.find({})
-            .populate('subject', 'name code')
-            .populate('lesson', 'name code')
-            .sort({
-                priority: -1,
-                createdAt: -1
-            })
-            .lean();
+        const { scope, active, search } = req.query;
+
+        const filter = {};
+        if (scope) filter.scope = scope;
+        if (active === '1') filter.active = true;
+        if (active === '0') filter.active = false;
+        if (search && search.trim()) {
+            filter.name = { $regex: search.trim(), $options: 'i' };
+        }
+
+        const [prompts, subjects, lessons] = await Promise.all([
+            GradingPrompt.find(filter)
+                .populate('subjectId', 'name code')
+                .populate('lessonId', 'title')
+                .populate('createdBy', 'name email')
+                .sort({ isDefault: -1, createdAt: -1 })
+                .lean(),
+            Subject.find({ deletedAt: null, deletedForever: { $ne: true } })
+                .sort({ name: 1 })
+                .lean(),
+            Lesson.find({ deletedAt: null, deletedForever: { $ne: true } })
+                .populate('subjectId', 'name')
+                .sort({ createdAt: -1 })
+                .lean()
+        ]);
 
         return res.render('admin/prompts', {
-            title: 'Prompt chấm bài',
+            title: 'Quản lý Prompt chấm điểm',
+            user: req.user,
             prompts,
-            supportedModels: SUPPORTED_MODELS,
-            defaultModel: DEFAULT_MODEL
+            subjects,
+            lessons,
+            filters: {
+                scope: scope || '',
+                active: active || '',
+                search: search || ''
+            },
+            success: req.query.success || null,
+            error: req.query.error || null
         });
-    } catch (error) {
-        console.error('Get prompts error:', error);
-
-        return res.status(500).render('admin/prompts', {
-            title: 'Prompt chấm bài',
-            prompts: [],
-            supportedModels: SUPPORTED_MODELS,
-            defaultModel: DEFAULT_MODEL,
-            error: 'Không thể tải danh sách prompt.'
+    } catch (err) {
+        console.error('getPrompts error:', err);
+        return res.status(500).render('error', {
+            title: 'Lỗi',
+            message: 'Không thể tải danh sách prompt.',
+            statusCode: 500,
+            stack: null
         });
     }
 };
 
-const createPrompt = async (req, res) => {
+// ============================================================
+// CREATE — POST /admin/prompts
+// ============================================================
+exports.createPrompt = async (req, res, next) => {
     try {
         const {
-            name,
-            content,
-            scope,
-            subject,
-            lesson,
-            priority,
-            isActive
+            name, description, content,
+            strictness, maxScore,
+            scope, subjectId, lessonId,
+            isDefault, active
         } = req.body;
 
-        if (!name || !content) {
-            return res.status(400).redirect('/admin/prompts');
+        if (!name || !name.trim()) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Tên prompt không được để trống.'));
+        }
+        if (!content || !content.trim()) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Nội dung prompt không được để trống.'));
         }
 
-        await GradingPrompt.create({
+        const rubric = parseRubric(req.body);
+        const check = validateRubric(rubric);
+        if (!check.ok) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent(check.error));
+        }
+
+        // Nếu đặt làm default → bỏ default ở các prompt khác (chỉ 1 default global)
+        const setDefault = isDefault === 'on' || isDefault === true;
+        if (setDefault) {
+            await GradingPrompt.updateMany(
+                { isDefault: true },
+                { $set: { isDefault: false } }
+            );
+        }
+
+        const prompt = await GradingPrompt.create({
             name: name.trim(),
-            content,
+            description: (description || '').trim(),
+            content: content.trim(),
+            rubric,
+            strictness: strictness || 'normal',
+            maxScore: Number(maxScore) || 10,
             scope: scope || 'global',
-            subject: subject || null,
-            lesson: lesson || null,
-            priority: Number(priority) || 0,
-            isActive: isActive === 'true' || isActive === 'on',
-            createdBy: req.session.user.id
+            subjectId: scope === 'subject' && subjectId && mongoose.Types.ObjectId.isValid(subjectId) ? subjectId : null,
+            lessonId: scope === 'lesson' && lessonId && mongoose.Types.ObjectId.isValid(lessonId) ? lessonId : null,
+            isDefault: setDefault,
+            active: active !== 'off',
+            variables: ['{đề_bài}', '{bài_làm}', '{rubric}', '{max_score}', '{student_name}', '{lời_giải_mẫu}'],
+            version: 1,
+            createdBy: getUserId(req),
+            updatedBy: getUserId(req)
         });
 
-        return res.redirect('/admin/prompts');
-    } catch (error) {
-        console.error('Create prompt error:', error);
-
-        return res.status(500).redirect('/admin/prompts');
+        return res.redirect('/admin/prompts?success=' + encodeURIComponent(`Đã tạo prompt "${prompt.name}".`));
+    } catch (err) {
+        console.error('createPrompt error:', err);
+        return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể tạo: ' + err.message));
     }
 };
 
-const updatePrompt = async (req, res) => {
+// ============================================================
+// EDIT FORM — GET /admin/prompts/:id/edit
+// ============================================================
+exports.showEditPrompt = async (req, res, next) => {
     try {
-        const prompt = await GradingPrompt.findById(
-            req.params.id
-        );
+        const { id } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('ID không hợp lệ.'));
+        }
+
+        const [prompt, subjects, lessons] = await Promise.all([
+            GradingPrompt.findById(id).lean(),
+            Subject.find({ deletedAt: null, deletedForever: { $ne: true } })
+                .sort({ name: 1 })
+                .lean(),
+            Lesson.find({ deletedAt: null, deletedForever: { $ne: true } })
+                .populate('subjectId', 'name')
+                .sort({ createdAt: -1 })
+                .lean()
+        ]);
 
         if (!prompt) {
-            return res.status(404).redirect('/admin/prompts');
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không tìm thấy prompt.'));
+        }
+
+        return res.render('admin/prompt-form', {
+            title: 'Sửa Prompt',
+            user: req.user,
+            prompt,
+            subjects,
+            lessons,
+            success: req.query.success || null,
+            error: req.query.error || null
+        });
+    } catch (err) {
+        console.error('showEditPrompt error:', err);
+        return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể tải prompt.'));
+    }
+};
+
+// ============================================================
+// CREATE FORM — GET /admin/prompts/create
+// ============================================================
+exports.showCreatePrompt = async (req, res, next) => {
+    try {
+        const [subjects, lessons] = await Promise.all([
+            Subject.find({ deletedAt: null, deletedForever: { $ne: true } })
+                .sort({ name: 1 })
+                .lean(),
+            Lesson.find({ deletedAt: null, deletedForever: { $ne: true } })
+                .populate('subjectId', 'name')
+                .sort({ createdAt: -1 })
+                .lean()
+        ]);
+
+        return res.render('admin/prompt-form', {
+            title: 'Thêm Prompt',
+            user: req.user,
+            prompt: null,
+            subjects,
+            lessons,
+            success: null,
+            error: req.query.error || null
+        });
+    } catch (err) {
+        console.error('showCreatePrompt error:', err);
+        return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể mở form.'));
+    }
+};
+
+// ============================================================
+// UPDATE — POST /admin/prompts/:id/edit
+// ============================================================
+exports.updatePrompt = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('ID không hợp lệ.'));
+        }
+
+        const prompt = await GradingPrompt.findById(id);
+        if (!prompt) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không tìm thấy prompt.'));
         }
 
         const {
-            name,
-            content,
-            scope,
-            subject,
-            lesson,
-            priority,
-            isActive
+            name, description, content,
+            strictness, maxScore,
+            scope, subjectId, lessonId,
+            isDefault, active
         } = req.body;
 
-        prompt.name = name?.trim() || prompt.name;
-        prompt.content = content || prompt.content;
-        prompt.scope = scope || prompt.scope;
-        prompt.subject = subject || null;
-        prompt.lesson = lesson || null;
-        prompt.priority = Number(priority) || 0;
-        prompt.isActive =
-            isActive === 'true' ||
-            isActive === 'on';
+        const rubric = parseRubric(req.body);
+        const check = validateRubric(rubric);
+        if (!check.ok) {
+            return res.redirect(`/admin/prompts/${id}/edit?error=` + encodeURIComponent(check.error));
+        }
 
-        prompt.updatedBy = req.session.user.id;
+        const contentChanged = content && content.trim() !== prompt.content;
+
+        if (name) prompt.name = name.trim();
+        if (typeof description === 'string') prompt.description = description.trim();
+        if (content) prompt.content = content.trim();
+        prompt.rubric = rubric;
+        prompt.strictness = strictness || prompt.strictness;
+        prompt.maxScore = Number(maxScore) || prompt.maxScore;
+        prompt.scope = scope || prompt.scope;
+        prompt.subjectId = scope === 'subject' && subjectId && mongoose.Types.ObjectId.isValid(subjectId) ? subjectId : null;
+        prompt.lessonId = scope === 'lesson' && lessonId && mongoose.Types.ObjectId.isValid(lessonId) ? lessonId : null;
+
+        const setDefault = isDefault === 'on' || isDefault === true;
+        if (setDefault && !prompt.isDefault) {
+            await GradingPrompt.updateMany(
+                { _id: { $ne: prompt._id }, isDefault: true },
+                { $set: { isDefault: false } }
+            );
+        }
+        prompt.isDefault = setDefault;
+
+        prompt.active = active !== 'off';
+
+        if (contentChanged) {
+            prompt.version = (prompt.version || 1) + 1;
+        }
+
+        prompt.updatedBy = getUserId(req);
 
         await prompt.save();
 
-        return res.redirect('/admin/prompts');
-    } catch (error) {
-        console.error('Update prompt error:', error);
-
-        return res.status(500).redirect('/admin/prompts');
+        return res.redirect(`/admin/prompts/${id}/edit?success=` + encodeURIComponent('Đã cập nhật prompt.'));
+    } catch (err) {
+        console.error('updatePrompt error:', err);
+        return res.redirect(`/admin/prompts/${req.params.id}/edit?error=` + encodeURIComponent('Không thể cập nhật: ' + err.message));
     }
-};
-
-const deletePrompt = async (req, res) => {
-    try {
-        const prompt = await GradingPrompt.findById(
-            req.params.id
-        );
-
-        if (!prompt) {
-            return res.status(404).redirect('/admin/prompts');
-        }
-
-        await GradingPrompt.findByIdAndDelete(
-            req.params.id
-        );
-
-        return res.redirect('/admin/prompts');
-    } catch (error) {
-        console.error('Delete prompt error:', error);
-
-        return res.status(500).redirect('/admin/prompts');
-    }
-};
-
-const getEffectivePrompt = async ({
-    lessonId,
-    subjectId
-}) => {
-    /*
-     * Thứ tự ưu tiên:
-     * 1. Lesson
-     * 2. Subject
-     * 3. Global
-     */
-
-    if (lessonId) {
-        const lessonPrompt = await GradingPrompt.findOne({
-            scope: 'lesson',
-            lesson: lessonId,
-            isActive: true
-        }).sort({
-            priority: -1
-        });
-
-        if (lessonPrompt) {
-            return lessonPrompt;
-        }
-    }
-
-    if (subjectId) {
-        const subjectPrompt = await GradingPrompt.findOne({
-            scope: 'subject',
-            subject: subjectId,
-            isActive: true
-        }).sort({
-            priority: -1
-        });
-
-        if (subjectPrompt) {
-            return subjectPrompt;
-        }
-    }
-
-    const globalPrompt = await GradingPrompt.findOne({
-        scope: 'global',
-        isActive: true
-    }).sort({
-        priority: -1
-    });
-
-    return globalPrompt;
 };
 
 // ============================================================
-// TEST PROMPT — chọn 1 model hoặc chạy tất cả (models = 'all')
-// POST /admin/prompts/:id/test
-// body: { topic, essay, sampleSolution, maxScore, rubric, model, models }
+// SET DEFAULT — POST /admin/prompts/:id/set-default
 // ============================================================
-
-const testPrompt = async (req, res) => {
+exports.setDefault = async (req, res, next) => {
     try {
-        const prompt = await GradingPrompt.findById(req.params.id).lean();
-
-        if (!prompt) {
-            return res.status(404).json({
-                success: false,
-                message: 'Không tìm thấy prompt.'
-            });
+        const { id } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('ID không hợp lệ.'));
         }
 
-        const {
-            topic,
-            essay,
-            sampleSolution,
-            maxScore,
-            rubric,
-            model,
-            models
-        } = req.body;
+        await GradingPrompt.updateMany({}, { $set: { isDefault: false } });
+        await GradingPrompt.updateOne(
+            { _id: id },
+            { $set: { isDefault: true, updatedBy: getUserId(req) } }
+        );
 
-        if (!essay || !String(essay).trim()) {
-            return res.status(400).json({
-                success: false,
-                message: 'Cần nhập bài làm mẫu để test.'
-            });
-        }
-
-        const renderedPrompt = renderPromptTemplate(prompt.content, {
-            topic,
-            essay,
-            sampleSolution,
-            rubric: rubric || prompt.rubric,
-            maxScore: maxScore || prompt.maxScore,
-            strictness: prompt.strictness
-        });
-
-        const runAll = models === 'all' || models === true;
-
-        if (runAll) {
-            const results = await runCustomPromptAllModels(renderedPrompt);
-
-            const comparison = await ModelComparison.create({
-                promptId: prompt._id,
-                promptSnapshot: renderedPrompt,
-                results,
-                createdBy: req.session?.user?.id || null
-            });
-
-            return res.json({
-                success: true,
-                mode: 'all',
-                comparisonId: comparison._id,
-                results
-            });
-        }
-
-        const output = await runCustomPrompt(renderedPrompt, model);
-
-        return res.json({
-            success: true,
-            mode: 'single',
-            model: output.model,
-            result: output
-        });
-    } catch (error) {
-        console.error('Test prompt error:', error);
-
-        return res.status(500).json({
-            success: false,
-            message: error.message || 'Không thể test prompt.'
-        });
+        return res.redirect('/admin/prompts?success=' + encodeURIComponent('Đã đặt làm prompt mặc định.'));
+    } catch (err) {
+        console.error('setDefault error:', err);
+        return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể đặt default.'));
     }
 };
 
-module.exports = {
-    getPrompts,
-    createPrompt,
-    updatePrompt,
-    deletePrompt,
-    getEffectivePrompt,
-    testPrompt
+// ============================================================
+// DELETE (soft) — POST /admin/prompts/:id/delete
+// ============================================================
+exports.deletePrompt = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('ID không hợp lệ.'));
+        }
+
+        const prompt = await GradingPrompt.findById(id);
+        if (!prompt) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không tìm thấy prompt.'));
+        }
+
+        if (prompt.isDefault) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể xoá prompt mặc định. Hãy đặt prompt khác làm default trước.'));
+        }
+
+        prompt.active = false;
+        prompt.updatedBy = getUserId(req);
+        await prompt.save();
+
+        return res.redirect('/admin/prompts?success=' + encodeURIComponent('Đã vô hiệu hoá prompt.'));
+    } catch (err) {
+        console.error('deletePrompt error:', err);
+        return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể xoá.'));
+    }
 };
+
+// ============================================================
+// HARD DELETE — POST /admin/prompts/:id/hard-delete
+// ============================================================
+exports.hardDeletePrompt = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('ID không hợp lệ.'));
+        }
+
+        const prompt = await GradingPrompt.findById(id);
+        if (!prompt) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không tìm thấy prompt.'));
+        }
+
+        if (prompt.isDefault) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể xoá prompt mặc định.'));
+        }
+
+        await GradingPrompt.deleteOne({ _id: id });
+
+        return res.redirect('/admin/prompts?success=' + encodeURIComponent('Đã xoá vĩnh viễn prompt.'));
+    } catch (err) {
+        console.error('hardDeletePrompt error:', err);
+        return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể xoá vĩnh viễn.'));
+    }
+};
+
+module.exports = exports;

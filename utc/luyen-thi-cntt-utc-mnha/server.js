@@ -122,21 +122,16 @@ app.use(
         cookie: {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            maxAge: 1000 * 60 * 60 * 24, // 1 ngày
+            maxAge: 1000 * 60 * 60 * 24,
         },
     })
 );
 
 // ============================================================
-// ✅ REFRESH SESSION USER TỪ DB MỖI REQUEST
-// ------------------------------------------------------------
-// Giải quyết root cause: khi admin duyệt user (đổi role/status
-// trong DB), session cũ vẫn giữ role/status cũ → gây loop.
-// Middleware này load lại user mới nhất từ DB.
+// REFRESH SESSION USER TỪ DB MỖI REQUEST
 // ============================================================
 
 app.use(async (req, res, next) => {
-    // Bỏ qua static files, favicon
     if (
         req.path.startsWith("/css") ||
         req.path.startsWith("/js") ||
@@ -146,28 +141,29 @@ app.use(async (req, res, next) => {
         return next();
     }
 
-    if (req.session?.user?._id) {
+    const sessionUser = req.session?.user;
+    const userId = sessionUser?.id || sessionUser?._id;
+
+    if (userId) {
         try {
             const User = require("./models/User");
-            const fresh = await User.findById(req.session.user._id)
+            const fresh = await User.findById(userId)
                 .select("-password")
                 .lean();
 
             if (fresh) {
-                // Cập nhật session với data mới nhất
                 req.session.user = {
-                    _id: fresh._id,
+                    id: fresh._id.toString(),
+                    _id: fresh._id.toString(),
                     email: fresh.email,
                     name: fresh.name,
                     role: fresh.role,
                     status: fresh.status,
                 };
             } else {
-                // User không còn trong DB → clear session
                 req.session.destroy(() => {});
             }
         } catch (err) {
-            // Bỏ qua lỗi mạng, tiếp tục với session cũ
             console.warn("[refresh session]", err.message);
         }
     }
@@ -176,14 +172,18 @@ app.use(async (req, res, next) => {
 });
 
 // ============================================================
-// GLOBAL LOCALS
+// GLOBAL LOCALS + req.user
 // ============================================================
 
 app.use((req, res, next) => {
     try {
-        res.locals.user = req.session?.user || null;
+        const sessionUser = req.session?.user || null;
+
+        req.user = sessionUser;
+        res.locals.user = sessionUser;
         res.locals.currentPath = req.path;
-        res.locals.unreadCount = 0; // nếu bạn có Notification, có thể set sau
+        res.locals.unreadCount = 0;
+
         next();
     } catch (error) {
         logError("GLOBAL LOCALS ERROR", error, {
@@ -195,40 +195,29 @@ app.use((req, res, next) => {
 });
 
 // ============================================================
-// ✅ HOME — logic phân nhánh đúng
-// ------------------------------------------------------------
-// Thứ tự ưu tiên:
-//   1. Chưa login            → /auth/login
-//   2. Admin                 → /admin/dashboard   (LUÔN thắng, bất kể status)
-//   3. Client (chờ duyệt)    → /pages
-//   4. Student               → /subjects
+// HOME
 // ============================================================
 
 app.get("/", (req, res, next) => {
     try {
         const user = req.session?.user;
 
-        // 1) Chưa login
         if (!user) {
             return res.redirect("/auth/login");
         }
 
-        // 2) ADMIN — luôn ưu tiên, không quan tâm status
         if (user.role === "admin") {
             return res.redirect("/admin/dashboard");
         }
 
-        // 3) CLIENT chờ duyệt (role=client + status=pending)
         if (user.role === "client" || user.status === "pending") {
             return res.redirect("/pages");
         }
 
-        // 4) STUDENT (đã được duyệt)
         if (user.role === "student") {
             return res.redirect("/subjects");
         }
 
-        // Fallback an toàn
         return res.redirect("/auth/login");
     } catch (error) {
         next(error);
@@ -236,40 +225,31 @@ app.get("/", (req, res, next) => {
 });
 
 // ============================================================
-// ✅ PENDING PAGE — chỉ client+pending mới thực sự thấy
-// ------------------------------------------------------------
-// Admin vào /pages → đá về /admin/dashboard
-// Student vào /pages → đá về /subjects
-// Chỉ client+pending mới render view "pages"
+// PENDING PAGE
 // ============================================================
 
 app.get("/pages", (req, res, next) => {
     try {
         const user = req.session?.user;
 
-        // 1) Chưa login
         if (!user) {
             return res.redirect("/auth/login");
         }
 
-        // 2) Admin — KHÔNG BAO GIỜ ở đây
         if (user.role === "admin") {
             return res.redirect("/admin/dashboard");
         }
 
-        // 3) Student đã duyệt — không phải trang của họ
         if (user.role === "student" && user.status !== "pending") {
             return res.redirect("/subjects");
         }
 
-        // 4) Client pending — đúng chỗ, render trang chờ
         if (user.role === "client" || user.status === "pending") {
             return res.render("pages", {
                 title: "Chờ duyệt tài khoản",
             });
         }
 
-        // Fallback
         return res.redirect("/auth/login");
     } catch (error) {
         next(error);
@@ -284,6 +264,7 @@ let authRoutes;
 let subjectRoutes;
 let lessonRoutes;
 let submissionRoutes;
+let practiceRoutes;
 let disputeRoutes;
 let notificationRoutes;
 let promptRoutes;
@@ -295,6 +276,7 @@ try {
     subjectRoutes = require("./routes/subject");
     lessonRoutes = require("./routes/lesson");
     submissionRoutes = require("./routes/submission");
+    practiceRoutes = require("./routes/practice");
     disputeRoutes = require("./routes/dispute");
     notificationRoutes = require("./routes/notification");
     promptRoutes = require("./routes/prompt");
@@ -306,22 +288,31 @@ try {
 }
 
 // ============================================================
-// REGISTER ROUTES
+// REGISTER ROUTES  ★ ĐÃ SỬA: mount CẢ "/ai" VÀ "/api/ai"
+// ============================================================
+// Lý do: frontend lesson.pug gọi fetch("/api/ai/keys")
+// nhưng server cũ chỉ mount "/ai" → 404.
+// Giữ "/ai" để tương thích với code cũ, thêm "/api/ai" cho frontend mới.
 // ============================================================
 
 app.use("/auth", authRoutes);
 app.use("/subjects", subjectRoutes);
-app.use("/student/subjects", subjectRoutes); // alias cũ
+app.use("/student/subjects", subjectRoutes);
 app.use("/lessons", lessonRoutes);
 app.use("/submissions", submissionRoutes);
+app.use("/practice", practiceRoutes);
 app.use("/disputes", disputeRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/prompts", promptRoutes);
+
+// ★ AI ROUTES — mount cả 2 path
 app.use("/ai", aiRoutes);
+app.use("/api/ai", aiRoutes);
+
 app.use("/admin", adminRoutes);
 
 // ============================================================
-// HELPER: Render error page (HTML fallback nếu Pug lỗi)
+// HELPER: Render error page
 // ============================================================
 
 function renderErrorPage(req, res, status, title, message, stack = null) {
@@ -434,7 +425,6 @@ app.use((err, req, res, next) => {
         statusCode = 500;
     }
 
-    // Pug error
     if (
         err.code === "PUG:UNEXPECTED_TEXT" ||
         err.code?.startsWith?.("PUG:") ||
@@ -453,7 +443,6 @@ app.use((err, req, res, next) => {
         );
     }
 
-    // Invalid JSON
     if (
         err instanceof SyntaxError &&
         err.status === 400 &&
@@ -468,7 +457,6 @@ app.use((err, req, res, next) => {
         );
     }
 
-    // Body too large
     if (err.type === "entity.too.large" || err.status === 413) {
         return renderErrorPage(
             req,
@@ -479,7 +467,6 @@ app.use((err, req, res, next) => {
         );
     }
 
-    // Mongoose validation
     if (err.name === "ValidationError") {
         const details = Object.values(err.errors || {}).map((item) => ({
             field: item.path,
@@ -508,7 +495,6 @@ app.use((err, req, res, next) => {
         );
     }
 
-    // Cast error
     if (err.name === "CastError") {
         return renderErrorPage(
             req,
@@ -519,7 +505,6 @@ app.use((err, req, res, next) => {
         );
     }
 
-    // Duplicate key
     if (err.code === 11000) {
         const duplicateFields = Object.keys(err.keyPattern || err.keyValue || {});
 
@@ -544,7 +529,6 @@ app.use((err, req, res, next) => {
         );
     }
 
-    // Version error
     if (err.name === "VersionError") {
         return renderErrorPage(
             req,
@@ -555,7 +539,6 @@ app.use((err, req, res, next) => {
         );
     }
 
-    // Default
     const productionMessage =
         process.env.NODE_ENV === "production"
             ? "Đã xảy ra lỗi máy chủ."
@@ -576,10 +559,6 @@ app.use((err, req, res, next) => {
 // ============================================================
 
 let server;
-
-// ============================================================
-// GRACEFUL SHUTDOWN
-// ============================================================
 
 async function shutdown(signal) {
     console.log("");
@@ -612,10 +591,6 @@ async function shutdown(signal) {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-
-// ============================================================
-// START SERVER
-// ============================================================
 
 async function startServer() {
     try {
@@ -705,14 +680,6 @@ async function startServer() {
     }
 }
 
-// ============================================================
-// RUN SERVER
-// ============================================================
-
 startServer();
-
-// ============================================================
-// EXPORT
-// ============================================================
 
 module.exports = app;

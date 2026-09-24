@@ -3,7 +3,7 @@ html(lang="vi")
     head
         meta(charset="UTF-8")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
-        title Quên mật khẩu | AI Grading System
+        title Xác minh OTP | AI Grading System
 
         script(src="https://cdn.tailwindcss.com")
         script(src="https://unpkg.com/lucide@latest")
@@ -36,15 +36,26 @@ html(lang="vi")
 
                     div(class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-5")
                         i(
-                            data-lucide="key-round"
+                            data-lucide="shield-check"
                             class="w-6 h-6"
                         )
 
                     h2(class="text-2xl font-bold text-gray-900")
-                        | Quên mật khẩu?
+                        | Nhập mã xác minh
 
                     p(class="text-sm text-gray-500 mt-2 leading-6")
-                        | Nhập email tài khoản của bạn. Nếu tài khoản tồn tại, chúng tôi sẽ gửi mã xác minh để đặt lại mật khẩu.
+                        | Chúng tôi đã gửi mã 6 chữ số đến email
+                        span(class="font-semibold text-gray-700")
+                            = ' ' + email
+                        | . Mã có hiệu lực trong 10 phút.
+
+                    if debugOtp
+                        div(class="mt-4 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl")
+                            i(
+                                data-lucide="info"
+                                class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"
+                            )
+                            
 
                     if error
                         div(class="mt-5 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl")
@@ -65,48 +76,57 @@ html(lang="vi")
                                 = success
 
                     form(
-                        action="/auth/forgot"
+                        action="/auth/reset-verify"
                         method="POST"
                         class="mt-6 space-y-5"
                     )
+                        input(type="hidden" name="email" value=email)
 
                         div
                             label(
-                                for="email"
+                                for="code"
                                 class="block text-sm font-medium text-gray-700 mb-2"
                             )
-                                | Email tài khoản
+                                | Mã OTP
 
-                            div(class="relative")
-                                i(
-                                    data-lucide="mail"
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                                )
-
-                                input(
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    value=email || ''
-                                    required
-                                    autocomplete="email"
-                                    placeholder="example@email.com"
-                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                                )
+                            input(
+                                id="code"
+                                type="text"
+                                name="code"
+                                inputmode="numeric"
+                                pattern="[0-9]{6}"
+                                maxlength="6"
+                                autocomplete="one-time-code"
+                                required
+                                autofocus
+                                placeholder="000000"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl text-center text-2xl font-mono tracking-[0.5em] outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                            )
 
                         button(
                             type="submit"
                             class="w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100 transition"
                         )
-                            | Gửi mã xác minh
+                            | Xác minh
+
+                    form(
+                        action="/auth/reset-verify/resend"
+                        method="POST"
+                        class="mt-4"
+                    )
+                        button(
+                            type="submit"
+                            class="w-full py-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                        )
+                            | Gửi lại mã
 
                     div(class="mt-6 pt-6 border-t border-gray-100")
                         a(
-                            href="/auth/login"
+                            href="/auth/forgot"
                             class="flex items-center justify-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700"
                         )
                             i(data-lucide="arrow-left" class="w-4 h-4")
-                            | Quay lại đăng nhập
+                            | Nhập lại email
 
                 p(class="text-center text-xs text-gray-400 mt-6")
                     | © #{new Date().getFullYear()} AI Grading System
