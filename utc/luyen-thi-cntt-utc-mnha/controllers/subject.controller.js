@@ -41,6 +41,37 @@ function getUserId(req) {
     return req.session?.user?._id || req.user?._id || null;
 }
 
+// ★ THÊM (theo lesson.controller.js): cho phép tìm subject theo ObjectId
+// HOẶC theo slug, thay vì chỉ theo _id như hiện tại — để URL có thể dùng
+// slug đẹp (/subjects/toan-hoc) song song với id cũ (/subjects/64f...).
+function isObjectId(str) {
+    return mongoose.Types.ObjectId.isValid(str) && String(str).length === 24;
+}
+
+function findSubjectByParam(param, extraFilter = {}) {
+    const baseFilter = isObjectId(param) ? { _id: param } : { slug: param };
+    return Subject.findOne({
+        ...baseFilter,
+        ...extraFilter,
+    }).lean();
+}
+
+// Lấy subject theo id/slug KHÔNG lọc trạng thái — dùng để phân biệt
+// "không tồn tại" (404 thật) với "đã bị xoá mềm" (hiện trang đã xoá),
+// giống findLessonByParamAny bên lesson.controller.js.
+function findSubjectByParamAny(param) {
+    const baseFilter = isObjectId(param) ? { _id: param } : { slug: param };
+    return Subject.findOne(baseFilter).lean();
+}
+
+// ★ THÊM: đọc flash message an toàn (connect-flash trả về mảng) — dùng
+// làm phương án dự phòng bên cạnh query string success/error hiện có.
+function readFlash(req, key) {
+    if (typeof req.flash !== 'function') return null;
+    const arr = req.flash(key);
+    return Array.isArray(arr) && arr.length ? arr[0] : null;
+}
+
 // ============================================================
 // STUDENT
 // ============================================================
@@ -56,12 +87,14 @@ exports.getSubjects = async (req, res, next) => {
             .sort({ order: 1, createdAt: -1 })
             .lean();
 
+        // ★ FIX (đối chiếu lesson.controller.js): Lesson dùng field
+        //   `subjectId` (không phải `subject`) và cờ xoá mềm là `isDeleted`
+        //   (không có `deletedAt`/`deletedForever`/`isPublished` trên Lesson)
+        //   — filter cũ luôn không khớp document nào nên lessonCount sai (=0).
         for (const subject of subjects) {
             subject.lessonCount = await Lesson.countDocuments({
-                subject: subject._id,
-                isPublished: true,
-                deletedAt: null,
-                deletedForever: { $ne: true },
+                subjectId: subject._id,
+                isDeleted: false,
             });
         }
 
@@ -82,16 +115,18 @@ exports.getSubjects = async (req, res, next) => {
 };
 
 // GET /subjects/:id
+// ★ THÊM: chấp nhận cả slug lẫn ObjectId (findSubjectByParam), giống
+//   findLessonByParam bên lesson.controller.js, thay vì chỉ tìm theo _id.
 exports.getSubject = async (req, res, next) => {
     try {
-        const subject = await Subject.findOne({
-            _id: req.params.id,
-            isPublished: true,
-            deletedAt: null,
-            deletedForever: { $ne: true },
-        }).lean();
+        const key = req.params.id || req.params.slug;
 
-        if (!subject) {
+        // ★ THÊM: tra "any" trước để phân biệt 404 thật với "đã bị xoá mềm"
+        //   — trước đây filter thẳng isPublished/deletedAt nên môn học đã xoá
+        //   luôn rơi vào 404 chung chung, dễ gây hiểu lầm là chưa từng tồn tại.
+        const subjectAny = await findSubjectByParamAny(key);
+
+        if (!subjectAny || subjectAny.deletedForever) {
             return res.status(404).render('error', {
                 title: 'Không tìm thấy',
                 message: 'Không tìm thấy môn học.',
@@ -100,13 +135,24 @@ exports.getSubject = async (req, res, next) => {
             });
         }
 
+        if (subjectAny.deletedAt || !subjectAny.isPublished) {
+            return res.status(410).render('error', {
+                title: 'Môn học không khả dụng',
+                message: 'Môn học này hiện không được công khai hoặc đã bị xoá.',
+                statusCode: 410,
+                stack: null,
+            });
+        }
+
+        const subject = subjectAny;
+
+        // ★ FIX: Lesson dùng `subjectId` + `isDeleted` (xem lesson.controller.js),
+        //   không phải `subject` + `isPublished`/`deletedAt`/`deletedForever`.
         const lessons = await Lesson.find({
-            subject: subject._id,
-            isPublished: true,
-            deletedAt: null,
-            deletedForever: { $ne: true },
+            subjectId: subject._id,
+            isDeleted: false,
         })
-            .sort({ order: 1, createdAt: 1 })
+            .sort({ createdAt: 1 })
             .lean();
 
         return res.render('student/subject', {
@@ -133,6 +179,9 @@ exports.getSubject = async (req, res, next) => {
 exports.getAdminSubjects = async (req, res, next) => {
     try {
         const showDeleted = req.query.deleted === '1';
+        // ★ THÊM (theo lesson.controller.js): tìm kiếm theo tên/mã môn học,
+        //   giống ô search trong getAdminLessons.
+        const search = (req.query.search || '').trim();
 
         const filter = { deletedForever: { $ne: true } };
         if (showDeleted) {
@@ -141,16 +190,25 @@ exports.getAdminSubjects = async (req, res, next) => {
             filter.deletedAt = null;
         }
 
+        if (search) {
+            const safe = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            filter.$or = [
+                { name: { $regex: safe, $options: 'i' } },
+                { code: { $regex: safe, $options: 'i' } },
+            ];
+        }
+
         const subjects = await Subject.find(filter)
             .populate('createdBy', 'name email')
             .populate('updatedBy', 'name email')
             .sort({ order: 1, createdAt: -1 })
             .lean();
 
+        // ★ FIX: Lesson dùng `subjectId` + `isDeleted` (xem lesson.controller.js).
         for (const subject of subjects) {
             subject.lessonCount = await Lesson.countDocuments({
-                subject: subject._id,
-                deletedForever: { $ne: true },
+                subjectId: subject._id,
+                isDeleted: false,
             });
         }
 
@@ -159,8 +217,9 @@ exports.getAdminSubjects = async (req, res, next) => {
             user: req.user,
             subjects,
             showDeleted,
-            success: req.query.success || null,
-            error: req.query.error || null,
+            filters: { search },
+            success: req.query.success || readFlash(req, 'success'),
+            error: req.query.error || readFlash(req, 'error'),
         });
     } catch (error) {
         console.error('getAdminSubjects error:', error);
@@ -212,6 +271,10 @@ exports.createSubject = async (req, res, next) => {
             createdBy: getUserId(req),
             updatedBy: getUserId(req),
         });
+
+        // ★ THÊM: bắn thêm flash message (nếu app có connect-flash) song song
+        //   với query string cũ, để tương lai view có thể chuyển sang đọc flash.
+        req.flash?.('success', 'Đã tạo môn học thành công.');
 
         return res.redirect(
             '/admin/subjects?success=' +
@@ -314,6 +377,8 @@ exports.updateSubject = async (req, res, next) => {
 
         await subject.save();
 
+        req.flash?.('success', 'Đã cập nhật môn học.');
+
         return res.redirect(
             `/admin/subjects/${id}/edit?success=` +
                 encodeURIComponent('Đã cập nhật môn học.')
@@ -349,6 +414,8 @@ exports.deleteSubject = async (req, res, next) => {
         subject.deletedBy = getUserId(req);
         subject.updatedBy = getUserId(req);
         await subject.save();
+
+        req.flash?.('success', 'Đã xoá môn học (có thể khôi phục).');
 
         return res.redirect(
             '/admin/subjects?success=' +
@@ -386,6 +453,8 @@ exports.restoreSubject = async (req, res, next) => {
         subject.updatedBy = getUserId(req);
         await subject.save();
 
+        req.flash?.('success', 'Đã khôi phục môn học.');
+
         return res.redirect(
             '/admin/subjects?deleted=1&success=' +
                 encodeURIComponent('Đã khôi phục môn học.')
@@ -414,9 +483,22 @@ exports.hardDeleteSubject = async (req, res, next) => {
             );
         }
 
+        // ★ THÊM (theo hardDeleteLesson bên lesson.controller.js): chỉ cho
+        //   xoá vĩnh viễn môn ĐANG ở thùng rác — buộc đi qua bước xoá mềm
+        //   trước, tránh bấm nhầm xoá thẳng một môn đang hoạt động.
+        if (!subject.deletedAt) {
+            return res.redirect(
+                '/admin/subjects?error=' +
+                    encodeURIComponent(
+                        'Chỉ có thể xoá vĩnh viễn môn học đang ở trong thùng rác.'
+                    )
+            );
+        }
+
+        // ★ FIX: Lesson dùng `subjectId` + `isDeleted` (xem lesson.controller.js).
         const lessonCount = await Lesson.countDocuments({
-            subject: subject._id,
-            deletedForever: { $ne: true },
+            subjectId: subject._id,
+            isDeleted: false,
         });
 
         if (lessonCount > 0) {
@@ -431,6 +513,8 @@ exports.hardDeleteSubject = async (req, res, next) => {
         subject.deletedForever = true;
         subject.updatedBy = getUserId(req);
         await subject.save();
+
+        req.flash?.('success', 'Đã xoá vĩnh viễn môn học.');
 
         return res.redirect(
             '/admin/subjects?deleted=1&success=' +
