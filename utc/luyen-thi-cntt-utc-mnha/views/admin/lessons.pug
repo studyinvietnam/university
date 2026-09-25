@@ -146,16 +146,24 @@ block content
                                             = lesson.description
 
                                     //- AUDIT
+                                    //- ★ FIX: createdBy/updatedBy có thể chỉ là ObjectId thô
+                                    //-   (chưa populate) chứ không phải object user → nếu chỉ đọc
+                                    //-   .name/.email sẽ ra "undefined"/rỗng. Nay fallback về chính
+                                    //-   giá trị đó (id) khi không có .name/.email.
+                                    - const displayUser = (u) => !u ? null : (u.name || u.email || String(u))
                                     div(class="text-xs text-gray-400 mt-2 space-y-0.5")
                                         if lesson.createdBy
                                             div
-                                                | Tạo bởi: #{lesson.createdBy.name || lesson.createdBy.email}
+                                                | Tạo bởi: #{displayUser(lesson.createdBy)}
                                         if lesson.createdAt
                                             div
                                                 | #{new Date(lesson.createdAt).toLocaleString('vi-VN')}
-                                        if lesson.updatedAt && lesson.updatedAt !== lesson.createdAt
+                                        if lesson.updatedBy && String(lesson.updatedBy._id || lesson.updatedBy) !== String(lesson.createdBy._id || lesson.createdBy)
                                             div
-                                                | Cập nhật: #{new Date(lesson.updatedAt).toLocaleString('vi-VN')}
+                                                | Cập nhật bởi: #{displayUser(lesson.updatedBy)}
+                                        if lesson.updatedAt && String(lesson.updatedAt) !== String(lesson.createdAt)
+                                            div
+                                                | Cập nhật lúc: #{new Date(lesson.updatedAt).toLocaleString('vi-VN')}
 
                             //- RIGHT: ACTIONS
                             div(class="flex items-center gap-2 flex-shrink-0 self-start")

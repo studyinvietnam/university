@@ -56,7 +56,7 @@ router.get("/dashboard", async (req, res) => {
         ] = await Promise.all([
             User.countDocuments({ deletedForever: { $ne: true } }),
             Subject.countDocuments({ deletedForever: { $ne: true }, deletedAt: null }),
-            Lesson.countDocuments({ deletedForever: { $ne: true }, deletedAt: null }),
+            Lesson.countDocuments({ isDeleted: false }),
             Submission.countDocuments(),
             Submission.find()
                 .populate("userId", "name email")

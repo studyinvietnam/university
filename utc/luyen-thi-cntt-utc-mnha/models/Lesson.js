@@ -101,27 +101,37 @@ const lessonSchema = new mongoose.Schema(
             default: null
         },
 
+        // ★ FIX: đây mới là field thật sự dùng để lọc "xoá mềm" (thùng rác).
+        //   Trước đây controller gán `lesson.isDeleted = true/false` nhưng schema
+        //   không khai báo field này → mọi query `{ isDeleted: ... }` không khớp
+        //   document nào cả (Mongo không tự suy ra field thiếu = false).
+        //   Đây chính là lý do xoá/khôi phục "chạy nhưng không có tác dụng".
+        isDeleted: {
+            type: Boolean,
+            default: false,
+            index: true
+        },
+
+        // Thời điểm xoá mềm (chỉ mang tính thông tin, KHÔNG dùng để lọc nữa —
+        // lọc bằng `isDeleted` cho rõ ràng, tránh phải nhớ quy ước null/không-null)
         deletedAt: {
             type: Date,
-            default: null,
-            index: true
+            default: null
         },
 
         deletedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             default: null
-        },
-
-        deletedForever: {
-            type: Boolean,
-            default: false,
-            index: true
         }
+
+        // ★ FIX: bỏ field `deletedForever` — không còn cần nữa vì xoá vĩnh viễn
+        //   giờ xoá thật document khỏi MongoDB (`Lesson.deleteOne`), không đánh
+        //   dấu cờ nữa.
     },
     { timestamps: true }
 );
 
-lessonSchema.index({ subjectId: 1, deletedForever: 1, isPublished: 1, order: 1 });
+lessonSchema.index({ subjectId: 1, isDeleted: 1, isPublished: 1, order: 1 });
 
 module.exports = mongoose.model('Lesson', lessonSchema);
