@@ -85,6 +85,58 @@ mongoose.connection.on("reconnected", () => {
 });
 
 // ============================================================
+// ★ FIX: KẾT NỐI MONGODB — DÙNG CHUNG CHO CẢ LOCAL VÀ SERVERLESS
+// ------------------------------------------------------------
+// Trước đây mongoose.connect() chỉ được gọi bên trong startServer(),
+// mà startServer() chỉ chạy khi `require.main === module` (tức chỉ khi
+// chạy `node server.js` trực tiếp). Trên Vercel, api/index.js chỉ
+// `require("../server")` để lấy `app` — require.main LUÔN khác module
+// này → startServer() không bao giờ chạy → mongoose không bao giờ kết
+// nối → mọi query bị "buffering" rồi timeout sau 10s
+// (MongooseError: Operation `...` buffering timed out after 10000ms).
+//
+// connectDB() ở đây được gọi ngay khi module được load (dòng cuối file),
+// bất kể chạy local hay serverless, và cache lại promise kết nối để
+// tránh gọi mongoose.connect() nhiều lần trên các lần "warm start".
+// ============================================================
+
+let dbConnectionPromise = null;
+
+function connectDB() {
+    if (!MONGODB_URI) {
+        return Promise.reject(
+            new Error("MONGODB_URI chưa được cấu hình trong biến môi trường")
+        );
+    }
+
+    if (mongoose.connection.readyState === 1) {
+        return Promise.resolve();
+    }
+
+    if (!dbConnectionPromise) {
+        dbConnectionPromise = mongoose
+            .connect(MONGODB_URI)
+            .then(() => {
+                console.log(`[${new Date().toISOString()}] MongoDB connected`);
+            })
+            .catch((error) => {
+                logError("MONGODB CONNECTION FAILED", error);
+                dbConnectionPromise = null; // cho phép request sau thử kết nối lại
+                throw error;
+            });
+    }
+
+    return dbConnectionPromise;
+}
+
+// ★ Khởi động kết nối NGAY khi module được require (không chặn require()),
+//   để container serverless bắt đầu kết nối từ sớm thay vì đợi request đầu.
+connectDB().catch(() => {
+    // Lỗi đã được log trong connectDB(); không throw ở đây để tránh
+    // crash toàn bộ module khi load (sẽ được retry qua middleware bên dưới).
+});
+
+// ============================================================
 // VIEW ENGINE
 // ============================================================
 
@@ -102,6 +154,18 @@ app.use(cookieParser());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
+
+// ★ FIX: đợi MongoDB sẵn sàng trước khi vào route — quan trọng cho lần
+//   "cold start" đầu tiên trên serverless, khi request có thể đến trước
+//   khi connectDB() ở trên kịp kết nối xong.
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
 
 // ============================================================
 // SESSION
@@ -622,10 +686,8 @@ async function startServer() {
         console.log("MongoDB:", safeMongoURI);
 
         try {
-            await mongoose.connect(MONGODB_URI);
-            console.log("MongoDB connected");
+            await connectDB();
         } catch (error) {
-            logError("MONGODB INITIAL CONNECTION FAILED", error);
             throw error;
         }
 
