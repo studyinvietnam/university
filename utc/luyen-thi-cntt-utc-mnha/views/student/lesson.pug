@@ -400,9 +400,22 @@ block content
                         div(id="resultBody", class="result-body")
 
         if lesson.sampleSolution && lastSubmission && lastSubmission.status === 'graded'
-            div(class="sample-box")
-                h3 💡 Lời giải mẫu
-                pre= lesson.sampleSolution
+            div(class="bg-white border border-green-200 rounded-2xl p-6 shadow-sm mb-6")
+                h3(class="text-lg font-bold text-green-900 mb-3 flex items-center gap-2")
+                    i(data-lucide="lightbulb", class="w-5 h-5 text-green-600")
+                    | Lời giải mẫu
+                //- FIX: giống hệt submission-detail.pug — sampleSolution là
+                //  HTML thật (div/h3/pre/code, đã escape sẵn &lt; &gt; bên
+                //  trong các khối <pre><code>), không phải text thô. Trước
+                //  đây nhúng bằng `pre` + `=` (escaped) nên toàn bộ thẻ HTML
+                //  bị hiện ra dưới dạng chữ thô thay vì được trình duyệt
+                //  render thành tiêu đề/khối code như ý.
+                //  Sửa: render bằng `!=` (unescaped) trong div có class
+                //  `prose` để có typography cho h3/p/pre/code, giữ nguyên
+                //  nền + khung màu xanh lá (bg-green-50, border-green-100)
+                //  và tông chữ xanh (text-green-900).
+                div(class="prose prose-sm max-w-none text-green-900 p-4 rounded-lg bg-green-50 border border-green-100")
+                    != lesson.sampleSolution
 
         if lastSubmission
             div(class="panel mt-5")

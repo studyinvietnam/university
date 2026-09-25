@@ -106,10 +106,12 @@ async function markKeyUsed(keyDoc) {
 }
 
 async function markKeyQuotaError(keyDoc) {
+    // ★ ĐÃ BỎ AUTO-DISABLE: trước đây nếu quotaErrorCount vượt
+    //   QUOTA_ERROR_THRESHOLD thì tự set isActive = false. Giờ chỉ còn
+    //   đếm số lần dính lỗi quota để tham khảo (hiển thị ở admin/ai-keys),
+    //   KHÔNG tự tắt key nữa — việc bật/tắt key hoàn toàn do admin bấm
+    //   nút thủ công (xem toggleAIKey trong aikey.controller.js).
     keyDoc.quotaErrorCount = (keyDoc.quotaErrorCount || 0) + 1;
-    if (keyDoc.quotaErrorCount >= QUOTA_ERROR_THRESHOLD) {
-        keyDoc.isActive = false;
-    }
     await keyDoc.save();
 }
 

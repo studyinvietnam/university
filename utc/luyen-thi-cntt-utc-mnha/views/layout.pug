@@ -9,6 +9,16 @@ html(lang="vi")
         script(src="https://unpkg.com/lucide@latest")
         link(rel="stylesheet", href="/css/style.css")
 
+        //- ★ THÊM MATHJAX Ở ĐÂY
+        script.
+            window.MathJax = {
+                tex: {
+                    inlineMath: [['$', '$'], ['\\(', '\\)']],
+                    displayMath: [['$$', '$$'], ['\\[', '\\]']]
+                }
+            };
+        script(id="MathJax-script", async, src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js")
+
 
     body(class="bg-gray-50 text-gray-900 min-h-screen")
 

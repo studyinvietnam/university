@@ -107,9 +107,21 @@ block content
             h2(class="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2")
                 i(data-lucide="pencil", class="w-5 h-5 text-indigo-600")
                 | Bài làm
-            div(class="prose prose-sm max-w-none text-gray-800 p-4 rounded-lg bg-gray-50 border border-gray-100")
+            div(class="p-4 rounded-lg bg-gray-50 border border-gray-100")
                 if submission.answerHtml
-                    != submission.answerHtml
+                    //- ★ FIX: answerHtml thực chất là text thô (có thể chứa
+                    //  code C++ với < >), không phải HTML thật — trước đây
+                    //  render bằng `!=` (unescaped) nên: (1) trình duyệt hiểu
+                    //  nhầm các dấu < > thành thẻ HTML, nội dung dễ bị nuốt
+                    //  mất hoặc vỡ layout; (2) \n trong text không tự xuống
+                    //  dòng vì không có CSS giữ khoảng trắng.
+                    //  Sửa: dùng `pre` + `whitespace-pre-wrap` để giữ nguyên
+                    //  xuống dòng theo \n, và render bằng `=` (escaped) để
+                    //  an toàn + hiển thị đúng ký tự < > trong code, đồng
+                    //  thời giữ nguyên tông màu xám gốc (text-gray-800) thay
+                    //  vì màu xanh lá cố định như khối "Lời giải mẫu".
+                    pre(class="text-sm text-gray-800 whitespace-pre-wrap font-mono m-0")
+                        = submission.answerHtml
                 else
                     p(class="text-gray-400 italic")
                         | (Không có nội dung)
@@ -210,9 +222,21 @@ block content
                 h2(class="text-lg font-bold text-green-900 mb-3 flex items-center gap-2")
                     i(data-lucide="lightbulb", class="w-5 h-5 text-green-600")
                     | Lời giải mẫu
-                div(class="p-4 rounded-lg bg-green-50 border border-green-100")
-                    pre(class="text-sm text-green-900 whitespace-pre-wrap font-mono m-0")
-                        = submission.lessonId.sampleSolution
+                //- ★ FIX: sampleSolution là HTML thật (div/h3/pre/code, đã
+                //  escape sẵn &lt; &gt; bên trong các khối <pre><code>) —
+                //  giống hệt cấu trúc của "Đề bài" bên trên, không phải
+                //  text thô như "Bài làm". Trước đây nhúng bằng `pre` +
+                //  `= ` (escaped) nên toàn bộ thẻ HTML (h3, pre, code...)
+                //  bị hiện ra dưới dạng chữ thô thay vì được trình duyệt
+                //  render thành tiêu đề/khối code như ý.
+                //  Sửa: render bằng `!=` (unescaped, giống khối Đề bài) để
+                //  HTML được hiểu đúng, đồng thời thêm class `prose` để có
+                //  typography cho h3/p/pre/code — nhưng vẫn giữ nguyên nền
+                //  + khung màu xanh lá (bg-green-50, border-green-100) và
+                //  tông chữ xanh (text-green-900) thay vì màu gray mặc định
+                //  của "prose".
+                div(class="prose prose-sm max-w-none text-green-900 p-4 rounded-lg bg-green-50 border border-green-100")
+                    != submission.lessonId.sampleSolution
 
         //- ============================================================
         //- PROMPT SNAPSHOT (chỉ hiện cho admin)
