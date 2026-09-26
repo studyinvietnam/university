@@ -9,6 +9,7 @@ const Submission = require("../models/Submission");
 const GradingPrompt = require("../models/GradingPrompt");
 const githubService = require("../services/githubService");
 const syncQueueService = require("../services/syncQueueService");
+const { resolvePrompt, findUnknownPlaceholders } = require("../services/promptService");
 
 /* ============================================================
  * HELPERS
@@ -313,6 +314,10 @@ async function renderLessonPage(req, res, lesson) {
         ? await Subject.findById(lesson.subjectId).lean()
         : null;
 
+    // ★ NEW: biết chính xác lesson này đang dùng prompt nào (và tại sao)
+    const resolvedPrompt = await resolvePrompt(lesson, subject);
+    const promptUnknownPlaceholders = findUnknownPlaceholders(resolvedPrompt?.content);
+
     const subjectSlug = subject?.slug || `subject-${lesson.subjectId}`;
     const lessonSlug = lesson.slug || `lesson-${lesson._id}`;
     const filePath = lesson.githubFile || `subjects/${subjectSlug}/lessons/${lessonSlug}.json`;
@@ -360,6 +365,8 @@ async function renderLessonPage(req, res, lesson) {
         sampleSolution,
         lastSubmission,
         isAdminView: user.role === "admin",
+        resolvedPrompt,             // ★ NEW
+        promptUnknownPlaceholders,  // ★ NEW
     });
 }
 
@@ -450,7 +457,7 @@ exports.showCreateLesson = async (req, res, next) => {
 
         const [subjects, prompts, aiKeys] = await Promise.all([
             Subject.find({ deletedAt: null, deletedForever: false }).sort({ name: 1 }).lean(),
-            GradingPrompt.find({ active: true }).lean(),
+            GradingPrompt.find({ active: { $ne: false } }).lean(), // ★ FIX: khớp điều kiện với resolvePrompt(), tránh prompt bị "ẩn" khỏi dropdown
             AIKey.find({ isActive: true, isRevoked: { $ne: true } }).sort({ createdAt: -1 }).lean(),
         ]);
 
@@ -587,7 +594,7 @@ exports.showEditLesson = async (req, res, next) => {
         const [lesson, subjects, prompts, aiKeys] = await Promise.all([
             Lesson.findById(id).lean(),
             Subject.find({ deletedAt: null, deletedForever: false }).sort({ name: 1 }).lean(),
-            GradingPrompt.find({ active: true }).lean(),
+            GradingPrompt.find({ active: { $ne: false } }).lean(), // ★ FIX: khớp điều kiện với resolvePrompt(), tránh prompt bị "ẩn" khỏi dropdown
             AIKey.find({ isActive: true, isRevoked: { $ne: true } }).sort({ createdAt: -1 }).lean(),
         ]);
 

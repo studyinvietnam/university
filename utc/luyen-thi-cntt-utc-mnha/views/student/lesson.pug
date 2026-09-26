@@ -294,6 +294,28 @@ block content
             div(class="mb-5 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm")
                 | 👁 Bạn đang xem với tư cách Admin. Có thể nộp thử để kiểm tra prompt chấm.
 
+        if resolvedPrompt
+            - var hasWarning = isAdminView && promptUnknownPlaceholders && promptUnknownPlaceholders.length
+            div(
+                class="mb-5 p-3 rounded-lg border text-sm " + (hasWarning ? "bg-red-50 border-red-200 text-red-800" : (resolvedPrompt.isFallback ? "bg-gray-50 border-gray-200 text-gray-700" : "bg-indigo-50 border-indigo-200 text-indigo-800"))
+            )
+                div(class="flex items-center flex-wrap gap-2")
+                    strong 🧠 Prompt chấm đang dùng cho bài này:
+                    span= resolvedPrompt.name
+                    if resolvedPrompt.scope
+                        span(class="text-xs opacity-75")
+                            | (gán ở cấp: #{resolvedPrompt.scope === 'lesson' ? 'bài học này' : resolvedPrompt.scope === 'subject' ? 'môn học' : resolvedPrompt.scope === 'fallback' ? 'fallback mặc định' : 'global'})
+                    if isAdminView && resolvedPrompt._id
+                        a(
+                            href="/admin/prompts/" + resolvedPrompt._id + "/edit"
+                            class="text-xs underline font-semibold"
+                            target="_blank"
+                        )
+                            | Sửa prompt này →
+                if hasWarning
+                    div(class="mt-1 text-xs font-semibold")
+                        | ⚠️ Prompt có biến chưa nhận diện: #{promptUnknownPlaceholders.join(', ')} — vào link "Sửa prompt này" ở trên để sửa tên biến.
+
         div(class="ai-bar")
             div(class="ai-bar-info")
                 div(class="ai-icon") 🤖

@@ -55,8 +55,12 @@ block content
                         class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                     )= (prompt && prompt.description) || ''
 
-                //- Grid: strictness + maxScore + scope
-                div(class="grid grid-cols-1 sm:grid-cols-3 gap-4")
+                //- Grid: strictness + maxScore
+                //- ★ ĐÃ XOÁ select "Phạm vi" (scope) — chỉ còn global.
+                //-   Ẩn field cần thiết để controller vẫn nhận scope=global.
+                input(type="hidden", name="scope", value="global")
+
+                div(class="grid grid-cols-1 sm:grid-cols-2 gap-4")
                     div
                         label(class="block text-sm font-medium text-gray-700 mb-2")
                             | Mức độ chặt
@@ -81,82 +85,9 @@ block content
                             class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
                         )
 
-                    div
-                        label(class="block text-sm font-medium text-gray-700 mb-2")
-                            | Phạm vi
-                        select(
-                            name="scope"
-                            class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                        )
-                            option(value="global", selected=(!prompt || prompt.scope === 'global')) Toàn hệ thống
-                            option(value="subject", selected=(prompt && prompt.scope === 'subject')) Theo môn
-                            option(value="lesson", selected=(prompt && prompt.scope === 'lesson')) Theo bài
-
-                //- Subject (nếu scope=subject)
-                div
-                    label(class="block text-sm font-medium text-gray-700 mb-2")
-                        | Gán cho môn (nếu scope = "Theo môn")
-                    select(
-                        name="subjectId"
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                    )
-                        option(value="") — Không chọn —
-                        each s in subjects
-                            option(
-                                value=s._id
-                                selected=(prompt && String(prompt.subjectId) === String(s._id))
-                            )
-                                = s.name
-
-                //- Lessons (nếu scope=lesson) — 1 prompt có thể gán cho NHIỀU bài
-                div
-                    label(class="block text-sm font-medium text-gray-700 mb-2")
-                        | Gán cho các bài (nếu scope = "Theo bài") — có thể chọn nhiều
-
-                    input(
-                        type="text"
-                        id="lessonSearch"
-                        placeholder="Tìm bài học theo tên hoặc môn..."
-                        class="w-full mb-2 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-                    )
-
-                    div(id="lessonCheckboxList", class="max-h-56 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100")
-                        if lessons && lessons.length
-                            each l in lessons
-                                label(
-                                    class="lesson-option flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                                    data-label=`${l.title} ${l.subjectId ? l.subjectId.name : ''}`.toLowerCase()
-                                )
-                                    input(
-                                        type="checkbox"
-                                        name="lessonIds"
-                                        value=l._id
-                                        checked=(prompt && prompt.lessonIds && prompt.lessonIds.some((id) => String(id) === String(l._id)))
-                                        class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 flex-shrink-0"
-                                    )
-                                    span
-                                        = l.title
-                                        if l.subjectId
-                                            span(class="text-gray-400")
-                                                |  — #{l.subjectId.name}
-                        else
-                            p(class="px-3 py-4 text-sm text-gray-400") Chưa có bài học nào.
-
-                    p(class="text-xs text-gray-400 mt-1")
-                        | Mỗi bài chỉ dùng 1 prompt tại 1 thời điểm — chọn bài ở đây sẽ tự gán prompt này cho bài đó (gỡ prompt cũ nếu có); bỏ chọn sẽ gỡ prompt này khỏi bài đó.
-
-                    script.
-                        (function () {
-                            var input = document.getElementById('lessonSearch');
-                            if (!input) return;
-                            input.addEventListener('input', function (e) {
-                                var q = e.target.value.trim().toLowerCase();
-                                document.querySelectorAll('#lessonCheckboxList .lesson-option').forEach(function (el) {
-                                    var label = el.getAttribute('data-label') || '';
-                                    el.style.display = label.indexOf(q) !== -1 ? '' : 'none';
-                                });
-                            });
-                        })();
+                //- ★ ĐÃ XOÁ: khối "Gán cho môn" (subjectBlock)
+                //- ★ ĐÃ XOÁ: khối "Gán cho các bài" (lessonBlock) + 2 script đi kèm
+                //- ★ ĐÃ XOÁ: select "Phạm vi" (thay bằng hidden input scope=global ở trên)
 
                 //- Rubric
                 div

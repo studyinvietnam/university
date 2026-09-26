@@ -14,23 +14,9 @@ const gradingPromptSchema = new mongoose.Schema(
             default: ''
         },
 
-        // Nội dung prompt chính (system prompt)
-        content: {
-            type: String,
-            required: true
-        },
-
-        // Rubric: [{ criterion, weight, description }]
-        rubric: {
-            type: [
-                {
-                    criterion: { type: String, required: true, trim: true },
-                    weight: { type: Number, required: true, min: 0, max: 100 },
-                    description: { type: String, default: '' }
-                }
-            ],
-            default: []
-        },
+        // ❌ ĐÃ BỎ: content   → nội dung thật nằm trên GitHub
+        // ❌ ĐÃ BỎ: rubric    → nội dung thật nằm trên GitHub
+        // ❌ ĐÃ BỎ: variables → nội dung thật nằm trên GitHub
 
         // Mức độ chặt
         strictness: {
@@ -62,7 +48,7 @@ const gradingPromptSchema = new mongoose.Schema(
             index: true
         },
 
-        // ★ Nếu scope = 'subject' — tham chiếu Subject
+        // Nếu scope = 'subject' — tham chiếu Subject
         subjectId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Subject',
@@ -70,7 +56,7 @@ const gradingPromptSchema = new mongoose.Schema(
             index: true
         },
 
-        // ★ Nếu scope = 'lesson' — 1 prompt có thể gán cho NHIỀU bài
+        // Nếu scope = 'lesson' — 1 prompt có thể gán cho NHIỀU bài
         lessonIds: {
             type: [
                 {
@@ -82,24 +68,18 @@ const gradingPromptSchema = new mongoose.Schema(
             index: true
         },
 
-        // Biến động hỗ trợ: ['{đề_bài}', '{bài_làm}', ...]
-        variables: {
-            type: [String],
-            default: []
-        },
-
-        // Số phiên bản — tăng mỗi lần sửa content
+        // Số phiên bản — tăng mỗi lần sửa content (đối chiếu với GitHub)
         version: {
             type: Number,
             default: 1
         },
 
-        // ★ NEW: đường dẫn file JSON tương ứng trên GitHub (nguồn thật của
-        //   content/rubric/variables — giống Lesson.githubFile). MongoDB chỉ
-        //   giữ bản cache/fallback để lỡ GitHub lỗi/chậm vẫn chấm được bài.
+        // ★ Đường dẫn file JSON trên GitHub — NGUỒN THẬT của
+        //   content / rubric / variables. MongoDB chỉ giữ con trỏ này.
         githubFile: {
             type: String,
-            default: null
+            default: null,
+            index: true
         },
 
         // Còn hiệu lực hay không
@@ -124,7 +104,7 @@ const gradingPromptSchema = new mongoose.Schema(
         }
     },
     {
-        timestamps: true // createdAt + updatedAt
+        timestamps: true
     }
 );
 

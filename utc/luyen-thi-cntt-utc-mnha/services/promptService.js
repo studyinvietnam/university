@@ -1,50 +1,23 @@
 // ============================================================
 // PROMPT SERVICE
-// Ghép biến động vào nội dung prompt (từ DB) trước khi gửi AI.
-// Nếu DB không có prompt nào active → dùng FALLBACK_PROMPT hardcoded.
-//
-// ★ THÊM: resolvePrompt, buildPrompt, buildSnapshot — submissionService.js
-// đã gọi 3 hàm này từ trước nhưng file này CHƯA TỪNG export chúng
-// (trước đây chỉ có FALLBACK_PROMPT + renderPromptTemplate) → mỗi lượt
-// nộp bài thật đều crash "resolvePrompt is not a function" ngay bước đầu
-// tiên, trước cả khi kịp gọi tới AI.
 // ============================================================
-
-// GradingPrompt có thể chưa tồn tại tuỳ tiến độ dự án — require an toàn
-// giống cách controllers/ai.controller.js đang làm, để không sập cả app
-// nếu model này chưa được tạo.
 const GradingPrompt = (() => {
     try { return require('../models/GradingPrompt'); } catch (_) { return null; }
 })();
 
-// ★ NEW: require an toàn githubService — nếu chưa cấu hình (thiếu token,
-// service lỗi...) thì resolvePrompt() vẫn phải chạy được bằng bản Mongo,
-// không được để cả app sập.
 const githubService = (() => {
     try { return require('./githubService'); } catch (_) { return null; }
 })();
 
 const GITHUB_READ_TIMEOUT_MS = 5000;
 
-/**
- * Đọc file JSON prompt từ GitHub, có timeout riêng để không treo cả lượt
- * chấm bài nếu GitHub chậm/down — timeout hoặc lỗi đều throw để nơi gọi
- * tự fallback về bản Mongo (prompt.content đã lưu sẵn).
- */
 function readPromptFromGithub(filePath) {
-    if (!githubService) {
-        return Promise.reject(new Error('githubService không khả dụng'));
-    }
-
+    if (!githubService) return Promise.reject(new Error('githubService không khả dụng'));
     const fn =
         (typeof githubService.readJsonFile === 'function' && githubService.readJsonFile) ||
         (typeof githubService.getJSON === 'function' && githubService.getJSON) ||
         null;
-
-    if (!fn) {
-        return Promise.reject(new Error('githubService không có method readJsonFile/getJSON'));
-    }
-
+    if (!fn) return Promise.reject(new Error('githubService không có method readJsonFile/getJSON'));
     return Promise.race([
         fn(filePath),
         new Promise((_, reject) =>
@@ -53,15 +26,8 @@ function readPromptFromGithub(filePath) {
     ]);
 }
 
-/**
- * ★ NEW: "hydrate" 1 prompt doc (lấy từ Mongo) bằng bản mới nhất trên
- * GitHub — GitHub là nguồn thật (giống đề bài), Mongo chỉ là bản
- * cache/fallback. Nếu prompt chưa có githubFile (prompt cũ trước khi có
- * tính năng này), hoặc đọc GitHub lỗi/timeout → giữ nguyên bản Mongo.
- */
 async function hydrateFromGithub(promptDoc) {
     if (!promptDoc || !promptDoc.githubFile) return promptDoc;
-
     try {
         const json = await readPromptFromGithub(promptDoc.githubFile);
         if (json && typeof json === 'object') {
@@ -81,7 +47,6 @@ async function hydrateFromGithub(promptDoc) {
             error.message
         );
     }
-
     return promptDoc;
 }
 
@@ -128,10 +93,18 @@ function formatRubric(rubric) {
     }
 }
 
-/**
- * Thay các biến {đề_bài}, {bài_làm}, {rubric}, {max_score},
- * {lời_giải_mẫu}, {strictness}, {student_name} trong nội dung prompt.
- */
+// ★ NEW: danh sách biến hệ thống biết thay thế — dùng để phát hiện
+// placeholder LẠ (gõ sai tên) trong content của GradingPrompt.
+const KNOWN_PLACEHOLDERS = [
+    '{đề_bài}', '{bài_làm}', '{lời_giải_mẫu}',
+    '{rubric}', '{max_score}', '{strictness}', '{student_name}'
+];
+
+function findUnknownPlaceholders(text) {
+    const found = String(text || '').match(/\{[^{}]{1,40}\}/g) || [];
+    return [...new Set(found)].filter(p => !KNOWN_PLACEHOLDERS.includes(p));
+}
+
 function renderPromptTemplate(promptContent, variables = {}) {
     const template = promptContent && String(promptContent).trim()
         ? promptContent
@@ -153,15 +126,9 @@ function renderPromptTemplate(promptContent, variables = {}) {
     for (const [placeholder, value] of Object.entries(map)) {
         rendered = rendered.split(placeholder).join(value);
     }
-
     return rendered;
 }
 
-// ============================================================
-// ★ FALLBACK PROMPT OBJECT — dùng khi DB không có prompt nào phù hợp.
-// Có hình dạng giống 1 document GradingPrompt để resolvePrompt/buildPrompt/
-// buildSnapshot xử lý đồng nhất, không cần rẽ nhánh riêng ở nơi gọi.
-// ============================================================
 function buildFallbackPromptObject() {
     return {
         _id: null,
@@ -177,73 +144,37 @@ function buildFallbackPromptObject() {
     };
 }
 
-// ============================================================
-// ★ RESOLVE PROMPT — thứ tự ưu tiên đúng như README:
-// 1. Lesson.promptId (prompt gán riêng cho bài học)
-// 2. Subject.promptId (prompt gán riêng cho môn)
-// 3. GradingPrompt { scope: 'global', isDefault: true, active: true }
-// 4. Fallback hardcoded (an toàn nếu DB trống / model chưa có / lỗi query)
-//
-// @param {object} lesson - lesson doc (lean), có thể có field promptId
-// @param {object} subject - subject doc (lean), có thể có field promptId
-// @returns {Promise<object>} prompt document (hoặc fallback object)
-// ============================================================
 async function resolvePrompt(lesson, subject) {
     if (!GradingPrompt) {
         console.warn('⚠️ [promptService] Model GradingPrompt chưa có — dùng fallback prompt.');
         return buildFallbackPromptObject();
     }
-
     try {
         if (lesson?.promptId) {
             const lessonPrompt = await GradingPrompt.findOne({
-                _id: lesson.promptId,
-                active: { $ne: false }
+                _id: lesson.promptId, active: { $ne: false }
             }).lean();
-            if (lessonPrompt) return hydrateFromGithub(lessonPrompt);
+            if (lessonPrompt) return hydrateFromGithub({ ...lessonPrompt, scope: 'lesson' });
         }
-
         if (subject?.promptId) {
             const subjectPrompt = await GradingPrompt.findOne({
-                _id: subject.promptId,
-                active: { $ne: false }
+                _id: subject.promptId, active: { $ne: false }
             }).lean();
-            if (subjectPrompt) return hydrateFromGithub(subjectPrompt);
+            if (subjectPrompt) return hydrateFromGithub({ ...subjectPrompt, scope: 'subject' });
         }
-
         const globalDefault = await GradingPrompt.findOne({
-            scope: 'global',
-            isDefault: true,
-            active: { $ne: false }
+            scope: 'global', isDefault: true, active: { $ne: false }
         }).lean();
         if (globalDefault) return hydrateFromGithub(globalDefault);
     } catch (error) {
         console.error('❌ [promptService] resolvePrompt lỗi, dùng fallback:', error.message);
     }
-
     return buildFallbackPromptObject();
 }
 
-// ============================================================
-// ★ BUILD PROMPT — render prompt đã resolve với dữ liệu bài làm cụ thể.
-//
-// submissionService.js gọi hàm này với tên biến tiếng Việt khớp đúng
-// placeholder trong template ({đề_bài}, {bài_làm}, {lời_giải_mẫu},
-// student_name), còn rubric/maxScore/strictness lấy từ chính promptDoc
-// (đúng bản chất: đây là thuộc tính của PROMPT, không phải của bài nộp).
-//
-// Hàm này chỉ là lớp chuyển đổi tên biến sang renderPromptTemplate() —
-// nơi khác (vd controllers/ai.controller.js testPrompt) vẫn gọi thẳng
-// renderPromptTemplate() với tên biến chuẩn (topic/essay/...), không đổi.
-//
-// @param {object} promptDoc - kết quả từ resolvePrompt()
-// @param {object} vars - { 'đề_bài', 'bài_làm', 'lời_giải_mẫu', student_name }
-// @returns {string} prompt đã render đầy đủ, sẵn sàng gửi cho Gemini
-// ============================================================
 function buildPrompt(promptDoc, vars = {}) {
     const content = promptDoc?.content;
-
-    return renderPromptTemplate(content, {
+    const text = renderPromptTemplate(content, {
         topic: vars['đề_bài'],
         essay: vars['bài_làm'],
         sampleSolution: vars['lời_giải_mẫu'],
@@ -252,22 +183,13 @@ function buildPrompt(promptDoc, vars = {}) {
         strictness: promptDoc?.strictness,
         studentName: vars.student_name
     });
+    return { text, unknownPlaceholders: findUnknownPlaceholders(content) };
 }
 
-// ============================================================
-// ★ BUILD SNAPSHOT — lưu TOÀN BỘ nội dung prompt tại thời điểm chấm.
-// Theo đúng lưu ý trong README: promptId có thể còn nhưng nội dung prompt
-// có thể đã bị admin sửa sau đó → phải lưu nguyên snapshot, không chỉ ID,
-// để sau này biết chính xác bài đã được chấm bằng nội dung/rubric nào.
-//
-// @param {object} promptDoc - kết quả từ resolvePrompt()
-// @returns {object} snapshot lưu vào Submission.promptSnapshot
-// ============================================================
-function buildSnapshot(promptDoc) {
+function buildSnapshot(promptDoc, unknownPlaceholders = []) {
     if (!promptDoc) {
-        return { ...buildFallbackPromptObject(), snapshotAt: new Date() };
+        return { ...buildFallbackPromptObject(), unknownPlaceholders: [], snapshotAt: new Date() };
     }
-
     return {
         promptId: promptDoc._id || null,
         name: promptDoc.name || null,
@@ -278,6 +200,7 @@ function buildSnapshot(promptDoc) {
         scope: promptDoc.scope || null,
         version: promptDoc.version ?? 0,
         isFallback: Boolean(promptDoc.isFallback),
+        unknownPlaceholders,
         snapshotAt: new Date()
     };
 }
@@ -287,5 +210,6 @@ module.exports = {
     renderPromptTemplate,
     resolvePrompt,
     buildPrompt,
-    buildSnapshot
+    buildSnapshot,
+    findUnknownPlaceholders
 };
