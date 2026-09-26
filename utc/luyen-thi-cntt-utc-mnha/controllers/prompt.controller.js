@@ -86,12 +86,12 @@ const DEFAULT_VARIABLES = [
 // GITHUB I/O — nguồn thật duy nhất của content / rubric / variables
 // ============================================================
 
-// ★ CHANGED: đọc file JSON prompt từ GitHub. Chỉnh lại API cho khớp
-//   với service thực tế của bạn (fetchJson / readJson / getFile...).
+// Đọc file JSON prompt từ GitHub — dùng đúng tên hàm thật trong
+// services/githubService.js (readJsonFile), không phải fetchJson.
 async function readPromptJsonFromGithub(prompt) {
     if (!prompt || !prompt.githubFile) return null;
     try {
-        return await githubService.fetchJson(prompt.githubFile);
+        return await githubService.readJsonFile(prompt.githubFile);
     } catch (e) {
         console.warn(`[prompt] Không đọc được ${prompt.githubFile}:`, e.message);
         return null;
@@ -101,35 +101,56 @@ async function readPromptJsonFromGithub(prompt) {
 // ★ CHANGED: nội dung được truyền vào dưới dạng tham số (content/rubric/
 //   variables) thay vì đọc từ prompt.* — vì các field đó KHÔNG còn trong
 //   schema GradingPrompt nữa.
+//
+// ★ FIX: trước đây hàm này fire-and-forget (không await được) — updatePrompt()
+//   redirect "thành công" ngay lập tức dù GitHub có thể chưa ghi xong (hoặc
+//   ghi thất bại hẳn sau khi hết retry). Giờ trả về 1 Promise, resolve khi
+//   syncQueueService thực sự ghi GitHub xong (onSuccess) và reject khi ghi
+//   thất bại vĩnh viễn sau retry (onFinalFail) — cả hai hook này vốn đã được
+//   syncQueueService hỗ trợ sẵn, chỉ cần nối dây vào Promise.
+//   Lưu ý: syncQueueService retry tối đa 5 lần, có thể mất tới ~30s nếu GitHub
+//   lỗi liên tục trước khi request trả lỗi — đây là đánh đổi có chủ đích để
+//   admin biết chắc chắn kết quả thay vì thấy "thành công" giả.
 function pushPromptToGithub(prompt, content, rubric, variables) {
-    if (!prompt.githubFile) return;
+    return new Promise((resolve, reject) => {
+        if (!prompt.githubFile) {
+            resolve(null);
+            return;
+        }
 
-    try {
-        syncQueueService.enqueue({
-            type: 'putJson',
-            filePath: prompt.githubFile,
-            commitMessage: `[Prompt] ${prompt.isNew ? 'Create' : 'Update'}: ${prompt.name}`,
-            data: {
-                promptId: String(prompt._id),
-                name: prompt.name,
-                description: prompt.description || '',
-                content: content || '',
-                rubric: rubric || [],
-                strictness: prompt.strictness,
-                maxScore: prompt.maxScore,
-                scope: prompt.scope,
-                variables: variables || [],
-                version: prompt.version,
-                active: prompt.active,
-                updatedAt: new Date()
-            },
-            onSuccess: async (result) => {
-                console.log(`📤 [prompt] Đã đẩy lên GitHub: ${result.url}`);
-            }
-        });
-    } catch (e) {
-        console.warn('[prompt] Enqueue fail:', e.message);
-    }
+        try {
+            syncQueueService.enqueue({
+                type: 'putJson',
+                filePath: prompt.githubFile,
+                commitMessage: `[Prompt] ${prompt.isNew ? 'Create' : 'Update'}: ${prompt.name}`,
+                data: {
+                    promptId: String(prompt._id),
+                    name: prompt.name,
+                    description: prompt.description || '',
+                    content: content || '',
+                    rubric: rubric || [],
+                    strictness: prompt.strictness,
+                    maxScore: prompt.maxScore,
+                    scope: prompt.scope,
+                    variables: variables || [],
+                    version: prompt.version,
+                    active: prompt.active,
+                    updatedAt: new Date()
+                },
+                onSuccess: async (result) => {
+                    console.log(`📤 [prompt] Đã đẩy lên GitHub: ${result.url}`);
+                    resolve(result);
+                },
+                onFinalFail: async (err) => {
+                    console.error(`❌ [prompt] Đẩy GitHub thất bại vĩnh viễn: ${err.message}`);
+                    reject(err);
+                }
+            });
+        } catch (e) {
+            console.warn('[prompt] Enqueue fail:', e.message);
+            reject(e);
+        }
+    });
 }
 
 // ============================================================
@@ -292,6 +313,16 @@ exports.showEditPrompt = async (req, res, next) => {
             }
         }
 
+        // ★ FIX: lấy đúng trạng thái THẬT — bài nào đang thực sự trỏ
+        //   Lesson.promptId = prompt này — thay vì tin field prompt.lessonIds
+        //   đã lưu (có thể lệch nếu lesson được gán qua dropdown ở trang sửa
+        //   Lesson, vì đường đó ghi thẳng Lesson.promptId, không đụng tới
+        //   prompt.lessonIds). Nhờ vậy checkbox ở đây luôn khớp với trang Lesson.
+        const assignedLessons = await Lesson.find({ promptId: prompt._id })
+            .select('_id')
+            .lean();
+        prompt.lessonIds = assignedLessons.map((l) => l._id);
+
         return res.render('admin/prompt-form', {
             title: 'Sửa Prompt',
             user: req.user,
@@ -367,7 +398,15 @@ exports.updatePrompt = async (req, res, next) => {
         const oldContent = previous?.content || '';
         const contentChanged = content && content.trim() !== oldContent;
 
-        const oldLessonIds = (prompt.lessonIds || []).map((v) => String(v));
+        // ★ FIX: "bài cũ" phải lấy từ trạng thái THẬT trong Lesson
+        //   (Lesson.find({promptId: prompt._id})), không lấy từ prompt.lessonIds
+        //   đã lưu — vì lesson có thể được gán/gỡ trực tiếp qua dropdown ở
+        //   trang sửa Lesson (không đi qua đây), khiến prompt.lessonIds lệch
+        //   so với thực tế → checkbox tick sai + có thể gán/gỡ nhầm bài khi lưu.
+        const assignedLessonsNow = await Lesson.find({ promptId: prompt._id })
+            .select('_id')
+            .lean();
+        const oldLessonIds = assignedLessonsNow.map((l) => String(l._id));
         const newLessonIds = scope === 'lesson' ? normalizeIds(req.body.lessonIds) : [];
 
         // ---- Chỉ cập nhật METADATA vào Mongo ----
@@ -410,9 +449,24 @@ exports.updatePrompt = async (req, res, next) => {
         //   lưu content/rubric/variables. variables giữ lại từ bản cũ trên
         //   GitHub (nếu có), fallback về default.
         const variables = previous?.variables?.length ? previous.variables : DEFAULT_VARIABLES;
-        pushPromptToGithub(prompt, (content || '').trim(), rubric, variables);
 
-        return res.redirect(`/admin/prompts/${id}/edit?success=` + encodeURIComponent('Đã cập nhật prompt.'));
+        // ★ FIX: await thật sự việc ghi GitHub trước khi báo "thành công" —
+        //   trước đây redirect chạy ngay dù GitHub có thể chưa ghi xong hoặc
+        //   ghi lỗi, khiến admin tưởng đã lưu nhưng nội dung cũ vẫn còn.
+        try {
+            await pushPromptToGithub(prompt, (content || '').trim(), rubric, variables);
+        } catch (githubErr) {
+            return res.redirect(
+                `/admin/prompts/${id}/edit?error=` +
+                encodeURIComponent(
+                    'Đã lưu vào hệ thống nhưng đồng bộ GitHub thất bại: ' +
+                    githubErr.message +
+                    '. Nội dung CŨ vẫn đang được dùng để chấm bài — vui lòng lưu lại.'
+                )
+            );
+        }
+
+        return res.redirect(`/admin/prompts/${id}/edit?success=` + encodeURIComponent('Đã cập nhật prompt và đồng bộ GitHub thành công.'));
     } catch (err) {
         console.error('updatePrompt error:', err);
         return res.redirect(`/admin/prompts/${req.params.id}/edit?error=` + encodeURIComponent('Không thể cập nhật: ' + err.message));

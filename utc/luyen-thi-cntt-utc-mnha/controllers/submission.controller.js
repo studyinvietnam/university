@@ -97,6 +97,9 @@ const createSubmission = async (req, res) => {
                 friendlyMsg = 'Đã hết quota trong phút này. Vui lòng thử lại sau 1 phút.';
             } else if (msg.includes('no longer available')) {
                 friendlyMsg = 'Model AI đã bị Google khai tử. Liên hệ admin đổi model.';
+            } else if (msg.includes('không tải được nội dung prompt')) {
+                // ★ FIX: lỗi mới từ submissionService khi hydrate GitHub thất bại
+                friendlyMsg = 'Hệ thống chưa đồng bộ xong prompt. Vui lòng thử nộp lại sau ít phút.';
             }
 
             if (wantsJson(req)) {

@@ -27,7 +27,12 @@ function readPromptFromGithub(filePath) {
 }
 
 async function hydrateFromGithub(promptDoc) {
-    if (!promptDoc || !promptDoc.githubFile) return promptDoc;
+    // ★ FIX: thêm cờ hydrateFailed để phân biệt "đọc GitHub lỗi" (nên chấm
+    //   lỗi hẳn, không âm thầm chấm sai) với "content thật sự rỗng" (lỗi
+    //   nhập liệu của admin, cho phép fallback bình thường).
+    if (!promptDoc || !promptDoc.githubFile) {
+        return { ...promptDoc, hydrateFailed: false };
+    }
     try {
         const json = await readPromptFromGithub(promptDoc.githubFile);
         if (json && typeof json === 'object') {
@@ -38,16 +43,21 @@ async function hydrateFromGithub(promptDoc) {
                 variables: json.variables || promptDoc.variables,
                 version: json.version ?? promptDoc.version,
                 maxScore: json.maxScore ?? promptDoc.maxScore,
-                strictness: json.strictness || promptDoc.strictness
+                strictness: json.strictness || promptDoc.strictness,
+                hydrateFailed: false
             };
         }
     } catch (error) {
         console.warn(
-            `⚠️ [promptService] Không đọc được prompt từ GitHub (${promptDoc.githubFile}), dùng bản Mongo:`,
+            `⚠️ [promptService] Không đọc được prompt từ GitHub (${promptDoc.githubFile}):`,
             error.message
         );
+        // ★ FIX: KHÔNG trả nguyên promptDoc (thiếu content) như một prompt
+        //   bình thường — đánh dấu rõ hydrateFailed để nơi gọi (submissionService)
+        //   quyết định chặn chấm bài thay vì âm thầm rơi về FALLBACK_PROMPT.
+        return { ...promptDoc, content: null, hydrateFailed: true, hydrateError: error.message };
     }
-    return promptDoc;
+    return { ...promptDoc, hydrateFailed: false };
 }
 
 const FALLBACK_PROMPT = `
@@ -140,7 +150,8 @@ function buildFallbackPromptObject() {
         maxScore: 10,
         scope: 'fallback',
         version: 0,
-        isFallback: true
+        isFallback: true,
+        hydrateFailed: false
     };
 }
 

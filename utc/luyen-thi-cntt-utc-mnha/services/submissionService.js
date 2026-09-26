@@ -75,6 +75,16 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
     try {
         const prompt = await resolvePrompt(lesson, subject);
 
+        // ★ FIX: nếu đọc nội dung prompt từ GitHub thất bại (timeout, file
+        //   chưa kịp sync, lỗi mạng...), KHÔNG được âm thầm chấm bằng
+        //   FALLBACK_PROMPT — báo lỗi rõ ràng để học sinh biết thử nộp lại,
+        //   thay vì bị chấm sai rubric mà không ai hay.
+        if (prompt.hydrateFailed) {
+            throw new Error(
+                'Không tải được nội dung prompt từ GitHub (lỗi mạng/timeout). Vui lòng thử nộp lại.'
+            );
+        }
+
         const đề_bài = lesson.contentHtml || lesson.title || '';
         const bài_làm = wrapUserContent('BÀI_LÀM', answerHtml || '');
         const lời_giải_mẫu = lesson.sampleSolution || '';
@@ -86,12 +96,18 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
             student_name: user.name
         });
 
-        aiResult = await gradeSubmission(fullPrompt, {
+        // ★ FIX (BUG CHÍNH): buildPrompt() trả về { text, unknownPlaceholders },
+        //   không phải string. gradeSubmission() yêu cầu string và luôn throw
+        //   "Prompt rỗng." nếu nhận object — đây là nguyên nhân lỗi 100% các
+        //   lần nộp bài trước đây, không liên quan gì tới GitHub hay lesson.
+        aiResult = await gradeSubmission(fullPrompt.text, {
             model,
             preferredKeyId: aiKeyId || null
         });
 
-        promptSnapshot = buildSnapshot(prompt);
+        // ★ FIX: truyền luôn unknownPlaceholders (đã tính sẵn trong buildPrompt)
+        //   để snapshot lưu lại cảnh báo nếu admin gõ sai tên biến trong prompt.
+        promptSnapshot = buildSnapshot(prompt, fullPrompt.unknownPlaceholders);
 
         // Cập nhật metadata nhẹ vào MongoDB
         await Submission.updateOne(
