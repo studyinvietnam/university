@@ -17,6 +17,74 @@ const GradingPrompt = (() => {
     try { return require('../models/GradingPrompt'); } catch (_) { return null; }
 })();
 
+// ★ NEW: require an toàn githubService — nếu chưa cấu hình (thiếu token,
+// service lỗi...) thì resolvePrompt() vẫn phải chạy được bằng bản Mongo,
+// không được để cả app sập.
+const githubService = (() => {
+    try { return require('./githubService'); } catch (_) { return null; }
+})();
+
+const GITHUB_READ_TIMEOUT_MS = 5000;
+
+/**
+ * Đọc file JSON prompt từ GitHub, có timeout riêng để không treo cả lượt
+ * chấm bài nếu GitHub chậm/down — timeout hoặc lỗi đều throw để nơi gọi
+ * tự fallback về bản Mongo (prompt.content đã lưu sẵn).
+ */
+function readPromptFromGithub(filePath) {
+    if (!githubService) {
+        return Promise.reject(new Error('githubService không khả dụng'));
+    }
+
+    const fn =
+        (typeof githubService.readJsonFile === 'function' && githubService.readJsonFile) ||
+        (typeof githubService.getJSON === 'function' && githubService.getJSON) ||
+        null;
+
+    if (!fn) {
+        return Promise.reject(new Error('githubService không có method readJsonFile/getJSON'));
+    }
+
+    return Promise.race([
+        fn(filePath),
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout đọc prompt từ GitHub')), GITHUB_READ_TIMEOUT_MS)
+        )
+    ]);
+}
+
+/**
+ * ★ NEW: "hydrate" 1 prompt doc (lấy từ Mongo) bằng bản mới nhất trên
+ * GitHub — GitHub là nguồn thật (giống đề bài), Mongo chỉ là bản
+ * cache/fallback. Nếu prompt chưa có githubFile (prompt cũ trước khi có
+ * tính năng này), hoặc đọc GitHub lỗi/timeout → giữ nguyên bản Mongo.
+ */
+async function hydrateFromGithub(promptDoc) {
+    if (!promptDoc || !promptDoc.githubFile) return promptDoc;
+
+    try {
+        const json = await readPromptFromGithub(promptDoc.githubFile);
+        if (json && typeof json === 'object') {
+            return {
+                ...promptDoc,
+                content: json.content || promptDoc.content,
+                rubric: json.rubric || promptDoc.rubric,
+                variables: json.variables || promptDoc.variables,
+                version: json.version ?? promptDoc.version,
+                maxScore: json.maxScore ?? promptDoc.maxScore,
+                strictness: json.strictness || promptDoc.strictness
+            };
+        }
+    } catch (error) {
+        console.warn(
+            `⚠️ [promptService] Không đọc được prompt từ GitHub (${promptDoc.githubFile}), dùng bản Mongo:`,
+            error.message
+        );
+    }
+
+    return promptDoc;
+}
+
 const FALLBACK_PROMPT = `
 Bạn là giáo viên chấm bài. Hãy chấm bài viết sau dựa trên đề bài và rubric.
 
@@ -132,7 +200,7 @@ async function resolvePrompt(lesson, subject) {
                 _id: lesson.promptId,
                 active: { $ne: false }
             }).lean();
-            if (lessonPrompt) return lessonPrompt;
+            if (lessonPrompt) return hydrateFromGithub(lessonPrompt);
         }
 
         if (subject?.promptId) {
@@ -140,7 +208,7 @@ async function resolvePrompt(lesson, subject) {
                 _id: subject.promptId,
                 active: { $ne: false }
             }).lean();
-            if (subjectPrompt) return subjectPrompt;
+            if (subjectPrompt) return hydrateFromGithub(subjectPrompt);
         }
 
         const globalDefault = await GradingPrompt.findOne({
@@ -148,7 +216,7 @@ async function resolvePrompt(lesson, subject) {
             isDefault: true,
             active: { $ne: false }
         }).lean();
-        if (globalDefault) return globalDefault;
+        if (globalDefault) return hydrateFromGithub(globalDefault);
     } catch (error) {
         console.error('❌ [promptService] resolvePrompt lỗi, dùng fallback:', error.message);
     }

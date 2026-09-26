@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const GradingPrompt = require('../models/GradingPrompt');
 const Subject = require('../models/Subject');
 const Lesson = require('../models/Lesson');
+const syncQueueService = require('../services/syncQueueService');
 
 // ============================================================
 // HELPERS
@@ -73,6 +74,43 @@ function parseRubric(body) {
             description: (descriptions[i] || '').trim()
         }))
         .filter((r) => r.criterion);
+}
+
+// ============================================================
+// ★ NEW: đẩy nội dung prompt (content/rubric/variables/version...) lên
+// GitHub — MongoDB chỉ giữ bản cache/fallback, GitHub mới là "nguồn thật"
+// mà promptService.resolvePrompt() sẽ đọc khi chấm bài (giống hệt cách
+// lesson_controller.js đang làm với đề bài).
+// ============================================================
+function pushPromptToGithub(prompt) {
+    if (!prompt.githubFile) return;
+
+    try {
+        syncQueueService.enqueue({
+            type: 'putJson',
+            filePath: prompt.githubFile,
+            commitMessage: `[Prompt] ${prompt.isNew ? 'Create' : 'Update'}: ${prompt.name}`,
+            data: {
+                promptId: String(prompt._id),
+                name: prompt.name,
+                description: prompt.description || '',
+                content: prompt.content,
+                rubric: prompt.rubric || [],
+                strictness: prompt.strictness,
+                maxScore: prompt.maxScore,
+                scope: prompt.scope,
+                variables: prompt.variables || [],
+                version: prompt.version,
+                active: prompt.active,
+                updatedAt: new Date()
+            },
+            onSuccess: async (result) => {
+                console.log(`📤 [prompt] Đã đẩy lên GitHub: ${result.url}`);
+            }
+        });
+    } catch (e) {
+        console.warn('[prompt] Enqueue fail:', e.message);
+    }
 }
 
 // ============================================================
@@ -189,6 +227,13 @@ exports.createPrompt = async (req, res, next) => {
         if (lessonIds.length) {
             await syncLessonAssignments(prompt._id, [], lessonIds);
         }
+
+        // ★ NEW: gán đường dẫn GitHub theo _id (ổn định, không đổi dù sửa tên sau này)
+        //   rồi đẩy nội dung lên GitHub.
+        prompt.githubFile = `prompts/${prompt._id}.json`;
+        prompt.isNew = true; // chỉ dùng cho commit message, không lưu vào DB
+        await GradingPrompt.updateOne({ _id: prompt._id }, { $set: { githubFile: prompt.githubFile } });
+        pushPromptToGithub(prompt);
 
         return res.redirect('/admin/prompts?success=' + encodeURIComponent(`Đã tạo prompt "${prompt.name}".`));
     } catch (err) {
@@ -328,11 +373,21 @@ exports.updatePrompt = async (req, res, next) => {
 
         prompt.updatedBy = getUserId(req);
 
+        // ★ FALLBACK: prompt cũ tạo trước khi có tính năng này sẽ chưa có
+        //   githubFile — tự gán khi sửa lần đầu (giống cách lesson_controller
+        //   fallback githubFile cho bài học cũ).
+        if (!prompt.githubFile) {
+            prompt.githubFile = `prompts/${prompt._id}.json`;
+        }
+
         await prompt.save();
 
         // Đồng bộ Lesson.promptId: thêm cho bài mới tick, gỡ cho bài bị bỏ tick
         // (chỉ gỡ nếu Lesson đó vẫn đang trỏ đúng prompt này).
         await syncLessonAssignments(prompt._id, oldLessonIds, newLessonIds);
+
+        // ★ NEW: đẩy lại nội dung mới nhất lên GitHub sau mỗi lần sửa.
+        pushPromptToGithub(prompt);
 
         return res.redirect(`/admin/prompts/${id}/edit?success=` + encodeURIComponent('Đã cập nhật prompt.'));
     } catch (err) {
@@ -414,6 +469,19 @@ exports.hardDeletePrompt = async (req, res, next) => {
         }
 
         await GradingPrompt.deleteOne({ _id: id });
+
+        // ★ NEW: dọn luôn file JSON tương ứng trên GitHub
+        if (prompt.githubFile) {
+            try {
+                syncQueueService.enqueue({
+                    type: 'deleteFile',
+                    filePath: prompt.githubFile,
+                    commitMessage: `[Prompt] Hard delete: ${prompt.name}`
+                });
+            } catch (e) {
+                console.warn('[prompt] Enqueue deleteFile fail:', e.message);
+            }
+        }
 
         return res.redirect('/admin/prompts?success=' + encodeURIComponent('Đã xoá vĩnh viễn prompt.'));
     } catch (err) {

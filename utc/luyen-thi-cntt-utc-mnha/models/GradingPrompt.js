@@ -94,6 +94,14 @@ const gradingPromptSchema = new mongoose.Schema(
             default: 1
         },
 
+        // ★ NEW: đường dẫn file JSON tương ứng trên GitHub (nguồn thật của
+        //   content/rubric/variables — giống Lesson.githubFile). MongoDB chỉ
+        //   giữ bản cache/fallback để lỡ GitHub lỗi/chậm vẫn chấm được bài.
+        githubFile: {
+            type: String,
+            default: null
+        },
+
         // Còn hiệu lực hay không
         active: {
             type: Boolean,
