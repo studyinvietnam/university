@@ -1,5 +1,8 @@
 require("dotenv").config();
 
+// TIMEZONE: Việt Nam (GMT+7)
+process.env.TZ = "Asia/Ho_Chi_Minh";
+
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
