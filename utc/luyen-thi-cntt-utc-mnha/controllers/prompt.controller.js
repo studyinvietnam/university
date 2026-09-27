@@ -407,6 +407,12 @@ exports.updatePrompt = async (req, res, next) => {
             .select('_id')
             .lean();
         const oldLessonIds = assignedLessonsNow.map((l) => String(l._id));
+
+        // ★ FIX: giữ lại scope CŨ (trước khi ghi đè bên dưới) để phân biệt
+        //   "admin đang sửa prompt scope=lesson" với "admin chủ động đổi
+        //   scope từ lesson sang cái khác" — hai trường hợp cần xử lý khác
+        //   nhau, xem chi tiết ở khối sync bên dưới.
+        const previousScope = prompt.scope;
         const newLessonIds = scope === 'lesson' ? normalizeIds(req.body.lessonIds) : [];
 
         // ---- Chỉ cập nhật METADATA vào Mongo ----
@@ -443,7 +449,24 @@ exports.updatePrompt = async (req, res, next) => {
 
         await prompt.save();
 
-        await syncLessonAssignments(prompt._id, oldLessonIds, newLessonIds);
+        // ★ FIX: trước đây luôn gọi syncLessonAssignments(..., newLessonIds)
+        //   với newLessonIds ép về [] mỗi khi scope !== 'lesson' — khiến MỌI
+        //   lần sửa 1 prompt scope subject/global (dù chỉ đổi tên, maxScore...)
+        //   đều xoá sạch mọi Lesson.promptId đang trỏ về nó (có thể do gán
+        //   trực tiếp từ trang sửa Lesson). Giờ chỉ đụng vào Lesson.promptId
+        //   trong đúng 2 trường hợp có chủ đích:
+        if (scope === 'lesson') {
+            // 1) Đang sửa prompt scope=lesson → đồng bộ theo đúng checkbox
+            //    admin vừa chọn trong form này.
+            await syncLessonAssignments(prompt._id, oldLessonIds, newLessonIds);
+        } else if (previousScope === 'lesson' && oldLessonIds.length) {
+            // 2) Admin CHỦ ĐỘNG đổi scope từ 'lesson' sang scope khác → hợp lý
+            //    để gỡ hết lesson cũ, vì prompt không còn ở dạng lesson-scope nữa.
+            await syncLessonAssignments(prompt._id, oldLessonIds, []);
+        }
+        // else: scope không phải 'lesson' và trước đó cũng không phải 'lesson'
+        //   (vd. đang sửa 1 prompt scope=global) → KHÔNG đụng gì tới
+        //   Lesson.promptId, dù có lesson nào đang trỏ về đây qua đường khác.
 
         // ★ CHANGED: đẩy nội dung mới nhất lên GitHub — đây là NƠI DUY NHẤT
         //   lưu content/rubric/variables. variables giữ lại từ bản cũ trên
