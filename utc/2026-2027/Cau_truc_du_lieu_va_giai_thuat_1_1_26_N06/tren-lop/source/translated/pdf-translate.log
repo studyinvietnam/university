@@ -1,0 +1,33 @@
+
+======================================================================
+2026-09-27 23:12:32  D:\bai_tap_dh\utc\2026-2027\Cau_truc_du_lieu_va_giai_thuat_1_1_26_N06\tren-lop\source\Cormen Introduction to Algorithms-MIT.pdf
+Traceback (most recent call last):
+  File "pdf2zh\high_level.py", line 928, in translate
+  File "pdf2zh\high_level.py", line 756, in translate_stream
+  File "pdf2zh\high_level.py", line 661, in translate_patch
+  File "pdf2zh\pdfinterp.py", line 439, in process_page
+  File "pdf2zh\converter.py", line 759, in end_page
+  File "pdf2zh\converter.py", line 1485, in receive_layout
+  File "pdf2zh\converter.py", line 1467, in translate_together
+  File "pdf2zh\converter.py", line 1428, in leave_untranslated
+  File "pdf2zh\translator.py", line 611, in _translate_batch
+  File "pdf2zh\translator.py", line 666, in _retrying
+  File "pdf2zh\translator.py", line 611, in <lambda>
+  File "pdf2zh\translator.py", line 654, in _translate_joined
+  File "pdf2zh\translator.py", line 709, in _fetch
+pdf2zh.translator.RateLimitedError: Google Translate is refusing requests from this network (HTTP 429 or CAPTCHA)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "scripts\translate_pdf.py", line 487, in translate_pdf
+  File "scripts\translate_pdf.py", line 396, in _run_engine
+  File "pdf2zh\high_level.py", line 950, in translate
+pdfminer.pdfexceptions.PDFValueError: Failed to translate D:\bai_tap_dh\utc\2026-2027\Cau_truc_du_lieu_va_giai_thuat_1_1_26_N06\tren-lop\source\Cormen Introduction to Algorithms-MIT.pdf
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "gui.py", line 863, in _run
+  File "scripts\translate_pdf.py", line 503, in translate_pdf
+scripts.translate_pdf.TranslationError: PDF translation core failed: PDFValueError: Failed to translate D:\bai_tap_dh\utc\2026-2027\Cau_truc_du_lieu_va_giai_thuat_1_1_26_N06\tren-lop\source\Cormen Introduction to Algorithms-MIT.pdf <- RateLimitedError: Google Translate is refusing requests from this network (HTTP 429 or CAPTCHA)
