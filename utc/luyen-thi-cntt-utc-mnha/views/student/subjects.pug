@@ -53,6 +53,10 @@ block content
                                 p(class="mt-3 text-sm text-gray-500 line-clamp-3")
                                     | #{subject.description}
 
+                            p(class="mt-3 text-xs text-gray-400")
+                                i(data-lucide="user", class="w-3 h-3 inline-block mr-1")
+                                | Người tạo môn: #{subject.createdBy && subject.createdBy.name ? subject.createdBy.name : 'Không rõ'}
+
                             div(class="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between")
                                 span(class="text-sm text-gray-500")
                                     i(data-lucide="layers", class="w-4 h-4 inline-block mr-1")

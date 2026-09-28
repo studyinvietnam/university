@@ -53,7 +53,9 @@ function findSubjectByParam(param, extraFilter = {}) {
     return Subject.findOne({
         ...baseFilter,
         ...extraFilter,
-    }).lean();
+    })
+        .populate('createdBy', 'name')
+        .lean();
 }
 
 // Lấy subject theo id/slug KHÔNG lọc trạng thái — dùng để phân biệt
@@ -61,7 +63,9 @@ function findSubjectByParam(param, extraFilter = {}) {
 // giống findLessonByParamAny bên lesson.controller.js.
 function findSubjectByParamAny(param) {
     const baseFilter = isObjectId(param) ? { _id: param } : { slug: param };
-    return Subject.findOne(baseFilter).lean();
+    return Subject.findOne(baseFilter)
+        .populate('createdBy', 'name')
+        .lean();
 }
 
 // ★ THÊM: đọc flash message an toàn (connect-flash trả về mảng) — dùng
@@ -84,6 +88,7 @@ exports.getSubjects = async (req, res, next) => {
             deletedAt: null,
             deletedForever: { $ne: true },
         })
+            .populate('createdBy', 'name')
             .sort({ order: 1, createdAt: -1 })
             .lean();
 
@@ -152,6 +157,7 @@ exports.getSubject = async (req, res, next) => {
             subjectId: subject._id,
             isDeleted: false,
         })
+            .populate('createdBy', 'name')
             .sort({ createdAt: 1 })
             .lean();
 
