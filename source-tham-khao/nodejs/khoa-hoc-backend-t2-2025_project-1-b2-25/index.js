@@ -1,6 +1,8 @@
 const express = require('express')
 const path = require('path');
 require('dotenv').config();
+console.log("ENV file:", require('path').join(__dirname, '.env'));
+console.log("DATABASE =", process.env.DATABASE);
 const database = require("./config/database");
 const adminRoutes = require("./routes/admin/index.route");
 const clientRoutes = require("./routes/client/index.route");
