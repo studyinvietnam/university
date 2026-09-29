@@ -53,6 +53,8 @@ block content
                                     | Thời gian
                                 th(class="px-5 py-3 text-left font-semibold text-gray-600")
                                     | Trạng thái
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600")
+                                    | Nhận xét GV
                                 th(class="px-5 py-3 text-right font-semibold text-gray-600")
                                     | Hành động
 
@@ -132,6 +134,20 @@ block content
                                         else
                                             span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700")
                                                 = s.status || 'Không xác định'
+
+                                    //- Nhận xét giảng viên (tuỳ chọn, kèm tên người viết)
+                                    td(class="px-5 py-4 max-w-xs")
+                                        - var tc = s.teacherComment
+                                        - var teacherNote = (tc && tc.content) ? tc.content.trim() : ''
+                                        - var teacherName = (tc && tc.commentedByName) ? tc.commentedByName : 'Giảng viên'
+                                        if teacherNote
+                                            div(class="flex items-start gap-1.5")
+                                                i(data-lucide="message-square-text", class="w-3.5 h-3.5 text-indigo-500 mt-0.5 flex-shrink-0")
+                                                div
+                                                    p(class="text-xs font-medium text-gray-900")= teacherName
+                                                    p(class="text-xs text-gray-700 line-clamp-2")= teacherNote
+                                        else
+                                            span(class="text-gray-400") —
 
                                     //- Hành động
                                     td(class="px-5 py-4 text-right")

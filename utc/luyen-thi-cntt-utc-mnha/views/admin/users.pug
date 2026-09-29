@@ -3,13 +3,17 @@ extends ../layout
 block content
     div(class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8")
 
-        //- Header
+        //- ============================================================
+        //- HEADER
+        //- ============================================================
         div(class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8")
             div
                 h1(class="text-2xl sm:text-3xl font-bold text-gray-900") Quản lý tài khoản
                 p(class="text-gray-500 mt-1") Duyệt, phân quyền và quản lý người dùng hệ thống
 
-        //- Stats bar
+        //- ============================================================
+        //- STATS BAR
+        //- ============================================================
         div(class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8")
             div(class="bg-white border border-gray-200 rounded-xl p-4")
                 p(class="text-xs font-medium text-gray-500") Tổng
@@ -31,13 +35,16 @@ block content
                 p(class="text-xs font-medium text-gray-600") Client
                 p(class="text-2xl font-bold text-gray-700 mt-1")= stats.client || 0
 
-        //- Filters
+        //- ============================================================
+        //- FILTERS
+        //- ============================================================
         form(
             method="GET"
             action="/admin/users"
-            class="bg-white border border-gray-200 rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-3"
+            class="bg-white border border-gray-200 rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-3 md:items-end flex-wrap"
         )
-            div(class="flex-1")
+            div(class="flex-1 min-w-48")
+                label(class="block text-xs font-medium text-gray-500 mb-1") Tìm kiếm
                 input(
                     type="text"
                     name="q"
@@ -47,9 +54,10 @@ block content
                 )
 
             div
+                label(class="block text-xs font-medium text-gray-500 mb-1") Vai trò
                 select(
                     name="role"
-                    class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
                 )
                     option(value="all", selected=filters.role === 'all') Tất cả vai trò
                     option(value="client", selected=filters.role === 'client') Client
@@ -57,15 +65,62 @@ block content
                     option(value="admin", selected=filters.role === 'admin') Admin
 
             div
+                label(class="block text-xs font-medium text-gray-500 mb-1") Trạng thái
                 select(
                     name="status"
-                    class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
                 )
                     option(value="all", selected=filters.status === 'all') Tất cả trạng thái
                     option(value="pending", selected=filters.status === 'pending') Chờ duyệt
                     option(value="approved", selected=filters.status === 'approved') Đã duyệt
                     option(value="rejected", selected=filters.status === 'rejected') Bị từ chối
                     option(value="disabled", selected=filters.status === 'disabled') Vô hiệu hoá
+
+            //- 👇 Lọc theo tổ chức GỐC (user_key) — chỉ admin default
+            if canManageUserKey
+                div(class="md:w-56")
+                    label(class="block text-xs font-medium text-gray-500 mb-1") Tổ chức gốc
+                    select(
+                        name="userKey"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
+                    )
+                        option(
+                            value="all"
+                            selected=(!filters.userKey || filters.userKey === 'all')
+                        ) Tất cả tổ chức
+                        option(
+                            value="default"
+                            selected=filters.userKey === 'default'
+                        ) ⌂ Mặc định (default — null)
+                        if userKeys && userKeys.length
+                            each uk in userKeys
+                                option(
+                                    value=String(uk._id)
+                                    selected=(String(filters.userKey) === String(uk._id))
+                                )= uk.name + ' (' + uk.code + ')'
+                        option(
+                            value="unassigned"
+                            selected=filters.userKey === 'unassigned'
+                        ) — Chưa gán tổ chức —
+
+            //- 👇 MỚI: lọc user ĐÃ KẾT NỐI tới 1 tổ chức (connectedUserKeys)
+            if canManageUserKey
+                div(class="md:w-56")
+                    label(class="block text-xs font-medium text-gray-500 mb-1") Đã kết nối tới
+                    select(
+                        name="connectedKey"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
+                    )
+                        option(
+                            value=""
+                            selected=(!filters.connectedKey)
+                        ) — Bất kỳ —
+                        if userKeys && userKeys.length
+                            each uk in userKeys
+                                option(
+                                    value=String(uk._id)
+                                    selected=(String(filters.connectedKey) === String(uk._id))
+                                )= uk.name + ' (' + uk.code + ')'
 
             div(class="flex gap-2")
                 button(
@@ -78,7 +133,9 @@ block content
                     class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
                 ) Xoá lọc
 
-        //- Table
+        //- ============================================================
+        //- TABLE
+        //- ============================================================
         div(class="bg-white border border-gray-200 rounded-2xl overflow-hidden")
             .overflow-x-auto
                 table(class="w-full text-sm")
@@ -87,12 +144,14 @@ block content
                             th(class="px-5 py-3 text-left font-semibold text-gray-600") Người dùng
                             th(class="px-5 py-3 text-left font-semibold text-gray-600") Vai trò
                             th(class="px-5 py-3 text-left font-semibold text-gray-600") Trạng thái
+                            th(class="px-5 py-3 text-left font-semibold text-gray-600") Tổ chức
                             th(class="px-5 py-3 text-left font-semibold text-gray-600") Ngày tạo
                             th(class="px-5 py-3 text-right font-semibold text-gray-600") Hành động
 
                     tbody(class="divide-y divide-gray-100")
                         if users && users.length
                             each u in users
+                                - var connectedIds = (u.connectedUserKeys || []).map(function(k){ return String(k._id || k); });
                                 tr(class="hover:bg-gray-50", data-user-id=u._id)
                                     td(class="px-5 py-4")
                                         div(class="flex items-center gap-3")
@@ -123,6 +182,33 @@ block content
                                         else
                                             span(class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700")= u.status
 
+                                    //- 👇 Cột tổ chức: gốc + các tổ chức đã kết nối (multi)
+                                    td(class="px-5 py-4")
+                                        div(class="flex flex-col gap-1.5")
+                                            //- Tổ chức gốc
+                                            div
+                                                if u.userKey && u.userKey.name
+                                                    span(class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 w-fit")
+                                                        i(data-lucide="building-2", class="w-3 h-3")
+                                                        = u.userKey.name
+                                                    span(class="text-[10px] text-gray-400 font-mono ml-1")= u.userKey.code || ''
+                                                else
+                                                    span(class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600")
+                                                        i(data-lucide="home", class="w-3 h-3")
+                                                        | Mặc định
+
+                                            //- 👇 MỚI: các tổ chức đã kết nối thêm (connectedUserKeys)
+                                            if u.connectedUserKeys && u.connectedUserKeys.length
+                                                div(class="flex flex-wrap gap-1")
+                                                    each ck in u.connectedUserKeys
+                                                        if ck && ck.name
+                                                            span(
+                                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100"
+                                                                title="Đã kết nối (có thể làm bài của tổ chức này)"
+                                                            )
+                                                                i(data-lucide="link-2", class="w-2.5 h-2.5")
+                                                                = ck.name
+
                                     td(class="px-5 py-4 text-gray-500 text-xs")
                                         = u.createdAt ? new Date(u.createdAt).toLocaleString('vi-VN') : '—'
 
@@ -140,10 +226,12 @@ block content
                                                 class="edit-user px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-50 transition"
                                                 data-user=JSON.stringify({
                                                     _id: String(u._id),
-                                                    name: u.name,
-                                                    email: u.email,
+                                                    name: u.name || '',
+                                                    email: u.email || '',
                                                     role: u.role,
-                                                    status: u.status
+                                                    status: u.status,
+                                                    userKeyId: u.userKey ? String(u.userKey._id || u.userKey) : null,
+                                                    connectedUserKeys: connectedIds
                                                 })
                                             ) Sửa
 
@@ -155,11 +243,13 @@ block content
                                             ) Xoá
                         else
                             tr
-                                td(colspan="5", class="px-5 py-12 text-center")
+                                td(colspan="6", class="px-5 py-12 text-center")
                                     i(data-lucide="users", class="w-10 h-10 mx-auto text-gray-300")
                                     p(class="text-gray-500 mt-3") Không có user nào.
 
-        //- Pagination
+        //- ============================================================
+        //- PAGINATION (nếu controller có truyền)
+        //- ============================================================
         if pagination && pagination.totalPages > 1
             div(class="flex items-center justify-between mt-6")
                 p(class="text-sm text-gray-500")
@@ -168,20 +258,20 @@ block content
                 div(class="flex gap-2")
                     if pagination.hasPrev
                         a(
-                            href=`/admin/users?q=${encodeURIComponent(filters.q || '')}&role=${filters.role}&status=${filters.status}&page=${pagination.page - 1}`
+                            href=`/admin/users?q=${encodeURIComponent(filters.q || '')}&role=${filters.role}&status=${filters.status}&userKey=${encodeURIComponent(filters.userKey || 'all')}&connectedKey=${encodeURIComponent(filters.connectedKey || '')}&page=${pagination.page - 1}`
                             class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
                         ) ← Trước
                     if pagination.hasNext
                         a(
-                            href=`/admin/users?q=${encodeURIComponent(filters.q || '')}&role=${filters.role}&status=${filters.status}&page=${pagination.page + 1}`
+                            href=`/admin/users?q=${encodeURIComponent(filters.q || '')}&role=${filters.role}&status=${filters.status}&userKey=${encodeURIComponent(filters.userKey || 'all')}&connectedKey=${encodeURIComponent(filters.connectedKey || '')}&page=${pagination.page + 1}`
                             class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
                         ) Sau →
 
-    //- ================================
+    //- ================================================================
     //- MODAL EDIT USER
-    //- ================================
-    div#editUserModal(class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4")
-        div(class="bg-white rounded-2xl max-w-md w-full shadow-xl")
+    //- ================================================================
+    div#editUserModal(class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto")
+        div(class="bg-white rounded-2xl max-w-lg w-full shadow-xl my-8")
             div(class="px-6 py-4 border-b border-gray-200 flex items-center justify-between")
                 h3(class="font-bold text-lg text-gray-900") Sửa tài khoản
                 button#closeEditModal(class="text-gray-400 hover:text-gray-600", type="button")
@@ -227,6 +317,63 @@ block content
                         option(value="rejected") Bị từ chối
                         option(value="disabled") Vô hiệu hoá
 
+                //- 👇 Tổ chức GỐC (1 lựa chọn duy nhất)
+                if canManageUserKey
+                    div
+                        label(class="block text-sm font-medium text-gray-700 mb-1") Tổ chức gốc (user_key)
+                        select#editUserKey(
+                            name="userKey"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none"
+                        )
+                            option(value="") ⌂ Mặc định (default — null)
+                            if userKeys && userKeys.length
+                                each uk in userKeys
+                                    option(value=String(uk._id))= uk.name + ' (' + uk.code + ')'
+                        p(class="text-xs text-gray-400 mt-1") Tổ chức gốc của user. Để trống = tổ chức mặc định.
+                else
+                    div
+                        label(class="block text-sm font-medium text-gray-700 mb-1") Tổ chức gốc (user_key)
+                        input#editUserKeyLocked(
+                            type="text"
+                            disabled
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500"
+                            value="(Cố định theo admin duyệt — không đổi được)"
+                        )
+                        p(class="text-xs text-gray-400 mt-1") Admin user_key không thể đổi tổ chức của user.
+
+                //- 👇 MỚI: Tổ chức ĐÃ KẾT NỐI (multi-select checkbox)
+                //   - Chỉ admin default thấy
+                //   - Là mảng connectedUserKeys — user có thể làm bài của NHIỀU tổ chức
+                //   - Server tự động loại bỏ nếu trùng với tổ chức gốc
+                if canManageUserKey
+                    div
+                        label(class="block text-sm font-medium text-gray-700 mb-1") Tổ chức đã kết nối (connectedUserKeys)
+                        div(class="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto bg-white")
+                            if userKeys && userKeys.length
+                                each uk, idx in userKeys
+                                    label(class="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-gray-50 rounded px-2")
+                                        input(
+                                            type="checkbox"
+                                            class="connected-key-checkbox w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                            value=String(uk._id)
+                                        )
+                                        span(class="text-sm text-gray-800")
+                                            = uk.name
+                                            span(class="text-xs text-gray-400 ml-1")= '(' + uk.code + ')'
+                            else
+                                p(class="text-sm text-gray-400 text-center py-2") Chưa có tổ chức nào đang hoạt động.
+                        p(class="text-xs text-gray-400 mt-1")
+                            | User sẽ làm được bài của các tổ chức được tick ở đây (ngoài tổ chức gốc). Không tick = chỉ làm bài của tổ chức gốc.
+                else
+                    div
+                        label(class="block text-sm font-medium text-gray-700 mb-1") Tổ chức đã kết nối (connectedUserKeys)
+                        input(
+                            type="text"
+                            disabled
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500"
+                            value="(Chỉ admin default quản lý được mục này)"
+                        )
+
                 div#editUserError(class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2")
 
                 div(class="flex items-center justify-end gap-3 pt-2")
@@ -240,14 +387,19 @@ block content
                         class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
                     ) Lưu
 
-    //- ================================
+    //- ================================================================
     //- JS
-    //- ================================
+    //- ================================================================
     script.
         (function () {
+            var CAN_MANAGE_USER_KEY = #{canManageUserKey ? 'true' : 'false'};
             var modal = document.getElementById('editUserModal');
             var form = document.getElementById('editUserForm');
             var errBox = document.getElementById('editUserError');
+
+            function getConnectedCheckboxes() {
+                return document.querySelectorAll('.connected-key-checkbox');
+            }
 
             function openModal(user) {
                 document.getElementById('editUserId').value = user._id;
@@ -255,6 +407,21 @@ block content
                 document.getElementById('editUserName').value = user.name || '';
                 document.getElementById('editUserRole').value = user.role;
                 document.getElementById('editUserStatus').value = user.status;
+
+                if (CAN_MANAGE_USER_KEY) {
+                    //- Tổ chức gốc
+                    var sel = document.getElementById('editUserKey');
+                    if (sel) sel.value = user.userKeyId || '';
+
+                    //- 👇 MỚI: set trạng thái checkbox cho connectedUserKeys
+                    var connected = Array.isArray(user.connectedUserKeys)
+                        ? user.connectedUserKeys.map(String)
+                        : [];
+                    getConnectedCheckboxes().forEach(function (cb) {
+                        cb.checked = connected.indexOf(String(cb.value)) !== -1;
+                    });
+                }
+
                 errBox.classList.add('hidden');
                 errBox.textContent = '';
                 modal.classList.remove('hidden');
@@ -344,6 +511,20 @@ block content
                     role: document.getElementById('editUserRole').value,
                     status: document.getElementById('editUserStatus').value
                 };
+
+                if (CAN_MANAGE_USER_KEY) {
+                    //- Tổ chức gốc (1 lựa chọn)
+                    var sel = document.getElementById('editUserKey');
+                    body.userKey = (sel && sel.value) ? sel.value : "";
+
+                    //- 👇 MỚI: thu thập các connectedUserKeys đã tick → mảng ObjectId
+                    var checked = [];
+                    getConnectedCheckboxes().forEach(function (cb) {
+                        if (cb.checked) checked.push(cb.value);
+                    });
+                    body.connectedUserKeys = checked;
+                }
+
                 errBox.classList.add('hidden');
 
                 try {

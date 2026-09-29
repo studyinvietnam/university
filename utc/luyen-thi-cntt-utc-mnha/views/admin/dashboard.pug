@@ -67,7 +67,7 @@ block content
         .mb-8
             h2(class="text-lg font-bold text-gray-900 mb-4") Quản lý nhanh
 
-            div(class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4")
+            div(class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4")
 
                 a(
                     href="/admin/subjects"
@@ -94,16 +94,30 @@ block content
                     .w-10.h-10.rounded-lg.bg-purple-100.text-purple-600.flex.items-center.justify-center.mb-4
                         i(data-lucide="bot", class="w-5 h-5")
                     h3(class="font-semibold text-gray-900") Prompt AI
-                    p(class="text-sm text-gray-500 mt-1") Cấu hình prompt chấm bài
+                    p(class="text-sm text-gray-500 mt-1")
+                        = isDefaultAdmin ? "Cấu hình prompt chấm bài" : "Prompt của bạn (prompt khác chỉ xem)"
 
-                a(
-                    href="/admin/ai-keys"
-                    class="bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition group"
-                )
-                    .w-10.h-10.rounded-lg.bg-green-100.text-green-600.flex.items-center.justify-center.mb-4
-                        i(data-lucide="key-round", class="w-5 h-5")
-                    h3(class="font-semibold text-gray-900") API Key AI
-                    p(class="text-sm text-gray-500 mt-1") Quản lý khóa Gemini
+                //- ★ Chỉ admin default thấy (admin user_key bị ẩn hoàn toàn; route cũng đã chặn)
+                if isDefaultAdmin
+                    a(
+                        href="/admin/ai-keys"
+                        class="bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition group"
+                    )
+                        .w-10.h-10.rounded-lg.bg-green-100.text-green-600.flex.items-center.justify-center.mb-4
+                            i(data-lucide="key-round", class="w-5 h-5")
+                        h3(class="font-semibold text-gray-900") API Key AI
+                        p(class="text-sm text-gray-500 mt-1") Quản lý khóa Gemini
+
+                //- ★ Chỉ admin default: tạo/bật-tắt tổ chức (user_key)
+                if isDefaultAdmin
+                    a(
+                        href="/admin/user-keys"
+                        class="bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition group"
+                    )
+                        .w-10.h-10.rounded-lg.bg-rose-100.text-rose-600.flex.items-center.justify-center.mb-4
+                            i(data-lucide="building-2", class="w-5 h-5")
+                        h3(class="font-semibold text-gray-900") Quản lý User Key
+                        p(class="text-sm text-gray-500 mt-1") Tạo và quản lý các tổ chức
 
                 a(
                     href="/admin/users"

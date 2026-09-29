@@ -56,6 +56,17 @@ const subjectSchema = new mongoose.Schema(
         },
 
         // ============================================
+        // USER_KEY (đa tenant)
+        // null = nội dung của admin default
+        // ============================================
+        userKey: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'UserKey',
+            default: null,
+            index: true
+        },
+
+        // ============================================
         // AUDIT
         // ============================================
         createdBy: {
@@ -97,7 +108,8 @@ const subjectSchema = new mongoose.Schema(
 
 // Index tổng hợp cho query phổ biến
 subjectSchema.index({ deletedForever: 1, isPublished: 1, order: 1 });
-subjectSchema.index({ deletedAt: 1 });
+// (deletedAt đã có index: true ở field, không khai báo lại để tránh cảnh báo duplicate index)
+subjectSchema.index({ userKey: 1, deletedForever: 1, isPublished: 1, order: 1 });
 
 // Virtual để dùng trong view: subject.createdAtFormatted
 subjectSchema.virtual('createdAtFormatted').get(function () {

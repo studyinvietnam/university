@@ -5,6 +5,10 @@ const Subject = require('../models/Subject');
 const Lesson = require('../models/Lesson');
 const syncQueueService = require('../services/syncQueueService');
 
+// ★ PHÂN QUYỀN THEO userKey
+const { isDefaultAdmin } = require('../middleware/auth');
+const { canManageOwned, ownContentFilter } = require('../middleware/role');
+
 // ★ CHANGED: cần 1 service để ĐỌC JSON từ GitHub khi render form edit.
 //   Nếu bạn có sẵn hàm khác (vd: syncQueueService.fetchJson,
 //   githubService.getFileContent, ...) thì đổi lại require + tên hàm
@@ -15,7 +19,38 @@ const githubService = require('../services/githubService');
 // HELPERS
 // ============================================================
 function getUserId(req) {
-    return req.session?.user?._id || req.user?._id || null;
+    // req.user do attachUser đọc lại từ DB → không tin session (có thể cũ)
+    return req.user?._id || null;
+}
+
+const NOT_OWNER_MSG = 'Bạn chỉ được sửa/xoá prompt do chính mình tạo.';
+
+// ★ Admin user_key chỉ được gán prompt cho MÔN do chính mình tạo.
+//   Trả về subjectId hợp lệ (hoặc null). Ném lỗi nếu vi phạm.
+async function resolveSubjectId(actor, scope, subjectId) {
+    if (scope !== 'subject' || !subjectId || !mongoose.Types.ObjectId.isValid(subjectId)) {
+        return null;
+    }
+    if (isDefaultAdmin(actor)) return subjectId;
+
+    const owned = await Subject.exists({ _id: subjectId, ...ownContentFilter(actor, Subject) });
+    if (!owned) throw new Error('Bạn chỉ được gán prompt cho môn học do chính mình tạo.');
+    return subjectId;
+}
+
+// ★ Admin user_key chỉ được gán prompt cho BÀI do chính mình tạo.
+async function resolveLessonIds(actor, scope, raw) {
+    if (scope !== 'lesson') return [];
+    const ids = [...new Set(normalizeIds(raw).map(String))];
+    if (!ids.length || isDefaultAdmin(actor)) return ids;
+
+    const owned = await Lesson.find({ _id: { $in: ids }, ...ownContentFilter(actor, Lesson) })
+        .select('_id')
+        .lean();
+    if (owned.length !== ids.length) {
+        throw new Error('Bạn chỉ được gán prompt cho bài học do chính mình tạo.');
+    }
+    return owned.map((l) => l._id);
 }
 
 function validateRubric(rubric) {
@@ -159,6 +194,7 @@ function pushPromptToGithub(prompt, content, rubric, variables) {
 exports.getPrompts = async (req, res, next) => {
     try {
         const { scope, active, search } = req.query;
+        const actor = req.user;
 
         const filter = {};
         if (scope) filter.scope = scope;
@@ -175,16 +211,22 @@ exports.getPrompts = async (req, res, next) => {
                 .populate('createdBy', 'name email')
                 .sort({ isDefault: -1, createdAt: -1 })
                 .lean(),
-            Subject.find({ deletedAt: null, deletedForever: { $ne: true } })
+            Subject.find({ deletedAt: null, deletedForever: { $ne: true }, ...ownContentFilter(actor, Subject) })
                 .sort({ name: 1 }).lean(),
-            Lesson.find({ deletedAt: null, deletedForever: { $ne: true } })
+            Lesson.find({ deletedAt: null, deletedForever: { $ne: true }, ...ownContentFilter(actor, Lesson) })
                 .populate('subjectId', 'name')
                 .sort({ createdAt: -1 }).lean()
         ]);
 
+        // ★ Mọi admin đều XEM được danh sách; chỉ chủ prompt (hoặc admin default) mới sửa/xoá.
+        prompts.forEach((p) => {
+            p.canManage = canManageOwned(actor, p.createdBy);
+        });
+
         return res.render('admin/prompts', {
             title: 'Quản lý Prompt chấm điểm',
             user: req.user,
+            isDefaultAdmin: isDefaultAdmin(actor),
             prompts,
             subjects,
             lessons,
@@ -232,12 +274,17 @@ exports.createPrompt = async (req, res, next) => {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent(check.error));
         }
 
-        const setDefault = isDefault === 'on' || isDefault === true;
+        const actor = req.user;
+
+        // ★ Kiểm tra quyền gán môn/bài TRƯỚC mọi thao tác ghi (ném lỗi nếu vi phạm)
+        const lessonIds = await resolveLessonIds(actor, scope, req.body.lessonIds);
+        const safeSubjectId = await resolveSubjectId(actor, scope, subjectId);
+
+        // ★ Chỉ admin default được đặt prompt mặc định toàn hệ thống
+        const setDefault = isDefaultAdmin(actor) && (isDefault === 'on' || isDefault === true);
         if (setDefault) {
             await GradingPrompt.updateMany({ isDefault: true }, { $set: { isDefault: false } });
         }
-
-        const lessonIds = scope === 'lesson' ? normalizeIds(req.body.lessonIds) : [];
 
         // ★ CHANGED: KHÔNG truyền content / rubric / variables vào Mongo nữa.
         //   Chỉ lưu metadata.
@@ -247,8 +294,7 @@ exports.createPrompt = async (req, res, next) => {
             strictness: strictness || 'normal',
             maxScore: Number(maxScore) || 10,
             scope: scope || 'global',
-            subjectId: scope === 'subject' && subjectId && mongoose.Types.ObjectId.isValid(subjectId)
-                ? subjectId : null,
+            subjectId: safeSubjectId,
             lessonIds,
             isDefault: setDefault,
             active: active !== 'off',
@@ -267,7 +313,10 @@ exports.createPrompt = async (req, res, next) => {
         await GradingPrompt.updateOne({ _id: prompt._id }, { $set: { githubFile: prompt.githubFile } });
 
         // ★ CHANGED: truyền content/rubric/variables trực tiếp vào hàm push.
-        pushPromptToGithub(prompt, content.trim(), rubric, DEFAULT_VARIABLES);
+        // ★ pushPromptToGithub trả Promise sẽ reject khi hết retry → phải .catch,
+        //   nếu không Node ≥15 báo unhandledRejection và có thể làm sập server.
+        pushPromptToGithub(prompt, content.trim(), rubric, DEFAULT_VARIABLES)
+            .catch((e) => console.error('[prompt] createPrompt: đẩy GitHub thất bại (prompt đã có trong Mongo):', e.message));
 
         return res.redirect('/admin/prompts?success=' + encodeURIComponent(`Đã tạo prompt "${prompt.name}".`));
     } catch (err) {
@@ -286,15 +335,23 @@ exports.showEditPrompt = async (req, res, next) => {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('ID không hợp lệ.'));
         }
 
+        const actor = req.user;
         const [prompt, subjects, lessons] = await Promise.all([
             GradingPrompt.findById(id).lean(),
-            Subject.find({ deletedAt: null, deletedForever: { $ne: true } }).sort({ name: 1 }).lean(),
-            Lesson.find({ deletedAt: null, deletedForever: { $ne: true } })
+            Subject.find({ deletedAt: null, deletedForever: { $ne: true }, ...ownContentFilter(actor, Subject) })
+                .sort({ name: 1 }).lean(),
+            Lesson.find({ deletedAt: null, deletedForever: { $ne: true }, ...ownContentFilter(actor, Lesson) })
                 .populate('subjectId', 'name').sort({ createdAt: -1 }).lean()
         ]);
 
         if (!prompt) {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không tìm thấy prompt.'));
+        }
+
+        // ★ Chỉ chủ prompt (createdBy) hoặc admin default mới mở được form sửa.
+        //   Kiểm tra TRƯỚC khi đọc nội dung từ GitHub để không lộ content/rubric.
+        if (!canManageOwned(actor, prompt.createdBy)) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent(NOT_OWNER_MSG));
         }
 
         // ★ CHANGED: nội dung thật nằm trên GitHub — merge tạm vào object
@@ -318,7 +375,7 @@ exports.showEditPrompt = async (req, res, next) => {
         //   đã lưu (có thể lệch nếu lesson được gán qua dropdown ở trang sửa
         //   Lesson, vì đường đó ghi thẳng Lesson.promptId, không đụng tới
         //   prompt.lessonIds). Nhờ vậy checkbox ở đây luôn khớp với trang Lesson.
-        const assignedLessons = await Lesson.find({ promptId: prompt._id })
+        const assignedLessons = await Lesson.find({ promptId: prompt._id, ...ownContentFilter(actor, Lesson) })
             .select('_id')
             .lean();
         prompt.lessonIds = assignedLessons.map((l) => l._id);
@@ -326,6 +383,7 @@ exports.showEditPrompt = async (req, res, next) => {
         return res.render('admin/prompt-form', {
             title: 'Sửa Prompt',
             user: req.user,
+            canSetDefault: isDefaultAdmin(actor),
             prompt,
             subjects,
             lessons,
@@ -343,15 +401,18 @@ exports.showEditPrompt = async (req, res, next) => {
 // ============================================================
 exports.showCreatePrompt = async (req, res, next) => {
     try {
+        const actor = req.user;
         const [subjects, lessons] = await Promise.all([
-            Subject.find({ deletedAt: null, deletedForever: { $ne: true } }).sort({ name: 1 }).lean(),
-            Lesson.find({ deletedAt: null, deletedForever: { $ne: true } })
+            Subject.find({ deletedAt: null, deletedForever: { $ne: true }, ...ownContentFilter(actor, Subject) })
+                .sort({ name: 1 }).lean(),
+            Lesson.find({ deletedAt: null, deletedForever: { $ne: true }, ...ownContentFilter(actor, Lesson) })
                 .populate('subjectId', 'name').sort({ createdAt: -1 }).lean()
         ]);
 
         return res.render('admin/prompt-form', {
             title: 'Thêm Prompt',
             user: req.user,
+            canSetDefault: isDefaultAdmin(actor),
             prompt: null,
             subjects,
             lessons,
@@ -379,6 +440,12 @@ exports.updatePrompt = async (req, res, next) => {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không tìm thấy prompt.'));
         }
 
+        // ★ Chỉ chủ prompt (createdBy) hoặc admin default mới được sửa
+        const actor = req.user;
+        if (!canManageOwned(actor, prompt.createdBy)) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent(NOT_OWNER_MSG));
+        }
+
         const {
             name, description, content,
             strictness, maxScore,
@@ -403,7 +470,8 @@ exports.updatePrompt = async (req, res, next) => {
         //   đã lưu — vì lesson có thể được gán/gỡ trực tiếp qua dropdown ở
         //   trang sửa Lesson (không đi qua đây), khiến prompt.lessonIds lệch
         //   so với thực tế → checkbox tick sai + có thể gán/gỡ nhầm bài khi lưu.
-        const assignedLessonsNow = await Lesson.find({ promptId: prompt._id })
+        //   ★ Admin user_key chỉ "thấy" các bài của chính mình → không gỡ nhầm bài của người khác.
+        const assignedLessonsNow = await Lesson.find({ promptId: prompt._id, ...ownContentFilter(actor, Lesson) })
             .select('_id')
             .lean();
         const oldLessonIds = assignedLessonsNow.map((l) => String(l._id));
@@ -413,7 +481,9 @@ exports.updatePrompt = async (req, res, next) => {
         //   scope từ lesson sang cái khác" — hai trường hợp cần xử lý khác
         //   nhau, xem chi tiết ở khối sync bên dưới.
         const previousScope = prompt.scope;
-        const newLessonIds = scope === 'lesson' ? normalizeIds(req.body.lessonIds) : [];
+        // ★ Kiểm tra quyền gán môn/bài (ném lỗi nếu admin user_key gán môn/bài không phải của mình)
+        const newLessonIds = await resolveLessonIds(actor, scope, req.body.lessonIds);
+        const safeSubjectId = await resolveSubjectId(actor, scope, subjectId);
 
         // ---- Chỉ cập nhật METADATA vào Mongo ----
         if (name) prompt.name = name.trim();
@@ -423,11 +493,13 @@ exports.updatePrompt = async (req, res, next) => {
         prompt.strictness = strictness || prompt.strictness;
         prompt.maxScore = Number(maxScore) || prompt.maxScore;
         prompt.scope = scope || prompt.scope;
-        prompt.subjectId = scope === 'subject' && subjectId && mongoose.Types.ObjectId.isValid(subjectId)
-            ? subjectId : null;
+        prompt.subjectId = safeSubjectId;
         prompt.lessonIds = newLessonIds;
 
-        const setDefault = isDefault === 'on' || isDefault === true;
+        // ★ Chỉ admin default được bật/tắt "mặc định"; admin user_key giữ nguyên giá trị hiện tại
+        const setDefault = isDefaultAdmin(actor)
+            ? (isDefault === 'on' || isDefault === true)
+            : prompt.isDefault;
         if (setDefault && !prompt.isDefault) {
             await GradingPrompt.updateMany(
                 { _id: { $ne: prompt._id }, isDefault: true },
@@ -506,6 +578,17 @@ exports.setDefault = async (req, res, next) => {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('ID không hợp lệ.'));
         }
 
+        // ★ Prompt mặc định ảnh hưởng MỌI tổ chức → chỉ admin default
+        if (!isDefaultAdmin(req.user)) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Chỉ quản trị viên hệ thống mới được đặt prompt mặc định.'));
+        }
+
+        // Kiểm tra tồn tại TRƯỚC khi gỡ default cũ (tránh id sai → mất luôn prompt mặc định)
+        const target = await GradingPrompt.findById(id).select('_id').lean();
+        if (!target) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không tìm thấy prompt.'));
+        }
+
         await GradingPrompt.updateMany({}, { $set: { isDefault: false } });
         await GradingPrompt.updateOne(
             { _id: id },
@@ -532,6 +615,9 @@ exports.deletePrompt = async (req, res, next) => {
         const prompt = await GradingPrompt.findById(id);
         if (!prompt) {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không tìm thấy prompt.'));
+        }
+        if (!canManageOwned(req.user, prompt.createdBy)) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent(NOT_OWNER_MSG));
         }
         if (prompt.isDefault) {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể xoá prompt mặc định. Hãy đặt prompt khác làm default trước.'));
@@ -561,6 +647,9 @@ exports.hardDeletePrompt = async (req, res, next) => {
         const prompt = await GradingPrompt.findById(id);
         if (!prompt) {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không tìm thấy prompt.'));
+        }
+        if (!canManageOwned(req.user, prompt.createdBy)) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent(NOT_OWNER_MSG));
         }
         if (prompt.isDefault) {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể xoá prompt mặc định.'));

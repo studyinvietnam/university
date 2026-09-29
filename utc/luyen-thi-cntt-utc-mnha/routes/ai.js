@@ -1,26 +1,36 @@
 const express = require("express");
 const router = express.Router();
 const ctrl = require("../controllers/ai.controller");
-const { requireAuth } = require("../middleware/auth");
-const { requireRole } = require("../middleware/role");
+const { attachUser } = require("../middleware/auth");
+const { adminOnly, studentOrAdmin, requireDefaultAdmin } = require("../middleware/role");
 
-// Public / authenticated
+// Đảm bảo req.user luôn được nạp từ DB (idempotent nếu đã gắn global)
+router.use(attachUser);
+
+// Public
 router.get("/models", ctrl.listModels);
 
-// ★ List các AI Key đang active — chỉ trả name + model (không trả key thật)
-// Dùng cho dropdown "Chọn AI Key" ở lesson.pug
-router.get("/keys", requireAuth, ctrl.listKeys);
+// ★ Các route dưới đây dùng studentOrAdmin (thay cho requireAuth):
+//   client / tài khoản pending bị chặn ở TẦNG API, không chỉ ở tầng render.
 
-router.get("/test", requireAuth, ctrl.testConnection);
-router.get("/ai-status", requireAuth, ctrl.testConnection);
-router.post("/check", requireAuth, ctrl.checkWriting);
-router.post("/preview-prompt", requireAuth, ctrl.previewPrompt);
-router.post("/save-to-github", requireAuth, ctrl.saveToGithub);
+// List các AI Key đang active — chỉ trả name + model (không trả key thật)
+router.get("/keys", studentOrAdmin, ctrl.listKeys);
 
-// Admin only
-router.post("/compare", requireAuth, requireRole("admin"), ctrl.compareModels);
-router.get("/test-all", requireAuth, requireRole("admin"), ctrl.testAllConnections);
-router.get("/comparison/:id", requireAuth, requireRole("admin"), ctrl.getComparison);
-router.get("/comparisons", requireAuth, requireRole("admin"), ctrl.listComparisons);
+router.get("/test", studentOrAdmin, ctrl.testConnection);
+router.get("/ai-status", studentOrAdmin, ctrl.testConnection);
+router.post("/check", studentOrAdmin, ctrl.checkWriting);
+router.post("/preview-prompt", studentOrAdmin, ctrl.previewPrompt);
+router.post("/save-to-github", studentOrAdmin, ctrl.saveToGithub);
+
+// Admin (default + user_key)
+router.post("/compare", adminOnly, ctrl.compareModels);
+
+// ★ Chỉ admin default:
+//   - test-all: kiểm tra toàn bộ AI key của hệ thống
+//   - comparison(s): đọc kết quả so sánh của MỌI admin (chứa promptSnapshot của
+//     các tổ chức khác) — chưa lọc theo createdBy nên không mở cho admin user_key
+router.get("/test-all", requireDefaultAdmin, ctrl.testAllConnections);
+router.get("/comparison/:id", requireDefaultAdmin, ctrl.getComparison);
+router.get("/comparisons", requireDefaultAdmin, ctrl.listComparisons);
 
 module.exports = router;

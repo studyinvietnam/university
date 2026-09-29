@@ -130,6 +130,57 @@ async function readJsonFile(path) {
 }
 
 /**
+ * Đọc → sửa → ghi lại file JSON trong CÙNG một lần thử, dùng đúng SHA vừa đọc.
+ * Nếu GitHub trả 409 (SHA cũ) thì withRetry chạy lại TOÀN BỘ: đọc lại bản mới
+ * nhất rồi áp updater lại → không ghi đè mất thay đổi của nơi khác.
+ * (writeJsonFile chỉ lấy SHA, không đọc nội dung nên không an toàn cho patch.)
+ *
+ * @param {string} path
+ * @param {(current:object)=>object|Promise<object>} updater  nhận JSON hiện tại, trả JSON mới
+ */
+async function updateJsonFile(path, updater, commitMessage = 'Update JSON') {
+    assertConfigured();
+
+    return withRetry(async () => {
+        let res;
+        try {
+            res = await octokit.repos.getContent({ owner, repo, path, ref: branch });
+        } catch (e) {
+            if (e.status === 404) {
+                throw new Error(`File không tồn tại trên GitHub: ${path}`);
+            }
+            throw e;
+        }
+        if (Array.isArray(res.data)) {
+            throw new Error(`Path không phải file: ${path}`);
+        }
+
+        const current = JSON.parse(Buffer.from(res.data.content, 'base64').toString('utf8'));
+        const next = await updater(current);
+
+        const put = await octokit.repos.createOrUpdateFileContents({
+            owner,
+            repo,
+            branch,
+            path,
+            message: commitMessage,
+            content: Buffer.from(JSON.stringify(next, null, 2), 'utf8').toString('base64'),
+            sha: res.data.sha,
+            committer: {
+                name: 'Luyen Thi CNTT Bot',
+                email: 'bot@luyen-thi-cntt.local'
+            }
+        });
+
+        return {
+            path,
+            sha: put.data.content.sha,
+            commitSha: put.data.commit.sha
+        };
+    }, `update:${path}`);
+}
+
+/**
  * Xoá file trên GitHub.
  */
 async function deleteFile(path, commitMessage = 'Delete file') {
@@ -186,6 +237,7 @@ module.exports = {
     // Core
     writeJsonFile,
     readJsonFile,
+    updateJsonFile,
     deleteFile,
     fileExists,
     getFileSha,

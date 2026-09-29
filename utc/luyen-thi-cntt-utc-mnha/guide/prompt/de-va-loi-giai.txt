@@ -1,0 +1,1 @@
+dựa vào các ảnh stt theo tên hãy chia ra phần html nội dung đề bài với html nội dung chữa bài ra 2 html khác nhau (không cần đầy đủ html vì tôi sẽ nhúng html) nhưng mà phải đúng nội dung trong ảnh không được thêm lung tung và nhận xét ở lời giải đề không nhận xét vào đề

@@ -1,7 +1,8 @@
 extends ../layout
 
 block content
-    .max-w-7xl.mx-auto.px-4.sm\\:px-6.lg\\:px-8.py-8
+    //- Trang này chỉ admin default vào được (route /admin/roles đã requireDefaultAdmin)
+    div(class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8")
 
         .flex.items-center.justify-between.mb-8
             div
@@ -43,7 +44,7 @@ block content
                                         = role.description || '—'
 
                                     td(class="px-5 py-4 text-gray-600")
-                                        = role.userCount ?? 0
+                                        = role.userCount || 0
 
                                     td(class="px-5 py-4")
                                         .flex.items-center.justify-end.gap-2

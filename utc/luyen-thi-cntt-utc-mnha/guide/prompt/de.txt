@@ -1,0 +1,1 @@
+dựa vào các ảnh stt theo tên hãy làm ra phần html nội dung đề bài (không cần đầy đủ html vì tôi sẽ nhúng html) nhưng mà phải đúng nội dung trong ảnh không được thêm lung tung

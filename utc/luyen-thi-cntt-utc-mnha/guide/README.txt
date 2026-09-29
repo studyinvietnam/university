@@ -12,6 +12,7 @@ Hệ thống web cho phép sinh viên nộp bài tập trực tuyến, tự đ�
 - **Xác thực:** Email + Password (bcrypt hash), session/JWT
 - **Thông báo:** Notification system (polling, không cần WebSocket)
 - **Prompt chấm:** Quản lý linh hoạt trong Admin (theo môn / bài / global)
+- **Nguyên tắc chấm:** AI chấm xong là kết quả hiện ngay cho sinh viên — **không có bước giảng viên duyệt**. Giảng viên chỉ viết nhận xét thêm khi muốn (tuỳ chọn), không viết thì thôi.
 - **Frontend:** Pug templates + CSS (đẹp cho cả Admin & Student)
 
 ---
@@ -90,11 +91,11 @@ Node.js Server (Express + Pug)
 
 ### MongoDB (metadata)
 ```js
-User     { _id, email, passwordHash, name, role, verified, createdAt }
+User     { _id, email, passwordHash, name, role, verified, userKey, connectedUserKeys, createdAt }
 Role     { _id, name, permissions, deletedAt, deletedForever }
 Subject  { _id, name, slug, githubFolder, promptId (optional), deletedAt, deletedForever }
 Lesson   { _id, subjectId, title, slug, githubFile, promptId (optional), deletedAt, deletedForever }
-Submission { _id, userId, lessonId, githubFile, score, gradedAt, submittedAt, promptSnapshot }
+Submission { _id, userId, lessonId, githubFile, score, gradedAt, submittedAt, promptSnapshot, teacherComment (null nếu không ai viết) }
 AIKey    { _id, name, encryptedKey: { iv, content, authTag }, active, createdAt }
 OTP      { _id, email, code, type ('register'|'reset'), attempts, expiresAt }
 Notification {
@@ -308,6 +309,7 @@ Trong trang **Môn học** hoặc **Bài học**:
 | AI chấm xong bài | `graded` |
 | Admin duyệt role | `account_approved` |
 | Admin tạo bài mới trong môn SV theo | `new_lesson` |
+| Giảng viên viết/sửa nhận xét | `teacher_comment` |
 | Hệ thống | `system` |
 
 ### Cơ chế
@@ -392,8 +394,198 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - **Giới hạn độ dài bài nộp** trước khi gửi AI (tránh tốn token, tránh lỗi context quá dài).
 - **Parse an toàn kết quả trả về**: Gemini đôi khi trả kèm markdown code block hoặc text thừa quanh JSON → cần trích xuất JSON an toàn (regex/strip fences), và **retry tối đa 1 lần** nếu parse thất bại thay vì để bài nộp treo vô thời hạn.
 - **Timeout cho request gọi Gemini** (vd 30–60s) — nếu quá hạn, đánh dấu submission ở trạng thái "đang chấm lại", không block UI của sinh viên.
-- **Không coi AI là quyết định cuối cùng tuyệt đối**: cho phép admin/giảng viên **override điểm** thủ công kèm lý do, ghi vào `AuditLog`.
+- **AI chấm xong hiện ngay, không cần ai duyệt.** Việc **override điểm** thủ công (kèm lý do, ghi `AuditLog`) chỉ là đường xử lý ngoại lệ khi cần — không phải bước bắt buộc trong luồng chấm.
 - **Trang khiếu nại điểm (dispute)**: sinh viên có thể gửi phản hồi nếu thấy điểm AI chấm chưa hợp lý → admin xem lại, chấm tay nếu cần.
+
+---
+
+## 🏢 Đa Tổ Chức Qua "User Key" (ĐANG TRIỂN KHAI — xem "Trạng thái triển khai" cuối mục)
+
+> Mục tiêu: nhiều "tổ chức" (nhóm giảng viên/lớp) dùng chung hệ thống nhưng dữ liệu tách biệt theo `user_key`, trong khi tổ chức gốc `default` vẫn hoạt động y như hiện tại.
+
+### Khái niệm
+
+- **`user_key`** = một "tổ chức" (tenant), do **admin default** tạo ra trong Dashboard, có mã (`code`) riêng để chia sẻ.
+- Mỗi `User` có field `userKey` (ref `UserKey`, `default: null` = thuộc tổ chức mặc định **"default"**).
+- **Student** có thêm `connectedUserKeys: [ref UserKey]` — danh sách tổ chức mà student **tự kết nối** thêm (nhập `code`) để làm bài, ngoài tổ chức gốc của mình.
+
+### Model mới: `UserKey`
+
+```js
+UserKey {
+  _id,
+  name,        // Tên tổ chức, vd "Trung tâm ABC"
+  code,        // Mã duy nhất để student nhập khi "kết nối"
+  active,      // Admin default bật/tắt
+  createdBy,   // luôn là admin default
+  createdAt, updatedAt
+}
+```
+
+### Field bổ sung vào model đã có
+
+```js
+User {
+  ...
+  userKey: { type: ObjectId, ref: 'UserKey', default: null },   // null = default
+  connectedUserKeys: [{ type: ObjectId, ref: 'UserKey' }]        // chỉ dùng cho student
+}
+
+Subject / Lesson {
+  ...
+  userKey: { type: ObjectId, ref: 'UserKey', default: null, index: true }
+  // Subject: = userKey của người tạo lúc create (server tự gán, không nhận từ client)
+  // Lesson : KẾ THỪA subject.userKey (không lấy theo người tạo, để bài luôn cùng tổ chức với môn)
+  // Subject/Lesson bắt buộc có thêm createdBy (ref User) — dùng cho phân quyền admin user_key
+  // Dữ liệu cũ chưa có field này = tổ chức default (query `$in: [null]` khớp cả field thiếu)
+}
+
+GradingPrompt {
+  ...
+  createdBy: { type: ObjectId, ref: 'User', default: null }      // để biết prompt "của ai"
+}
+```
+
+### Ma trận quyền
+
+| Vai trò | Quản lý User (duyệt/đổi quyền) | Quản lý Subject/Lesson | Quản lý AI Key | Quản lý Prompt | Tạo/quản lý `UserKey` |
+|---|---|---|---|---|---|
+| **Admin default** | Toàn bộ user, mọi `userKey` | Toàn bộ, mọi `userKey` | Toàn bộ — menu **"API Key"** hiển thị | Toàn bộ prompt | Có — tạo, sửa, bật/tắt |
+| **Admin user_key** | Chỉ client/student có `userKey` = của chính mình; khi duyệt, `userKey` của user **bị cố định** theo admin đó, không đổi được | Chỉ Subject/Lesson do chính admin đó tạo (`createdBy` = mình) | Không — menu **"API Key" ẩn hoàn toàn** | Chỉ prompt do chính admin đó tạo (`createdBy` = mình) | Không |
+| **Student (default)** | – | Chỉ làm Subject/Lesson có `userKey = null` (do admin default tạo) | – | – | – |
+| **Student (thuộc user_key X)** | – | Mặc định làm Subject/Lesson `userKey = X`; nếu tự kết nối thêm `user_key` khác (nhập `code`) → làm được cả Subject/Lesson của các tổ chức đã kết nối | – | – | Tự kết nối bằng `code` (không tạo `UserKey` mới) |
+
+### Quy tắc lọc dữ liệu cho Student
+
+```js
+Subject.find({
+  userKey: { $in: [student.userKey, ...student.connectedUserKeys] },
+  isPublished: true, deletedAt: null, deletedForever: { $ne: true }
+})
+// Lesson lọc tương tự theo userKey của Subject/Lesson đó.
+```
+
+### Luồng "kết nối user_key" (student)
+
+1. Student nhập `code` của tổ chức muốn kết nối (ở trang cá nhân / trang môn học).
+2. Hệ thống tìm `UserKey` theo `code`; nếu `active` → thêm vào `connectedUserKeys` (không trùng lặp).
+3. Trang "Danh sách môn học" gộp thêm Subject/Lesson của tổ chức vừa kết nối.
+4. Student có thể ngắt kết nối bất cứ lúc nào — không ảnh hưởng `userKey` gốc.
+
+### Luồng đăng ký gắn tổ chức
+
+- Form đăng ký có thêm ô **"Mã tổ chức"** (tuỳ chọn, field `userKeyCode`).
+- Để trống → `userKey = null` (tổ chức default). Nhập mã → hệ thống tìm `UserKey` theo `code` (viết HOA, không phân biệt hoa/thường khi nhập); **không tồn tại hoặc `active: false` → báo lỗi "Mã tổ chức không hợp lệ hoặc đã bị tắt."** (không âm thầm xếp vào default).
+- Mã hợp lệ được lưu vào `OTP.payload.userKeyId` cùng `name`, `passwordHash`. Khi xác minh OTP thành công, hệ thống **kiểm tra lại tổ chức còn `active`** rồi mới tạo `User` với `role = client`, `status = pending`, `userKey = <tổ chức>`, `connectedUserKeys = []`.
+- Nhờ vậy user vừa đăng ký đã có `userKey` để admin user_key nhìn thấy trong trang duyệt.
+- `OTP.payload` phải là kiểu `Mixed` (hoặc khai báo thêm `userKeyId`) — nếu schema chặn key lạ thì `userKeyId` sẽ bị bỏ.
+
+### Luồng duyệt user của Admin user_key
+
+- Trang duyệt user chỉ liệt kê `client`/`student` có `userKey` trùng `userKey` của admin đang đăng nhập.
+- Form duyệt **không có** ô chọn `userKey` — giữ nguyên `userKey` gốc của user (chính là `userKey` của admin duyệt), chỉ cho đổi `role` (`client → student`).
+- Admin default không bị giới hạn này — thấy toàn bộ user, đổi được cả `userKey`.
+- Quy tắc nằm ở `services/userKeyService.js`, controller duyệt user chỉ việc gọi:
+  - `buildUserListFilter(actor)` → filter danh sách user được thấy.
+  - `resolveApproval(actor, target, { role, userKey })` → trả các field cần `$set` (`role`, `status: 'approved'`, `userKey`, `approvedAt`, `approvedBy`) hoặc ném lỗi `403/400`. Với admin user_key: target phải cùng `userKey`, chỉ được thành `student`, `userKey` bị cố định và **mọi `userKey` gửi lên đều bị bỏ qua**.
+
+### Dashboard
+
+- Menu **"API Key"**: chỉ admin default thấy; admin user_key bị ẩn hoàn toàn **và chặn cả ở tầng route**, không chỉ ẩn UI.
+- Menu **"Prompt AI"**: cả hai loại admin đều thấy, nhưng admin user_key chỉ Sửa/Xoá được prompt do chính mình tạo; prompt khác hiển thị read-only.
+- Menu mới **"Quản lý User Key"**: chỉ admin default thấy — tạo tổ chức mới (sinh `code`), bật/tắt, xem danh sách admin/student thuộc từng tổ chức.
+- Trong form Bài học: admin user_key **không thấy và không gán được AI Key** cho bài (server bỏ qua `aiKeyId` từ họ; bài dùng cơ chế xoay key chung). Đường dẫn GitHub của bài cũng luôn do hệ thống tự sinh cho admin user_key — chỉ admin default mới tự đặt được `githubFile`.
+- Chặn ở tầng route bằng `middleware/userKeyGuard.js` → `requireDefaultAdmin` (gắn lên mọi route AI Key và User Key). `AIKey.js` là model nên không tự chặn được route; model giữ nguyên.
+
+### Trạng thái triển khai
+
+**Đã có code:**
+- [x] `models/UserKey.js` (mới) — `name`, `code` (unique, HOA), `active`, `createdBy`.
+- [x] `models/User.js` — thêm `userKey`, `connectedUserKeys` + index `{ userKey, role, status }`.
+- [x] `services/userKeyService.js` (mới) — `getContentScope`, `buildUserListFilter`, `resolveApproval`, `findActiveUserKeyByCode`. Quyền luôn đọc lại từ DB, không tin session.
+- [x] `middleware/userKeyGuard.js` (mới) — `requireDefaultAdmin` (chặn tầng route), `attachAdminFlags` (ẩn menu).
+- [x] `controllers/auth.controller.js` — đăng ký nhận mã tổ chức, gắn `userKey` khi tạo user.
+- [x] `controllers/lesson.controller.js` — lọc Subject/Lesson theo phạm vi ở mọi handler (list, show, create, edit, update, xoá mềm/khôi phục/xoá cứng). Truy cập ngoài phạm vi trả **404**.
+- [x] `models/GradingPrompt.js` — đã có sẵn `createdBy`, không cần sửa. `models/AIKey.js` — không cần sửa.
+
+**Còn phải làm (nằm ngoài các file đã gửi):**
+- [ ] `models/Subject.js` và `models/Lesson.js`: thêm field `userKey` (và `createdBy` cho Subject nếu chưa có). **Chưa thêm thì `getContentScope` cố tình ném lỗi** thay vì lọc hụt và lộ dữ liệu.
+- [ ] `subject.controller.js`: áp dụng cùng `getContentScope` cho list/create/update/xoá, tự gán `userKey = actor.userKey`, `createdBy = actor._id`.
+- [ ] Controller duyệt user (admin): dùng `buildUserListFilter` + `resolveApproval`.
+- [ ] `submission.controller.js` (nộp bài, xem bài nộp, trang review): kiểm tra `canAccess(lesson)` — nếu không, student vẫn nộp được bài của tổ chức khác bằng cách gọi thẳng API.
+- [ ] `userkey.controller.js` + `routes/userkey.js`: CRUD `UserKey` (admin default) và student kết nối/ngắt kết nối bằng `code`.
+- [ ] Gắn `requireDefaultAdmin` lên route AI Key / User Key; gắn `attachAdminFlags` để ẩn menu.
+- [ ] `views/auth/register.pug`: thêm ô `userKeyCode`. `views/admin/lesson-form.pug`: ẩn dropdown AI Key khi `canPickAIKey` là false.
+- [ ] Index `{ userKey: 1, deletedAt: 1, isPublished: 1 }` cho Subject/Lesson.
+- [ ] `AuditLog` ghi thêm `userKey` của admin thực hiện hành động.
+- [ ] Giới hạn tần suất thử `code` ở đăng ký / kết nối (chống dò mã).
+
+---
+
+## 📝 Giảng Viên Nhận Xét Bài Làm (ĐÃ TRIỂN KHAI)
+
+> **Nguyên tắc:** không có bước "giảng viên duyệt" và không có khái niệm "đồng tình với AI". AI chấm xong → điểm + feedback hiện ngay cho sinh viên. Nhận xét của giảng viên chỉ là **phần thêm, tuỳ chọn**: muốn thì viết, không thì thôi. Bài nộp không bao giờ phải chờ giảng viên.
+
+### Trang riêng: `views/admin/submission_review.pug`
+
+- **Route:** `GET /admin/submissions/:id/review` — hiển thị đề bài, bài làm của sinh viên, kết quả AI (điểm + feedback + breakdown) và khung nhận xét (textarea).
+  - Chưa có nhận xét → hiện dòng **"Chưa có nhận xét của giảng viên (không bắt buộc)"**.
+- **Route:** `POST /admin/submissions/:id/review` → `saveTeacherComment`.
+  - Ô nhập có `required`; server cũng kiểm tra: nội dung rỗng/chỉ khoảng trắng → lỗi **"Vui lòng nhập nội dung nhận xét"**. Không còn kiểu lưu ô trống.
+  - Không có điều kiện "bài phải chấm xong mới được nhận xét/đồng tình".
+- Từ `views/admin/submissions.pug`, mỗi dòng bài nộp có nút/link **"Nhận xét"** trỏ tới trang review.
+
+### Field — `Submission`
+
+```js
+Submission {
+  ...
+  teacherComment: null | {
+    content,          // bắt buộc có nội dung khi lưu
+    commentedBy,      // ref User (giảng viên/admin)
+    commentedByName,  // tên hiển thị, dùng ở history.pug / submission-detail.pug
+    commentedAt,
+  },
+  teacherCommentHistory: [   // lưu vết các lần sửa trước
+    { content, commentedBy, commentedAt }
+  ]
+}
+```
+
+- Không ai viết nhận xét ⇒ `teacherComment` là `null`. Không có trạng thái trung gian nào khác.
+- Hiện **chưa xoá được nhận xét**: giảng viên chỉ sửa được nội dung. Cần nút xoá thì bổ sung sau.
+
+### Hiển thị cho sinh viên
+
+| Nơi | Có nhận xét | Không có nhận xét |
+|-----|-------------|-------------------|
+| `views/student/history.pug` — cột **"Nhận xét GV"** (sau cột "Trạng thái") | Icon `message-square-text` + trích đoạn 2 dòng, kèm tên giảng viên | Chỉ hiện **"—"**, không có chữ nào khác |
+| `views/student/submission-detail.pug` — khối **"Nhận xét của giảng viên"** | Nội dung + `commentedByName` (mặc định "Giảng viên") + thời điểm | **Ẩn cả khối** |
+
+### Đồng bộ GitHub
+
+- Theo cơ chế sẵn có: ghi MongoDB `pending` → push GitHub → `committed`; lỗi 409 (SHA cũ) → lấy SHA mới và retry; đi qua `syncQueueService`.
+- File JSON bài nộp (`/submissions/{subject-slug}/{lesson-slug}/{userId}-{timestamp}.json`) được cập nhật thêm field `teacherComment`, dùng lại hàm ghi/patch theo SHA trong `githubService.js`.
+
+### Thông báo
+
+- Khi giảng viên lưu nhận xét → `Notification` loại `teacher_comment` gửi sinh viên (cùng cơ chế `graded` / `account_approved`).
+
+### Audit & quyền
+
+- Ghi `AuditLog` mỗi lần thêm/sửa nhận xét (`add_teacher_comment` / `edit_teacher_comment`).
+- Chỉ `admin` vào được trang review; chặn ở tầng route, không chỉ ẩn nút.
+- Đa tổ chức (`user_key`): admin user_key chỉ nhận xét bài nộp thuộc Subject/Lesson do chính mình tạo; admin default nhận xét mọi bài nộp.
+
+### ⚠️ Việc cần làm / cần đối chiếu
+
+- [ ] Đối chiếu cách gọi `Notification` và `AuditLog` trong `saveTeacherComment` với code thật (tên hàm, tham số).
+- [ ] Đối chiếu `Submission.js` thật có `commentedByName` (hoặc populate tên) khớp với các file pug.
+- [ ] Middleware chặn student truy cập `/admin/submissions/:id/review`.
+- [ ] Giới hạn độ dài tối đa của nhận xét.
+- [ ] Race condition khi 2 giảng viên cùng sửa 1 nhận xét (giống xử lý SHA conflict của GitHub).
+- [ ] Quyết định lịch sử sửa nhận xét có công khai cho giảng viên khác xem hay không.
+- [ ] (Tuỳ chọn) Nút xoá nhận xét.
 
 ---
 
@@ -443,7 +635,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - 📖 Danh sách môn + bài tập.
 - ✍️ Mở bài → render HTML đề bài.
 - 📤 Nộp → AI chấm (dùng prompt đã cấu hình) → lưu GitHub → hiện kết quả.
-- 📜 Lịch sử: bài nào, điểm, AI nhận xét, prompt đã dùng, lúc nào.
+- 📜 Lịch sử: bài nào, điểm, AI nhận xét, nhận xét giảng viên (nếu có), prompt đã dùng, lúc nào.
 - 🔔 Nhận thông báo.
 - ❗ Gửi khiếu nại điểm nếu cần.
 
@@ -501,6 +693,8 @@ Sinh Notification 'graded' cho student
 Frontend hiển thị lịch sử + badge 🔔 tăng
 ```
 
+> AI chấm xong là hiển thị ngay, **không qua bước duyệt của giảng viên**. Nhận xét giảng viên (nếu có) được thêm sau, độc lập với kết quả AI.
+
 ---
 
 ## 🧰 Công Nghệ
@@ -543,7 +737,8 @@ project/
 │   ├── Notification.js
 │   ├── GradingPrompt.js
 │   ├── ModelComparison.js     ← MỚI (lưu kết quả so sánh nhiều model)
-│   └── AuditLog.js            ← MỚI
+│   ├── AuditLog.js            ← MỚI
+│   └── UserKey.js             ← MỚI (tổ chức / tenant theo user_key)
 ├── routes/
 │   ├── auth.js
 │   ├── admin.js
@@ -553,7 +748,8 @@ project/
 │   ├── ai.js
 │   ├── notification.js
 │   ├── prompt.js
-│   └── dispute.js             ← MỚI (khiếu nại điểm)
+│   ├── dispute.js             ← MỚI (khiếu nại điểm)
+│   └── userkey.js             ← MỚI Ý TƯỞNG (CRUD user_key, student kết nối)
 ├── controllers/                ← MỚI (tách logic khỏi routes)
 │   ├── auth.controller.js
 │   ├── subject.controller.js
@@ -562,7 +758,8 @@ project/
 │   ├── aikey.controller.js
 │   ├── prompt.controller.js
 │   ├── notification.controller.js
-│   └── dispute.controller.js
+│   ├── dispute.controller.js
+│   └── userkey.controller.js  ← MỚI Ý TƯỞNG
 ├── services/
 │   ├── githubService.js
 │   ├── aiService.js           ← timeout, chọn model, chấm 1 bài & so sánh nhiều model, parse an toàn
@@ -571,12 +768,14 @@ project/
 │   ├── notificationService.js
 │   ├── promptService.js       ← render biến (kể cả {lời_giải_mẫu}), chọn prompt ưu tiên, versioning
 │   ├── sanitizeService.js     ← MỚI (chống prompt injection)
-│   └── syncQueueService.js    ← MỚI (queue đồng bộ GitHub, retry)
+│   ├── syncQueueService.js    ← MỚI (queue đồng bộ GitHub, retry)
+│   └── userKeyService.js      ← MỚI (phạm vi dữ liệu theo user_key, quy tắc duyệt user)
 ├── config/
 │   └── aiModels.js            ← MỚI (danh sách SUPPORTED_MODELS + DEFAULT_MODEL)
 ├── middleware/
 │   ├── auth.js
 │   ├── role.js                ← chặn client ở tầng API
+│   ├── userKeyGuard.js        ← MỚI (requireDefaultAdmin: chặn route AI Key/User Key với admin user_key)
 │   └── attachUnreadCount.js
 ├── views/
 │   ├── layout.pug
@@ -589,12 +788,15 @@ project/
 │   │   ├── roles.pug
 │   │   ├── aikeys.pug
 │   │   ├── prompts.pug
-│   │   └── auditlog.pug       ← MỚI
+│   │   ├── auditlog.pug       ← MỚI
+│   │   ├── userkeys.pug       ← MỚI Ý TƯỞNG (quản lý user_key, admin default)
+│   │   └── submission_review.pug ← MỚI (giảng viên nhận xét 1 bài nộp, tuỳ chọn)
 │   └── student/
 │       ├── subjects.pug
 │       ├── lesson.pug
 │       ├── history.pug
-│       └── dispute.pug        ← MỚI
+│       ├── dispute.pug        ← MỚI
+│       └── connect.pug        ← MỚI Ý TƯỞNG (student nhập code kết nối user_key)
 ├── public/
 │   ├── css/
 │   └── js/
@@ -674,6 +876,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - [ ] Trang chi tiết bài nộp hiển thị đầy đủ từng lỗi + lời giải mẫu (chờ gửi file `submission_detail`)
 - [x] Chọn model Gemini khi chấm (`SUPPORTED_MODELS`, `DEFAULT_MODEL`)
 - [x] Chạy & so sánh tất cả model cho 1 prompt (`ModelComparison`, modal Admin)
+- [x] Giảng viên nhận xét bài làm — tuỳ chọn, không cần duyệt (`submission_review.pug`, `saveTeacherComment`, cột "Nhận xét GV")
+- [ ] Đối chiếu `saveTeacherComment` với `Notification` / `AuditLog` / `Submission.js` thật (xem mục "Giảng Viên Nhận Xét")
+- [x] Đa tổ chức `user_key` — phần nền: `UserKey`, `User.userKey/connectedUserKeys`, đăng ký kèm mã tổ chức, lọc Subject/Lesson trong `lesson.controller.js`, `requireDefaultAdmin`
+- [ ] Đa tổ chức `user_key` — phần còn lại: field `userKey` ở Subject/Lesson, `subject.controller`, duyệt user, `submission.controller`, `userkey.controller`, view (xem "Trạng thái triển khai")
 
 ---
 
@@ -701,7 +907,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - **Notification** dùng polling, tối ưu bằng cách dừng khi tab ẩn.
 - **Client** cô lập hoàn toàn (kể cả tầng API) → admin duyệt mới được học.
 - **Sửa đề bài** bắt buộc qua GitHub → minh bạch, tránh sửa lén sau khi học sinh đã làm.
-- **AI không phải quyết định cuối cùng tuyệt đối** → luôn có đường cho con người override và sinh viên khiếu nại.
+- **AI chấm xong hiện ngay, không cần duyệt** → giảng viên chỉ nhận xét thêm khi muốn; vẫn có đường override điểm và sinh viên khiếu nại khi cần.
 
 ---
 

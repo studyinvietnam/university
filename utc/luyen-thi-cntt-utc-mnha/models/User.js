@@ -51,6 +51,31 @@ const userSchema = new mongoose.Schema(
             index: true
         },
 
+        // ====================================================
+        // ĐA TỔ CHỨC (user_key)
+        //   - userKey: tổ chức gốc. null = tổ chức "default".
+        //     Được gắn lúc đăng ký (nhập mã tổ chức) và bị CỐ ĐỊNH
+        //     khi admin user_key duyệt — chỉ admin default mới đổi được.
+        //   - connectedUserKeys: chỉ dùng cho student — các tổ chức
+        //     student TỰ kết nối thêm bằng code. Không chứa userKey gốc.
+        // ====================================================
+        userKey: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'UserKey',
+            default: null,
+            index: true
+        },
+
+        connectedUserKeys: {
+            type: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'UserKey'
+                }
+            ],
+            default: []
+        },
+
         avatar: {
             type: String,
             default: null
@@ -86,5 +111,8 @@ const userSchema = new mongoose.Schema(
         timestamps: true
     }
 );
+
+// Trang duyệt user của admin user_key: lọc theo tổ chức + role + trạng thái
+userSchema.index({ userKey: 1, role: 1, status: 1 });
 
 module.exports = mongoose.model('User', userSchema);

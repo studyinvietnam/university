@@ -10,6 +10,7 @@ const GradingPrompt = require("../models/GradingPrompt");
 const githubService = require("../services/githubService");
 const syncQueueService = require("../services/syncQueueService");
 const { resolvePrompt, findUnknownPlaceholders } = require("../services/promptService");
+const { getContentScope } = require("../services/userKeyService");
 
 /* ============================================================
  * HELPERS
@@ -105,16 +106,33 @@ function currentUserId(req) {
     return req.user?._id || req.session?.user?._id || null;
 }
 
+// ★ USER KEY: mọi truy cập vượt phạm vi tổ chức đều trả 404 (giống "không tồn
+//   tại") thay vì 403, để không lộ việc bài/môn đó có thật ở tổ chức khác.
+//   Phạm vi được tính bởi getContentScope() trong services/userKeyService.js:
+//     - scope.filter    : spread vào Subject.find / Lesson.find
+//     - scope.canAccess : kiểm tra 1 document đã load
+function renderNotFound(req, res, message) {
+    return res.status(404).render("error", {
+        title: "Không tìm thấy",
+        message,
+        user: req.user,
+        statusCode: 404,
+        stack: null,
+    });
+}
+
 /* ============================================================
  * 1. LIST SUBJECTS
  * ============================================================ */
 exports.listSubjects = async (req, res, next) => {
     try {
         const isAdmin = req.user?.role === "admin";
+        const scope = await getContentScope(req); // ★ USER KEY
 
         const subjects = await Subject.find({
             deletedAt: null,
             deletedForever: false,
+            ...scope.filter,
         }).sort({ createdAt: -1 }).lean();
 
         const subjectIds = subjects.map((s) => s._id);
@@ -148,11 +166,13 @@ exports.listSubjects = async (req, res, next) => {
 exports.listLessons = async (req, res, next) => {
     try {
         const { slug } = req.params;
+        const scope = await getContentScope(req); // ★ USER KEY
 
         const subject = await Subject.findOne({
             slug,
             deletedAt: null,
             deletedForever: false,
+            ...scope.filter,
         }).lean();
 
         if (!subject) {
@@ -211,14 +231,17 @@ exports.listAllLessons = async (req, res, next) => {
         const user = req.user;
         const isAdmin = user?.role === "admin";
 
+        const scope = await getContentScope(req); // ★ USER KEY
+
         const subjectQuery = req.query.subject || req.query.subjectId || null;
-        const filter = { isDeleted: false };
+        const filter = { isDeleted: false, ...scope.filter };
 
         let currentSubject = null;
         if (subjectQuery) {
+            // ★ USER KEY: môn ngoài phạm vi = coi như không tìm thấy
             currentSubject = isObjectId(subjectQuery)
-                ? await Subject.findById(subjectQuery).lean()
-                : await Subject.findOne({ slug: subjectQuery }).lean();
+                ? await Subject.findOne({ _id: subjectQuery, ...scope.filter }).lean()
+                : await Subject.findOne({ slug: subjectQuery, ...scope.filter }).lean();
 
             if (currentSubject) filter.subjectId = currentSubject._id;
         }
@@ -292,6 +315,12 @@ exports.showLesson = async (req, res, next) => {
                 statusCode: 404,
                 stack: null,
             });
+        }
+
+        // ★ USER KEY: chặn cả trang bài học lẫn trang "đã bị xoá" nếu ngoài phạm vi
+        const scope = await getContentScope(req);
+        if (!scope.canAccess(lesson)) {
+            return renderNotFound(req, res, "Bài học không tồn tại");
         }
 
         if (lesson.isDeleted) {
@@ -406,7 +435,8 @@ exports.getAdminLessons = async (req, res, next) => {
         const subjectQuery = req.query.subject || "";
         const search = (req.query.search || "").trim();
 
-        const filter = { isDeleted: showDeleted };
+        const scope = await getContentScope(req); // ★ USER KEY
+        const filter = { isDeleted: showDeleted, ...scope.filter };
 
         if (subjectQuery && isObjectId(subjectQuery)) {
             filter.subjectId = subjectQuery;
@@ -428,6 +458,7 @@ exports.getAdminLessons = async (req, res, next) => {
         const allSubjects = await Subject.find({
             deletedAt: null,
             deletedForever: false,
+            ...scope.filter, // ★ USER KEY
         }).sort({ name: 1 }).lean();
 
         res.render("admin/lessons", {
@@ -455,10 +486,17 @@ exports.showCreateLesson = async (req, res, next) => {
         const AIKey = require("../models/AIKey");
         const { SUPPORTED_MODELS, DEFAULT_MODEL } = require("../config/aiModels");
 
+        // ★ USER KEY: admin user_key KHÔNG được thấy/chọn AI key (README: menu API Key
+        //   ẩn hoàn toàn) → không query AIKey, trả mảng rỗng + cờ để view ẩn dropdown.
+        const scope = await getContentScope(req);
+        const canPickAIKey = scope.isDefaultAdmin;
+
         const [subjects, prompts, aiKeys] = await Promise.all([
-            Subject.find({ deletedAt: null, deletedForever: false }).sort({ name: 1 }).lean(),
+            Subject.find({ deletedAt: null, deletedForever: false, ...scope.filter }).sort({ name: 1 }).lean(),
             GradingPrompt.find({ active: { $ne: false } }).lean(), // ★ FIX: khớp điều kiện với resolvePrompt(), tránh prompt bị "ẩn" khỏi dropdown
-            AIKey.find({ isActive: true, isRevoked: { $ne: true } }).sort({ createdAt: -1 }).lean(),
+            canPickAIKey
+                ? AIKey.find({ isActive: true, isRevoked: { $ne: true } }).sort({ createdAt: -1 }).lean()
+                : Promise.resolve([]),
         ]);
 
         res.render("admin/lesson-form", {
@@ -468,6 +506,7 @@ exports.showCreateLesson = async (req, res, next) => {
             subjects,
             prompts,
             aiKeys,
+            canPickAIKey,
             supportedModels: SUPPORTED_MODELS,
             defaultModel: DEFAULT_MODEL,
             isAdminView: true,
@@ -492,8 +531,12 @@ exports.createLesson = async (req, res, next) => {
             return res.status(400).json({ error: "Thiếu subjectId hoặc title" });
         }
 
+        // ★ USER KEY: chỉ được tạo bài trong môn thuộc phạm vi của mình
+        const scope = await getContentScope(req);
         const subject = await Subject.findById(subjectId).lean();
-        if (!subject) return res.status(404).json({ error: "Môn học không tồn tại" });
+        if (!subject || !scope.canAccess(subject)) {
+            return res.status(404).json({ error: "Môn học không tồn tại" });
+        }
 
         let slug = slugify(title);
 
@@ -527,9 +570,14 @@ exports.createLesson = async (req, res, next) => {
             contentHtml: contentHtml || "",
             sampleSolution: sampleSolution || "",
             promptId: promptId && mongoose.Types.ObjectId.isValid(promptId) ? promptId : null,
-            githubFile: githubFile || `subjects/${subject.slug}/lessons/${slug}.json`,
+            // ★ USER KEY: userKey kế thừa từ MÔN, không nhận từ body
+            userKey: subject.userKey || null,
+            // ★ USER KEY: chỉ admin default được tự đặt đường dẫn GitHub; admin user_key
+            //   luôn dùng đường dẫn tự sinh (tránh ghi đè file của tổ chức khác)
+            githubFile: (scope.isDefaultAdmin && githubFile) || `subjects/${subject.slug}/lessons/${slug}.json`,
             duration: Number(duration) || 20,
-            aiKeyId: aiKeyId && mongoose.Types.ObjectId.isValid(aiKeyId) ? aiKeyId : null,
+            // ★ USER KEY: chỉ admin default được gán AI key cho bài
+            aiKeyId: scope.isDefaultAdmin && aiKeyId && mongoose.Types.ObjectId.isValid(aiKeyId) ? aiKeyId : null,
             model: model ? String(model).trim() : null,
             createdBy: currentUserId(req),      // ★ FIX: lấy từ session an toàn
             updatedBy: currentUserId(req),      // ★ FIX
@@ -591,14 +639,20 @@ exports.showEditLesson = async (req, res, next) => {
         const AIKey = require("../models/AIKey");
         const { SUPPORTED_MODELS, DEFAULT_MODEL } = require("../config/aiModels");
 
+        // ★ USER KEY (xem showCreateLesson)
+        const scope = await getContentScope(req);
+        const canPickAIKey = scope.isDefaultAdmin;
+
         const [lesson, subjects, prompts, aiKeys] = await Promise.all([
             Lesson.findById(id).lean(),
-            Subject.find({ deletedAt: null, deletedForever: false }).sort({ name: 1 }).lean(),
+            Subject.find({ deletedAt: null, deletedForever: false, ...scope.filter }).sort({ name: 1 }).lean(),
             GradingPrompt.find({ active: { $ne: false } }).lean(), // ★ FIX: khớp điều kiện với resolvePrompt(), tránh prompt bị "ẩn" khỏi dropdown
-            AIKey.find({ isActive: true, isRevoked: { $ne: true } }).sort({ createdAt: -1 }).lean(),
+            canPickAIKey
+                ? AIKey.find({ isActive: true, isRevoked: { $ne: true } }).sort({ createdAt: -1 }).lean()
+                : Promise.resolve([]),
         ]);
 
-        if (!lesson) {
+        if (!lesson || !scope.canAccess(lesson)) { // ★ USER KEY
             return res.status(404).render("error", {
                 title: "Không tìm thấy", message: "Bài học không tồn tại",
                 user: req.user, statusCode: 404, stack: null,
@@ -612,6 +666,7 @@ exports.showEditLesson = async (req, res, next) => {
             subjects,
             prompts,
             aiKeys,
+            canPickAIKey,
             supportedModels: SUPPORTED_MODELS,
             defaultModel: DEFAULT_MODEL,
             isAdminView: true,
@@ -638,24 +693,41 @@ exports.updateLesson = async (req, res, next) => {
         }
 
         const lesson = await Lesson.findById(id);
-        if (!lesson) return res.status(404).json({ error: "Bài học không tồn tại" });
+        const scope = await getContentScope(req); // ★ USER KEY
+        if (!lesson || !scope.canAccess(lesson)) {
+            return res.status(404).json({ error: "Bài học không tồn tại" });
+        }
 
         if (title && title.trim() && title.trim() !== lesson.title) {
             lesson.title = title.trim();
             lesson.slug = slugify(title.trim());
         }
-        if (subjectId && mongoose.Types.ObjectId.isValid(subjectId)) lesson.subjectId = subjectId;
+        // ★ USER KEY: đổi môn → môn mới cũng phải trong phạm vi, và bài đổi
+        //   userKey theo môn mới (không cho chuyển bài sang tổ chức khác lén lút)
+        if (
+            subjectId &&
+            mongoose.Types.ObjectId.isValid(subjectId) &&
+            String(subjectId) !== String(lesson.subjectId)
+        ) {
+            const newSubject = await Subject.findById(subjectId).lean();
+            if (!newSubject || !scope.canAccess(newSubject)) {
+                return res.status(404).json({ error: "Môn học không tồn tại" });
+            }
+            lesson.subjectId = subjectId;
+            lesson.userKey = newSubject.userKey || null;
+        }
         if (typeof description === "string") lesson.description = description;
         if (typeof contentHtml === "string") lesson.contentHtml = contentHtml;
         if (typeof sampleSolution === "string") lesson.sampleSolution = sampleSolution;
-        if (typeof githubFile === "string" && githubFile) lesson.githubFile = githubFile;
+        // ★ USER KEY: chỉ admin default được đổi đường dẫn GitHub
+        if (scope.isDefaultAdmin && typeof githubFile === "string" && githubFile) lesson.githubFile = githubFile;
         if (promptId !== undefined) {
             lesson.promptId = promptId && mongoose.Types.ObjectId.isValid(promptId) ? promptId : null;
         }
         if (duration !== undefined) lesson.duration = Number(duration) || 20;
 
         // ★ AI KEY + MODEL
-        if (aiKeyId !== undefined) {
+        if (aiKeyId !== undefined && scope.isDefaultAdmin) { // ★ USER KEY
             lesson.aiKeyId = aiKeyId && mongoose.Types.ObjectId.isValid(aiKeyId) ? aiKeyId : null;
         }
         if (model !== undefined) {
@@ -735,7 +807,8 @@ exports.deleteLesson = async (req, res, next) => {
         if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: "ID không hợp lệ" });
 
         const lesson = await Lesson.findById(id);
-        if (!lesson) return res.status(404).json({ error: "Không tìm thấy" });
+        const scope = await getContentScope(req); // ★ USER KEY
+        if (!lesson || !scope.canAccess(lesson)) return res.status(404).json({ error: "Không tìm thấy" });
 
         lesson.isDeleted = true;
         lesson.deletedAt = new Date();
@@ -757,7 +830,8 @@ exports.restoreLesson = async (req, res, next) => {
         if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: "ID không hợp lệ" });
 
         const lesson = await Lesson.findById(id);
-        if (!lesson) return res.status(404).json({ error: "Không tìm thấy" });
+        const scope = await getContentScope(req); // ★ USER KEY
+        if (!lesson || !scope.canAccess(lesson)) return res.status(404).json({ error: "Không tìm thấy" });
 
         lesson.isDeleted = false;
         lesson.deletedAt = null;
@@ -779,7 +853,8 @@ exports.hardDeleteLesson = async (req, res, next) => {
         if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: "ID không hợp lệ" });
 
         const lesson = await Lesson.findById(id);
-        if (!lesson) return res.status(404).json({ error: "Không tìm thấy" });
+        const scope = await getContentScope(req); // ★ USER KEY
+        if (!lesson || !scope.canAccess(lesson)) return res.status(404).json({ error: "Không tìm thấy" });
 
         // Chỉ cho xoá vĩnh viễn bài ĐANG ở thùng rác (đã xoá mềm trước) —
         // buộc đi qua bước xác nhận "vào thùng rác" trước khi xoá thật.

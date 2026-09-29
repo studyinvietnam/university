@@ -6,12 +6,28 @@ const {
     DEFAULT_MODEL,
     isSupportedModel
 } = require('../config/aiModels');
+const { isDefaultAdmin } = require('../middleware/auth');
 
 // ============================================================
 // HELPERS
 // ============================================================
 function getUserId(req) {
-    return req.session?.user?._id || req.user?._id || null;
+    // req.user do attachUser đọc lại từ DB → không tin session (có thể cũ)
+    return req.user?._id || null;
+}
+
+// ★ CHẶN HOÀN TOÀN admin user_key (lớp bảo vệ thứ 2, ngoài requireDefaultAdmin ở route).
+//   Trả true nếu đã chặn (handler phải return ngay).
+function denyIfNotDefaultAdmin(req, res) {
+    if (isDefaultAdmin(req.user)) return false;
+    res.status(403).render('error', {
+        title: 'Không có quyền truy cập',
+        message: 'Chỉ quản trị viên hệ thống (admin default) mới được quản lý API Key.',
+        statusCode: 403,
+        stack: null,
+        user: req.user
+    });
+    return true;
 }
 
 function getMasterKey() {
@@ -26,6 +42,8 @@ function getMasterKey() {
 // GET /admin/ai-keys
 // ============================================================
 const getAIKeys = async (req, res) => {
+    if (denyIfNotDefaultAdmin(req, res)) return;
+
     try {
         const aiKeys = await AIKey.find({})
             .populate('createdBy', 'name email')
@@ -67,6 +85,8 @@ const getAIKeys = async (req, res) => {
 // POST /admin/ai-keys
 // ============================================================
 const createAIKey = async (req, res) => {
+    if (denyIfNotDefaultAdmin(req, res)) return;
+
     try {
         const { name, provider, apiKey, model } = req.body;
 
@@ -128,10 +148,12 @@ const createAIKey = async (req, res) => {
 // POST /admin/ai-keys/:id/toggle
 // ============================================================
 const toggleAIKey = async (req, res) => {
+    if (denyIfNotDefaultAdmin(req, res)) return;
+
     try {
         const aiKey = await AIKey.findById(req.params.id);
         if (!aiKey) {
-            return res.status(404).json({ success: false, message: 'Không tìm thấy AI key.' });
+            return res.redirect('/admin/ai-keys?error=' + encodeURIComponent('Không tìm thấy AI key.'));
         }
 
         aiKey.isActive = !aiKey.isActive;
@@ -148,6 +170,8 @@ const toggleAIKey = async (req, res) => {
 // POST /admin/ai-keys/:id/delete
 // ============================================================
 const deleteAIKey = async (req, res) => {
+    if (denyIfNotDefaultAdmin(req, res)) return;
+
     try {
         const aiKey = await AIKey.findById(req.params.id);
         if (!aiKey) {

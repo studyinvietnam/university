@@ -87,6 +87,15 @@ const lessonSchema = new mongoose.Schema(
             index: true
         },
 
+        // ★ USER KEY (đa tổ chức): kế thừa từ Subject khi tạo/chuyển môn.
+        //   null = tổ chức default. Bài cũ thiếu field vẫn khớp { userKey: null }.
+        userKey: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'UserKey',
+            default: null,
+            index: true
+        },
+
         // AUDIT
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,

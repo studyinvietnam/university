@@ -117,54 +117,66 @@ block content
                         div(class="text-xs text-gray-400 mb-3")
                             if prompt.createdAt
                                 | Tạo: #{new Date(prompt.createdAt).toLocaleString('vi-VN')}
+                            if prompt.createdBy && prompt.createdBy.name
+                                if user && String(prompt.createdBy._id) === String(user._id)
+                                    |  · bởi bạn
+                                else
+                                    |  · bởi #{prompt.createdBy.name}
 
-                        //- ACTIONS
+                        //- ACTIONS — ★ chỉ hiện khi có quyền (admin default: tất cả;
+                        //-           admin user_key: chỉ prompt do chính mình tạo)
                         div(class="flex items-center gap-2 pt-3 border-t border-gray-100")
-                            a(
-                                href=`/admin/prompts/${prompt._id}/edit`
-                                class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200"
-                            )
-                                i(data-lucide="pencil", class="w-3.5 h-3.5")
-                                | Sửa
-
-                            if !prompt.isDefault
-                                form(
-                                    action=`/admin/prompts/${prompt._id}/set-default`
-                                    method="POST"
-                                    class="inline"
+                            if prompt.canManage
+                                a(
+                                    href=`/admin/prompts/${prompt._id}/edit`
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200"
                                 )
-                                    button(
-                                        type="submit"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-lg text-xs font-medium hover:bg-yellow-100"
-                                    )
-                                        | ⭐ Đặt default
+                                    i(data-lucide="pencil", class="w-3.5 h-3.5")
+                                    | Sửa
 
-                            if prompt.active
-                                form(
-                                    action=`/admin/prompts/${prompt._id}/delete`
-                                    method="POST"
-                                    class="inline"
-                                    onsubmit="return confirm('Vô hiệu hoá prompt này?')"
-                                )
-                                    button(
-                                        type="submit"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100"
+                                //- Đặt mặc định ảnh hưởng mọi tổ chức → chỉ admin default
+                                if !prompt.isDefault && isDefaultAdmin
+                                    form(
+                                        action=`/admin/prompts/${prompt._id}/set-default`
+                                        method="POST"
+                                        class="inline"
                                     )
-                                        i(data-lucide="power", class="w-3.5 h-3.5")
-                                        | Tắt
+                                        button(
+                                            type="submit"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-lg text-xs font-medium hover:bg-yellow-100"
+                                        )
+                                            | ⭐ Đặt default
+
+                                if prompt.active
+                                    form(
+                                        action=`/admin/prompts/${prompt._id}/delete`
+                                        method="POST"
+                                        class="inline"
+                                        onsubmit="return confirm('Vô hiệu hoá prompt này?')"
+                                    )
+                                        button(
+                                            type="submit"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100"
+                                        )
+                                            i(data-lucide="power", class="w-3.5 h-3.5")
+                                            | Tắt
+                                else
+                                    form(
+                                        action=`/admin/prompts/${prompt._id}/hard-delete`
+                                        method="POST"
+                                        class="inline"
+                                        onsubmit="return confirm('XOÁ VĨNH VIỄN không thể hoàn tác. Chắc chắn?')"
+                                    )
+                                        button(
+                                            type="submit"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-xs font-medium hover:bg-red-100"
+                                        )
+                                            i(data-lucide="trash-2", class="w-3.5 h-3.5")
+                                            | Xoá vĩnh viễn
                             else
-                                form(
-                                    action=`/admin/prompts/${prompt._id}/hard-delete`
-                                    method="POST"
-                                    class="inline"
-                                    onsubmit="return confirm('XOÁ VĨNH VIỄN không thể hoàn tác. Chắc chắn?')"
-                                )
-                                    button(
-                                        type="submit"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-xs font-medium hover:bg-red-100"
-                                    )
-                                        i(data-lucide="trash-2", class="w-3.5 h-3.5")
-                                        | Xoá vĩnh viễn
+                                span(class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium")
+                                    i(data-lucide="eye", class="w-3.5 h-3.5")
+                                    | Chỉ xem (prompt của người khác)
 
         else
             .bg-white.border.border-gray-200.rounded-2xl.py-16.text-center

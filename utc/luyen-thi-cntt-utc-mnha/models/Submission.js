@@ -1,5 +1,19 @@
 const mongoose = require('mongoose');
 
+// ★ Nhận xét của giảng viên (tách biệt với feedback của AI)
+//   AI chấm xong là đăng kết quả luôn, không cần giảng viên duyệt.
+//   teacherComment chỉ tồn tại khi giảng viên chủ động viết (null = không có).
+const teacherCommentSchema = new mongoose.Schema(
+    {
+        content: { type: String, default: '', trim: true, maxlength: 5000 },
+        commentedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        // Snapshot tên người chấm → sinh viên thấy tên mà không cần populate User
+        commentedByName: { type: String, default: '' },
+        commentedAt: { type: Date, default: Date.now }
+    },
+    { _id: false }
+);
+
 const submissionSchema = new mongoose.Schema(
     {
         userId: {
@@ -105,6 +119,31 @@ const submissionSchema = new mongoose.Schema(
         submittedAt: {
             type: Date,
             default: Date.now
+        },
+
+        // ★ Nhận xét giảng viên + lịch sử các lần sửa
+        teacherComment: {
+            type: teacherCommentSchema,
+            default: null
+        },
+
+        teacherCommentHistory: {
+            type: [teacherCommentSchema],
+            default: []
+        },
+
+        // Trạng thái đồng bộ RIÊNG cho nhận xét (không đụng syncStatus của bài nộp,
+        // vì getSubmission chỉ đọc GitHub khi syncStatus === 'committed')
+        teacherCommentSyncStatus: {
+            type: String,
+            enum: ['none', 'pending', 'committed', 'failed'],
+            default: 'none',
+            index: true
+        },
+
+        teacherCommentSyncError: {
+            type: String,
+            default: null
         },
 
         // Đồng bộ GitHub

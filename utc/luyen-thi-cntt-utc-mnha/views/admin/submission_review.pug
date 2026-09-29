@@ -1,0 +1,172 @@
+extends ../layout
+
+//-
+    ★ GHI CHÚ: cấu trúc dữ liệu bên dưới bám theo đúng field thật đã
+    thấy trong views/student/history.pug (do bạn cung cấp), KHÔNG còn
+    dùng object "aiResult" tưởng tượng như bản trước:
+      - submission.lessonId       : populated { title }
+      - submission.subjectId      : populated { name }
+      - submission.userId         : populated { name, email }
+      - submission.score          : number | null  (thang điểm mặc định /10, giống history.pug)
+      - submission.model          : string | null   (model AI đã dùng)
+      - submission.status         : 'graded' | 'grading' | 'pending' | 'failed'
+      - submission.feedback       : string  — nhận xét tổng quan của AI
+      - submission.breakdown      : [{ criterion, score, comment }]
+      - submission.grammar.errors : [{ original, corrected, explanation }]
+      - submission.teacherComment : { content, commentedByName, commentedAt } | null
+      - submission.teacherCommentHistory : [{ content, commentedByName, commentedAt }]
+      - answerHtml                : nội dung bài làm (HTML) — controller lấy từ GitHub JSON
+                                     (nếu Mongo rỗng) rồi truyền riêng qua biến này.
+      - success / error           : thông báo flash
+
+    ★ AI chấm xong là đăng kết quả luôn. Nhận xét giảng viên là TUỲ CHỌN:
+    không viết thì sinh viên không thấy khối nhận xét nào.
+
+    Đổi lại tên field nếu models/Submission.js thật có khác biệt.
+
+block content
+    div(class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8")
+
+        //- Breadcrumb
+        nav(class="mb-6 text-sm")
+            a(href="/admin/submissions", class="text-blue-600 hover:text-blue-700") ← Danh sách bài nộp
+            span(class="mx-2 text-gray-400") /
+            span(class="text-gray-600") Nhận xét bài làm
+
+        if success
+            div(class="mb-6 rounded-xl bg-green-50 border border-green-200 text-green-700 px-4 py-3 text-sm")
+                i(data-lucide="check-circle", class="w-4 h-4 inline-block mr-2")
+                | #{success}
+
+        if error
+            div(class="mb-6 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm")
+                i(data-lucide="alert-circle", class="w-4 h-4 inline-block mr-2")
+                | #{error}
+
+        //- Thông tin bài nộp
+        div(class="bg-white rounded-2xl border border-gray-200 p-6 mb-6")
+            div(class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4")
+                div
+                    h1(class="text-2xl font-bold text-gray-900")= (submission.lessonId && submission.lessonId.title) ? submission.lessonId.title : "Bài học"
+                    if submission.subjectId && submission.subjectId.name
+                        p(class="text-sm text-gray-500 mt-0.5")= submission.subjectId.name
+
+                    p(class="mt-3 text-sm text-gray-500")
+                        i(data-lucide="user", class="w-4 h-4 inline-block mr-1")
+                        | Sinh viên:
+                        span(class="font-medium text-gray-700")
+                            |  #{submission.userId && submission.userId.name ? submission.userId.name : "Không rõ"}
+                        if submission.userId && submission.userId.email
+                            span(class="text-gray-400")  (#{submission.userId.email})
+
+                    p(class="mt-1 text-sm text-gray-500")
+                        i(data-lucide="calendar", class="w-4 h-4 inline-block mr-1")
+                        | Nộp lúc: #{submission.submittedAt ? new Date(submission.submittedAt).toLocaleString("vi-VN") : (submission.createdAt ? new Date(submission.createdAt).toLocaleString("vi-VN") : "Không rõ")}
+
+                    if submission.model
+                        p(class="mt-2")
+                            span(class="text-xs font-mono px-2 py-1 rounded bg-indigo-50 text-indigo-700")= submission.model
+
+                div(class="text-right flex-shrink-0")
+                    div(class="text-3xl font-bold text-blue-600")
+                        = (submission.score !== null && submission.score !== undefined) ? submission.score : "—"
+                        span(class="text-base text-gray-400")  / 10
+                    div(class="text-xs text-gray-400 mt-1") Điểm AI chấm
+
+        //- Bài làm của sinh viên
+        div(class="bg-white rounded-2xl border border-gray-200 p-6 mb-6")
+            h2(class="text-lg font-semibold text-gray-900 mb-4") Bài làm của sinh viên
+            div(class="prose max-w-none text-gray-700")!= answerHtml || "<p class='text-gray-400'>Không có nội dung.</p>"
+
+        //- Kết quả AI
+        div(class="bg-white rounded-2xl border border-gray-200 p-6 mb-6")
+            h2(class="text-lg font-semibold text-gray-900 mb-4") Kết quả chấm của AI
+
+            if submission.feedback
+                p(class="text-gray-700 whitespace-pre-line mb-4")= submission.feedback
+
+            if submission.breakdown && submission.breakdown.length
+                div(class="space-y-2 mb-4")
+                    each item in submission.breakdown
+                        div(class="flex items-start justify-between gap-4 border-b border-gray-100 pb-2")
+                            div
+                                div(class="font-medium text-gray-800")= item.criterion
+                                if item.comment
+                                    div(class="text-sm text-gray-500 mt-0.5")= item.comment
+                            div(class="font-semibold text-gray-900 flex-shrink-0")= item.score
+
+            - var grammarErrors = (submission.grammar && Array.isArray(submission.grammar.errors)) ? submission.grammar.errors : []
+
+            if grammarErrors.length
+                div(class="mt-4")
+                    h3(class="text-sm font-semibold text-gray-700 mb-2") Lỗi được phát hiện (#{grammarErrors.length})
+                    each err in grammarErrors
+                        div(class="rounded-lg bg-red-50 border border-red-100 p-3 mb-2 text-sm")
+                            div
+                                span(class="text-red-600 line-through") #{err.original}
+                                span(class="mx-2 text-gray-400") →
+                                span(class="text-green-700") #{err.corrected}
+                            if err.explanation
+                                div(class="text-gray-500 mt-1")= err.explanation
+            else if submission.status === "graded"
+                p(class="mt-4 text-sm text-green-700 flex items-center gap-1.5")
+                    i(data-lucide="check-circle-2", class="w-4 h-4")
+                    | Không có lỗi
+
+            if !submission.feedback && (!submission.breakdown || !submission.breakdown.length)
+                p(class="text-gray-400 text-sm") Chưa có kết quả chấm từ AI.
+
+        //- Nhận xét của giảng viên
+        div(class="bg-white rounded-2xl border border-gray-200 p-6 mb-6")
+            h2(class="text-lg font-semibold text-gray-900 mb-4") Nhận xét của giảng viên
+
+            - var tc = submission.teacherComment
+            - var currentComment = (tc && tc.content) ? tc.content.trim() : ""
+            - var tcName = (tc && tc.commentedByName) ? tc.commentedByName : "Giảng viên"
+
+            if currentComment
+                div(class="rounded-lg bg-blue-50 border border-blue-100 p-4 mb-4")
+                    p(class="text-gray-700 whitespace-pre-line")= currentComment
+                    p(class="text-xs text-gray-400 mt-2")
+                        | #{tcName}
+                        |  · #{tc.commentedAt ? new Date(tc.commentedAt).toLocaleString("vi-VN") : ""}
+            else
+                p(class="text-sm text-gray-400 mb-4") Chưa có nhận xét của giảng viên (không bắt buộc).
+
+            form(method="POST", action=`/admin/submissions/${submission._id}/review`)
+                //- Compare-and-set: chặn 2 giảng viên ghi đè nhau
+                input(type="hidden", name="expectedCommentedAt", value=(tc && tc.commentedAt) ? new Date(tc.commentedAt).toISOString() : "")
+                label(class="block text-sm font-medium text-gray-700 mb-1")
+                    | #{currentComment ? "Sửa nhận xét" : "Viết nhận xét (tuỳ chọn)"}
+
+                textarea(
+                    name="content"
+                    rows="5"
+                    maxlength="5000"
+                    required
+                    placeholder="Nhập nhận xét của bạn cho sinh viên..."
+                    class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                )= currentComment
+
+                div(class="mt-3 flex justify-end")
+                    button(
+                        type="submit"
+                        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-5 py-2 font-medium hover:bg-blue-700 transition-colors"
+                    )
+                        i(data-lucide="save", class="w-4 h-4")
+                        | Lưu nhận xét
+
+            p(class="mt-3 text-xs text-gray-400") Tên bạn sẽ hiển thị cho sinh viên với tư cách người chấm. Nhận xét được đồng bộ lên GitHub cùng dữ liệu bài nộp.
+
+        //- Lịch sử nhận xét cũ
+        if submission.teacherCommentHistory && submission.teacherCommentHistory.length
+            div(class="bg-white rounded-2xl border border-gray-200 p-6")
+                h2(class="text-lg font-semibold text-gray-900 mb-4") Lịch sử nhận xét trước đây
+
+                div(class="space-y-3")
+                    each item in submission.teacherCommentHistory
+                        div(class="rounded-lg bg-gray-50 border border-gray-100 p-3 text-sm")
+                            p(class="text-gray-600 whitespace-pre-line")= item.content
+                            p(class="text-xs text-gray-400 mt-1")
+                                | #{item.commentedByName ? item.commentedByName : "Giảng viên"}
+                                |  · #{item.commentedAt ? new Date(item.commentedAt).toLocaleString("vi-VN") : ""}

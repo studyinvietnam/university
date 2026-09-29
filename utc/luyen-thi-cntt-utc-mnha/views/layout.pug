@@ -116,12 +116,20 @@ html(lang="vi")
                                             i(data-lucide="file-cog", class="w-4 h-4")
                                             | Prompt chấm
 
-                                        a(
-                                            class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
-                                            href="/admin/ai-keys"
-                                        )
-                                            i(data-lucide="key-round", class="w-4 h-4")
-                                            | Google AI Keys
+                                        if isDefaultAdmin
+                                            a(
+                                                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
+                                                href="/admin/ai-keys"
+                                            )
+                                                i(data-lucide="key-round", class="w-4 h-4")
+                                                | Google AI Keys
+                                        if isDefaultAdmin
+                                            a(
+                                                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
+                                                href="/admin/user-keys"
+                                            )
+                                                i(data-lucide="building-2", class="w-4 h-4")
+                                                | Quản lý User Key
 
                                         a(
                                             class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
@@ -139,19 +147,21 @@ html(lang="vi")
                                             i(data-lucide="users", class="w-4 h-4")
                                             | Người dùng
 
-                                        a(
-                                            class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
-                                            href="/admin/roles"
-                                        )
-                                            i(data-lucide="shield", class="w-4 h-4")
-                                            | Vai trò
+                                        if isDefaultAdmin
+                                            a(
+                                                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
+                                                href="/admin/roles"
+                                            )
+                                                i(data-lucide="shield", class="w-4 h-4")
+                                                | Vai trò
 
-                                        a(
-                                            class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
-                                            href="/admin/audit-log"
-                                        )
-                                            i(data-lucide="scroll-text", class="w-4 h-4")
-                                            | Audit log
+                                        if isDefaultAdmin
+                                            a(
+                                                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
+                                                href="/admin/audit-log"
+                                            )
+                                                i(data-lucide="scroll-text", class="w-4 h-4")
+                                                | Audit log
 
                     //- RIGHT SIDE
                     div(class="flex items-center gap-2")
@@ -183,7 +193,7 @@ html(lang="vi")
                                             = user.name || user.email
 
                                         p(class="text-xs text-gray-500")
-                                            | #{user.role === 'admin' ? 'Quản trị viên' : (user.role === 'student' ? 'Sinh viên' : 'Chờ duyệt')}
+                                            | #{user.role === 'admin' ? (isUserKeyAdmin ? 'Quản trị viên tổ chức' : 'Quản trị viên') : (user.role === 'student' ? 'Sinh viên' : 'Chờ duyệt')}
 
                                     i(data-lucide="chevron-down", class="w-4 h-4 text-gray-400")
 
@@ -350,12 +360,20 @@ html(lang="vi")
                                 i(data-lucide="file-cog", class="w-5 h-5")
                                 | Prompt chấm
 
-                            a(
-                                class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50"
-                                href="/admin/ai-keys"
-                            )
-                                i(data-lucide="key-round", class="w-5 h-5")
-                                | Google AI Keys
+                            if isDefaultAdmin
+                                a(
+                                    class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                                    href="/admin/ai-keys"
+                                )
+                                    i(data-lucide="key-round", class="w-5 h-5")
+                                    | Google AI Keys
+                            if isDefaultAdmin
+                                a(
+                                    class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                                    href="/admin/user-keys"
+                                )
+                                    i(data-lucide="building-2", class="w-5 h-5")
+                                    | Quản lý User Key
 
                             a(
                                 class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50"
@@ -371,19 +389,21 @@ html(lang="vi")
                                 i(data-lucide="users", class="w-5 h-5")
                                 | Người dùng
 
-                            a(
-                                class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50"
-                                href="/admin/roles"
-                            )
-                                i(data-lucide="shield", class="w-5 h-5")
-                                | Vai trò
+                            if isDefaultAdmin
+                                a(
+                                    class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                                    href="/admin/roles"
+                                )
+                                    i(data-lucide="shield", class="w-5 h-5")
+                                    | Vai trò
 
-                            a(
-                                class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50"
-                                href="/admin/audit-log"
-                            )
-                                i(data-lucide="scroll-text", class="w-5 h-5")
-                                | Audit log
+                            if isDefaultAdmin
+                                a(
+                                    class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                                    href="/admin/audit-log"
+                                )
+                                    i(data-lucide="scroll-text", class="w-5 h-5")
+                                    | Audit log
 
                         div(class="border-t border-gray-100 my-2")
 

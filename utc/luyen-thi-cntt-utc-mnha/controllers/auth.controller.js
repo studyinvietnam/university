@@ -37,7 +37,8 @@ function buildSessionUser(user) {
         name: user.name,
         email: user.email,
         role: user.role,
-        status: user.status
+        status: user.status,
+        userKey: user.userKey ? String(user.userKey) : null
     };
 }
 
@@ -204,6 +205,9 @@ const register = async (req, res) => {
                 email
             });
         }
+
+        // ★ USER KEY: đăng ký KHÔNG nhập mã tổ chức. User luôn vào tổ chức default
+        //   (userKey = null); admin gán tổ chức khi duyệt (xem resolveApproval).
 
         const existingOTP = await OTP.findOne({
             email: normalizedEmail,
@@ -407,7 +411,9 @@ const verifyOtp = async (req, res) => {
             email,
             password: passwordHash,
             role: 'client',
-            status: 'pending'
+            status: 'pending',
+            userKey: null, // admin gán tổ chức khi duyệt
+            connectedUserKeys: []
         });
 
         await OTP.deleteOne({ _id: otpDoc._id });
@@ -419,7 +425,9 @@ const verifyOtp = async (req, res) => {
         // ★ FIX: lưu session trước khi redirect
         await saveSession(req);
 
-        console.log(`[verifyOtp] ✅ Tạo user: ${email} (role=client, status=pending)`);
+        console.log(
+            `[verifyOtp] ✅ Tạo user: ${email} (role=client, status=pending, userKey=default)`
+        );
 
         return res.redirect(
             `/auth/login?registered=1&email=${encodeURIComponent(email)}`

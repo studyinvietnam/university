@@ -4,13 +4,22 @@ block content
     div(class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8")
 
         //- Back
-        div(class="mb-6")
+        div(class="mb-6 flex items-center justify-between gap-3")
             a(
                 href=isAdmin ? '/admin/submissions' : '/submissions/history'
                 class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
             )
                 i(data-lucide="arrow-left", class="w-4 h-4")
                 | Quay lại danh sách
+
+            //- Chỉ admin/giảng viên: mở trang nhận xét (chấm) bài này
+            if isAdmin
+                a(
+                    href=`/admin/submissions/${submission._id}/review`
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
+                )
+                    i(data-lucide="message-square-text", class="w-4 h-4")
+                    = (submission.teacherComment && submission.teacherComment.content) ? 'Sửa nhận xét' : 'Chấm bài / Nhận xét'
 
         //- ============================================================
         //- HEADER — Bài nộp + Điểm
@@ -158,6 +167,22 @@ block content
                     | Nhận xét của AI
                 div(class="text-sm text-gray-700 whitespace-pre-wrap leading-7")
                     = submission.feedback
+
+        //- ============================================================
+        //- NHẬN XÉT CỦA GIẢNG VIÊN (tuỳ chọn — không có thì ẩn cả khối)
+        //- ============================================================
+        - var tcNote = (submission.teacherComment && submission.teacherComment.content) ? String(submission.teacherComment.content).trim() : ''
+        if tcNote
+            div(class="bg-white border border-indigo-200 rounded-2xl p-6 shadow-sm mb-6")
+                h2(class="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2")
+                    i(data-lucide="message-square-text", class="w-5 h-5 text-indigo-600")
+                    | Nhận xét của giảng viên
+                p(class="text-xs text-gray-500 mb-3")
+                    = submission.teacherComment.commentedByName || 'Giảng viên'
+                    if submission.teacherComment.commentedAt
+                        |  · #{new Date(submission.teacherComment.commentedAt).toLocaleString('vi-VN')}
+                div(class="text-sm text-gray-700 whitespace-pre-wrap leading-7")
+                    = tcNote
 
         //- ============================================================
         //- LỖI NGỮ PHÁP

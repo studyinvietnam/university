@@ -3,38 +3,18 @@ const express = require("express");
 const router = express.Router();
 
 const subjectController = require("../controllers/subject.controller");
+const { attachUser } = require("../middleware/auth");
+const { studentOrAdmin } = require("../middleware/role");
 
 // ============================================================
 // MIDDLEWARE — ADMIN + STUDENT đều qua
-// Chỉ chặn CLIENT chưa duyệt (status=pending hoặc role=client)
+// - attachUser   : đọc lại user từ DB (không tin session cũ)
+// - studentOrAdmin: chặn client / tài khoản pending (→ trang chờ duyệt)
+//   và mọi role lạ (trước đây "mọi role khác đã login → cho qua" là fail-open)
+// Việc lọc Subject theo userKey (student chỉ thấy môn của tổ chức mình / đã kết nối)
+// nằm trong subject.controller.
 // ============================================================
-function requireLogin(req, res, next) {
-    const user = req.session?.user || req.user;
-
-    if (!user) {
-        return res.redirect("/auth/login");
-    }
-
-    // Admin luôn qua
-    if (user.role === "admin") {
-        return next();
-    }
-
-    // Student đã được duyệt → qua
-    if (user.role === "student" && user.status !== "pending") {
-        return next();
-    }
-
-    // Client chờ duyệt → trang chờ
-    if (user.role === "client" || user.status === "pending") {
-        return res.redirect("/pages");
-    }
-
-    // Fallback: mọi role khác đã login → cho qua
-    next();
-}
-
-router.use(requireLogin);
+router.use(attachUser, studentOrAdmin);
 
 // ============================================================
 // SUBJECT — dùng chung admin + student
