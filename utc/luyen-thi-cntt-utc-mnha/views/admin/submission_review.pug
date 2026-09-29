@@ -15,8 +15,11 @@ extends ../layout
       - submission.grammar.errors : [{ original, corrected, explanation }]
       - submission.teacherComment : { content, commentedByName, commentedAt } | null
       - submission.teacherCommentHistory : [{ content, commentedByName, commentedAt }]
-      - answerHtml                : nội dung bài làm (HTML) — controller lấy từ GitHub JSON
-                                     (nếu Mongo rỗng) rồi truyền riêng qua biến này.
+      - submission.answerHtml     : bài làm — TEXT THÔ (không phải HTML thật, có thể
+                                     chứa code với < >), giống hệt cách dùng trong
+                                     views/student/submission-detail.pug → render bằng
+                                     `pre` + `whitespace-pre-wrap` + `=` (escaped),
+                                     KHÔNG dùng `!=` (unescaped) kẻo vỡ layout/mất chữ.
       - success / error           : thông báo flash
 
     ★ AI chấm xong là đăng kết quả luôn. Nhận xét giảng viên là TUỲ CHỌN:
@@ -74,9 +77,25 @@ block content
                     div(class="text-xs text-gray-400 mt-1") Điểm AI chấm
 
         //- Bài làm của sinh viên
+        //- ★ FIX: answerHtml thực chất là text thô (có thể chứa code C++ với
+        //  < >), không phải HTML thật — render bằng `!=` (unescaped) trước
+        //  đây khiến trình duyệt hiểu nhầm dấu < > thành thẻ HTML (nội dung
+        //  dễ vỡ layout/mất chữ) và \n không tự xuống dòng vì thiếu CSS giữ
+        //  khoảng trắng. Sửa giống hệt views/student/submission-detail.pug:
+        //  dùng `pre` + `whitespace-pre-wrap` để giữ nguyên xuống dòng theo
+        //  \n, và render bằng `=` (escaped) để hiển thị đúng ký tự < > và an
+        //  toàn XSS. Đồng thời đọc thẳng `submission.answerHtml` (khớp đúng
+        //  field thật) thay vì biến `answerHtml` truyền riêng như bản trước.
         div(class="bg-white rounded-2xl border border-gray-200 p-6 mb-6")
-            h2(class="text-lg font-semibold text-gray-900 mb-4") Bài làm của sinh viên
-            div(class="prose max-w-none text-gray-700")!= answerHtml || "<p class='text-gray-400'>Không có nội dung.</p>"
+            h2(class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2")
+                i(data-lucide="pencil", class="w-5 h-5 text-indigo-600")
+                | Bài làm của sinh viên
+            div(class="p-4 rounded-lg bg-gray-50 border border-gray-100")
+                if submission.answerHtml
+                    pre(class="text-sm text-gray-800 whitespace-pre-wrap font-mono m-0")
+                        = submission.answerHtml
+                else
+                    p(class="text-gray-400 italic") (Không có nội dung)
 
         //- Kết quả AI
         div(class="bg-white rounded-2xl border border-gray-200 p-6 mb-6")
