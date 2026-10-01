@@ -182,6 +182,7 @@ block content
         .timer.warning { background: #fff7ed; color: #d97706; border-color: #fed7aa; }
         .timer.danger { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
         .timer.finished { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+        .timer.finished { animation: pulse 1s infinite; }
 
         .writing-input {
             width: 100%; min-height: 480px; resize: vertical;
@@ -223,6 +224,9 @@ block content
             font-size: 13px; font-weight: 700;
         }
         .lock-msg.show { display: block; }
+        .lock-msg.timeup {
+            background: #fef2f2; border-color: #fecaca; color: #dc2626;
+        }
 
         .result-box {
             display: none; margin-top: 20px;
@@ -268,6 +272,61 @@ block content
             font-size: 14px; color: #14532d; margin: 0;
         }
 
+        /* ===== AUDIO HẾT GIỜ ===== */
+        .audio-bar {
+            background: linear-gradient(135deg, #fff7ed, #ffedd5);
+            border: 1px solid #fed7aa;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            box-shadow: 0 6px 18px rgba(217,119,6,0.08);
+        }
+        .audio-bar-icon {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            background: #ffedd5;
+            border: 1px solid #fed7aa;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .audio-bar-info { flex: 1; min-width: 200px; }
+        .audio-bar-info .title {
+            font-weight: 800; font-size: 13px; color: #9a3412;
+        }
+        .audio-bar-info .desc {
+            font-size: 12px; color: #c2410c;
+        }
+        .audio-bar audio {
+            height: 38px;
+            max-width: 100%;
+            outline: none;
+        }
+        .audio-bar.locked {
+            opacity: 0.75;
+            filter: grayscale(0.15);
+        }
+        .audio-bar.locked audio {
+            pointer-events: none;
+        }
+        .audio-badge {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 800;
+            background: #fecaca;
+            color: #7f1d1d;
+        }
+        .audio-bar.unlocked .audio-badge {
+            background: #bbf7d0; color: #14532d;
+        }
+
         @media (max-width: 1000px) {
             .lesson-layout { grid-template-columns: 1fr; }
             .writing-panel { order: -1; }
@@ -278,6 +337,7 @@ block content
             .ai-selectors { width: 100%; }
             .ai-selectors .field { width: 100%; }
             .ai-selectors select { flex: 1; max-width: none; }
+            .audio-bar audio { width: 100%; }
         }
 
     div(class="lesson-page")
@@ -315,6 +375,30 @@ block content
                 if hasWarning
                     div(class="mt-1 text-xs font-semibold")
                         | ⚠️ Prompt có biến chưa nhận diện: #{promptUnknownPlaceholders.join(', ')} — vào link "Sửa prompt này" ở trên để sửa tên biến.
+
+        //- ============================================
+        //- AUDIO BÁO HẾT GIỜ
+        //-   - Hiển thị công khai cho cả admin và student
+        //-   - CHẶN phát khi chưa hết giờ
+        //-   - Tự động phát lặp liên tục khi hết giờ
+        //-   - Không phát nếu đã nộp bài sớm
+        //- ============================================
+        div(id="audioBar", class="audio-bar locked")
+            div(class="audio-bar-icon") 🔊
+            div(class="audio-bar-info")
+                div(class="title")
+                    | Âm thanh báo hết giờ
+                    span(id="audioBadge", class="audio-badge") 🔒 Đang khoá
+                div(class="desc")
+                    | Chỉ tự động phát lặp khi đồng hồ về 00:00 — tự tắt khi bạn nộp bài.
+
+            audio(
+                id="timeUpAudio"
+                controls
+                preload="auto"
+                src="/musics/iphone-17-pro-max.mp3"
+            )
+                | Trình duyệt của bạn không hỗ trợ thẻ audio.
 
         div(class="ai-bar")
             div(class="ai-bar-info")
@@ -426,16 +510,6 @@ block content
                 h3(class="text-lg font-bold text-green-900 mb-3 flex items-center gap-2")
                     i(data-lucide="lightbulb", class="w-5 h-5 text-green-600")
                     | Lời giải mẫu
-                //- FIX: giống hệt submission-detail.pug — sampleSolution là
-                //  HTML thật (div/h3/pre/code, đã escape sẵn &lt; &gt; bên
-                //  trong các khối <pre><code>), không phải text thô. Trước
-                //  đây nhúng bằng `pre` + `=` (escaped) nên toàn bộ thẻ HTML
-                //  bị hiện ra dưới dạng chữ thô thay vì được trình duyệt
-                //  render thành tiêu đề/khối code như ý.
-                //  Sửa: render bằng `!=` (unescaped) trong div có class
-                //  `prose` để có typography cho h3/p/pre/code, giữ nguyên
-                //  nền + khung màu xanh lá (bg-green-50, border-green-100)
-                //  và tông chữ xanh (text-green-900).
                 div(class="prose prose-sm max-w-none text-green-900 p-4 rounded-lg bg-green-50 border border-green-100")
                     != lesson.sampleSolution
 
@@ -503,6 +577,109 @@ block content
             const resultBody = document.getElementById("resultBody");
             const aiKeySelect = document.getElementById("aiKeySelect");
             const modelSelect = document.getElementById("modelSelect");
+            const timeUpAudio = document.getElementById("timeUpAudio");
+            const audioBar = document.getElementById("audioBar");
+            const audioBadge = document.getElementById("audioBadge");
+
+            // Cờ: đánh dấu việc pause là do hệ thống chủ động (không phải user bấm)
+            let intentionalStop = false;
+            let blockMsgTimer = null;
+
+            // ============================================
+            // AUDIO HELPERS
+            // ============================================
+            function canPlayAlarm() {
+                // Chỉ cho phép phát khi: đã hết giờ VÀ chưa nộp bài VÀ không đang nộp
+                return timeLeft <= 0 && !submitted && !submitting;
+            }
+
+            function playTimeUpAudio() {
+                if (!timeUpAudio) return;
+                try {
+                    timeUpAudio.loop = true;      // lặp liên tục
+                    timeUpAudio.volume = 1.0;
+                    timeUpAudio.currentTime = 0;
+                    const p = timeUpAudio.play();
+                    if (p && typeof p.catch === "function") {
+                        p.catch(function (err) {
+                            console.warn("Không tự phát được audio hết giờ:", err);
+                        });
+                    }
+                } catch (e) {
+                    console.warn("playTimeUpAudio error:", e);
+                }
+            }
+
+            function stopTimeUpAudio() {
+                if (!timeUpAudio) return;
+                intentionalStop = true;
+                try {
+                    timeUpAudio.loop = false;
+                    timeUpAudio.pause();
+                    timeUpAudio.currentTime = 0;
+                } catch (e) { /* noop */ }
+                // Cho event 'pause' kịp bỏ qua
+                setTimeout(() => { intentionalStop = false; }, 60);
+            }
+
+            function updateAudioBarState() {
+                if (!audioBar || !audioBadge) return;
+                if (canPlayAlarm()) {
+                    audioBar.classList.remove("locked");
+                    audioBar.classList.add("unlocked");
+                    audioBadge.textContent = "🔓 Đã mở khoá";
+                } else {
+                    audioBar.classList.add("locked");
+                    audioBar.classList.remove("unlocked");
+                    audioBadge.textContent = submitted ? "✓ Đã nộp" : "🔒 Đang khoá";
+                }
+            }
+
+            // Chặn mọi nỗ lực phát audio khi chưa hết giờ (hoặc đã nộp bài)
+            if (timeUpAudio) {
+                timeUpAudio.addEventListener("play", function () {
+                    if (!canPlayAlarm()) {
+                        // Dừng ngay
+                        intentionalStop = true;
+                        try {
+                            timeUpAudio.pause();
+                            timeUpAudio.currentTime = 0;
+                        } catch (e) { /* noop */ }
+                        setTimeout(() => { intentionalStop = false; }, 60);
+                        showBlockedAudioMessage();
+                    }
+                });
+
+                // Nếu user bấm pause khi đang trong trạng thái hết giờ (chưa nộp)
+                // → tự động phát lại để đảm bảo "lặp liên tục"
+                timeUpAudio.addEventListener("pause", function () {
+                    if (intentionalStop) return;
+                    if (canPlayAlarm()) {
+                        setTimeout(() => {
+                            if (canPlayAlarm() && timeUpAudio.paused) {
+                                try {
+                                    timeUpAudio.loop = true;
+                                    timeUpAudio.play().catch(() => {});
+                                } catch (e) { /* noop */ }
+                            }
+                        }, 400);
+                    }
+                });
+            }
+
+            function showBlockedAudioMessage() {
+                if (!lockMsg) return;
+                // Chỉ hiện thông báo ngắn, không ghi đè thông báo hết giờ
+                if (lockMsg.classList.contains("timeup")) return;
+                lockMsg.textContent = "🔒 Âm thanh chỉ tự động phát khi đồng hồ về 00:00 (hết giờ).";
+                lockMsg.classList.add("show");
+                lockMsg.classList.remove("timeup");
+                if (blockMsgTimer) clearTimeout(blockMsgTimer);
+                blockMsgTimer = setTimeout(() => {
+                    blockMsgTimer = null;
+                    updateLock();
+                }, 2500);
+            }
 
             // ============================================
             // HELPERS
@@ -534,7 +711,7 @@ block content
             }
 
             function updateTimer() {
-                timerEl.textContent = fmtTime(timeLeft);
+                timerEl.textContent = fmtTime(Math.max(0, timeLeft));
                 timerEl.classList.remove("waiting", "warning", "danger", "finished");
                 if (!aiConnected) { timerEl.classList.add("waiting"); return; }
                 if (submitted) { timerEl.classList.add("finished"); return; }
@@ -546,14 +723,28 @@ block content
             function startTimer() {
                 if (timerInterval || !aiConnected || submitted) return;
                 timerInterval = setInterval(() => {
-                    if (!aiConnected || submitted || timeLeft <= 0) {
+                    if (!aiConnected || submitted) {
                         clearInterval(timerInterval);
                         timerInterval = null;
                         updateTimer();
                         return;
                     }
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                        updateTimer();
+                        onTimeUp();
+                        return;
+                    }
                     timeLeft--;
                     updateTimer();
+                    updateAudioBarState();
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                        updateTimer();
+                        onTimeUp();
+                    }
                 }, 1000);
             }
 
@@ -564,9 +755,21 @@ block content
                 }
             }
 
+            function onTimeUp() {
+                if (!submitted) {
+                    lockMsg.textContent = "⏰ Đã hết thời gian làm bài! Hãy nộp bài ngay.";
+                    lockMsg.classList.add("show", "timeup");
+                }
+                updateAudioBarState();
+                // Tự động phát lặp liên tục (chỉ khi chưa nộp bài)
+                if (canPlayAlarm()) {
+                    playTimeUpAudio();
+                }
+            }
+
             function updateLock() {
                 if (submitted) {
-                    lockMsg.classList.remove("show");
+                    lockMsg.classList.remove("show", "timeup");
                     textarea.disabled = true;
                     submitBtn.disabled = true;
                     clearBtn.disabled = true;
@@ -575,12 +778,21 @@ block content
                 if (!aiConnected) {
                     lockMsg.textContent = "🔒 Hãy kết nối AI thành công để bắt đầu tính giờ.";
                     lockMsg.classList.add("show");
+                    lockMsg.classList.remove("timeup");
                     textarea.disabled = true;
                     submitBtn.disabled = true;
                     clearBtn.disabled = false;
                     return;
                 }
-                lockMsg.classList.remove("show");
+                if (timeLeft <= 0) {
+                    lockMsg.textContent = "⏰ Đã hết thời gian làm bài! Hãy nộp bài ngay.";
+                    lockMsg.classList.add("show", "timeup");
+                    textarea.disabled = true;
+                    submitBtn.disabled = false;
+                    clearBtn.disabled = true;
+                    return;
+                }
+                lockMsg.classList.remove("show", "timeup");
                 textarea.disabled = false;
                 submitBtn.disabled = false;
                 clearBtn.disabled = false;
@@ -615,7 +827,7 @@ block content
             }
 
             // ============================================
-            // ★ LOAD AI KEYS — FIX: hiển thị TẤT CẢ key
+            // LOAD AI KEYS
             // ============================================
             async function loadKeys() {
                 try {
@@ -631,7 +843,6 @@ block content
                             opt.value = k._id;
                             opt.setAttribute("data-model", k.model || "");
 
-                            // ★ Hiển thị trạng thái + tên
                             let label = k.name;
                             if (k.model) label += " (" + k.model + ")";
 
@@ -639,7 +850,6 @@ block content
                                 if (!k.isActive) {
                                     label += " [Đã tắt]";
                                 } else if (k.isDisabledTemp) {
-                                    // Hiển thị thời gian còn lại
                                     if (k.disabledUntil) {
                                         const remain = Math.ceil(
                                             (new Date(k.disabledUntil) - new Date()) / 60000
@@ -660,13 +870,11 @@ block content
                             aiKeySelect.appendChild(opt);
                         });
 
-                        // Chọn key usable đầu tiên
                         const firstUsable = data.keys.find((k) => k.usable);
                         if (firstUsable) {
                             aiKeySelect.value = firstUsable._id;
                             syncModelFromKey();
                         } else {
-                            // Không có key usable → dùng default model
                             modelSelect.disabled = false;
                             const def = modelSelect.dataset.default;
                             if (def) {
@@ -684,7 +892,6 @@ block content
                 }
             }
 
-            // Auto-fill model theo key
             function syncModelFromKey() {
                 const opt = aiKeySelect.options[aiKeySelect.selectedIndex];
                 const keyModel = opt ? opt.getAttribute("data-model") || "" : "";
@@ -801,6 +1008,10 @@ block content
                 submitBtn.textContent = "🤖 AI đang chấm...";
                 setAIStatus("checking", "Đang chấm bài", "AI đang phân tích...");
 
+                // Tắt audio (nếu đang phát) ngay khi bắt đầu nộp
+                stopTimeUpAudio();
+                updateAudioBarState();
+
                 try {
                     const body = new URLSearchParams();
                     body.append("lessonId", LESSON_ID);
@@ -830,6 +1041,8 @@ block content
 
                     submitted = true;
                     stopTimer();
+                    stopTimeUpAudio();
+                    updateAudioBarState();
                     setAIStatus("connected", "Đã chấm xong", "AI chấm thành công.");
                     updateLock();
                     renderResult(data);
@@ -837,14 +1050,21 @@ block content
                     console.error("submitWriting:", err);
                     aiConnected = false;
                     setAIStatus("error", "Lỗi chấm bài", err.message);
+                    submitting = false; // cho phép thử lại
                     updateLock();
+                    updateAudioBarState();
                     alert("❌ " + err.message);
+                    // Nếu đã hết giờ mà nộp lỗi → bật lại audio cảnh báo
+                    if (timeLeft <= 0 && !submitted) {
+                        playTimeUpAudio();
+                    }
                 } finally {
                     submitting = false;
                     submitBtn.disabled = submitted;
                     submitBtn.textContent = submitted
                         ? "✓ Đã chấm"
                         : "🚀 Nộp bài & chấm AI";
+                    updateAudioBarState();
                 }
             };
 
@@ -903,9 +1123,13 @@ block content
             textarea.addEventListener("input", updateWordCount);
             aiKeySelect.addEventListener("change", syncModelFromKey);
 
+            // Khi rời trang → dừng audio
+            window.addEventListener("beforeunload", stopTimeUpAudio);
+
             updateWordCount();
             updateTimer();
             updateLock();
+            updateAudioBarState();
 
             Promise.all([loadModels(), loadKeys()]).then(() => {
                 checkAIConnection();
