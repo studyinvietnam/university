@@ -839,11 +839,12 @@ block content
             const defaultModels = { gemini: "", vilao: "" };
             let currentModelProvider = "gemini";
 
-            function fillModelOptions(provider) {
-                const list = provider === "vilao" && modelLists.vilao.length
-                    ? modelLists.vilao
-                    : modelLists.gemini;
-                currentModelProvider = list === modelLists.vilao ? "vilao" : "gemini";
+            // extraModel: model gắn trên key nhưng không nằm trong danh sách có sẵn → vẫn hiện
+            function fillModelOptions(provider, extraModel) {
+                const useVilao = provider === "vilao" && modelLists.vilao.length;
+                const list = (useVilao ? modelLists.vilao : modelLists.gemini).slice();
+                currentModelProvider = useVilao ? "vilao" : "gemini";
+                if (extraModel && !list.includes(extraModel)) list.unshift(extraModel);
                 modelSelect.innerHTML = '<option value="">— Chọn AI Key trước —</option>';
                 list.forEach((m) => {
                     const opt = document.createElement("option");
@@ -852,6 +853,16 @@ block content
                     modelSelect.appendChild(opt);
                 });
                 modelSelect.dataset.default = defaultModels[currentModelProvider] || "";
+            }
+
+            function selectModelValue(v) {
+                for (let i = 0; i < modelSelect.options.length; i++) {
+                    if (modelSelect.options[i].value === v) {
+                        modelSelect.selectedIndex = i;
+                        return true;
+                    }
+                }
+                return false;
             }
 
             async function loadModels() {
@@ -945,39 +956,26 @@ block content
                 updateAiLabelFromSelection();
                 const opt = aiKeySelect.options[aiKeySelect.selectedIndex];
                 const keyModel = opt ? opt.getAttribute("data-model") || "" : "";
-
-                // ★ vilao.ai: đổi danh sách model theo nhà cung cấp của key đang chọn
                 const keyProvider = aiKeySelect.value && opt
                     ? opt.getAttribute("data-provider") || "gemini"
                     : "gemini";
-                if (keyProvider !== currentModelProvider) fillModelOptions(keyProvider);
 
-                if (!aiKeySelect.value) {
-                    modelSelect.disabled = false;
-                    const def = modelSelect.dataset.default;
-                    if (def) {
-                        for (let i = 0; i < modelSelect.options.length; i++) {
-                            if (modelSelect.options[i].value === def) {
-                                modelSelect.selectedIndex = i;
-                                break;
-                            }
-                        }
-                    }
+                // ★ Mỗi lần đổi key: nạp lại ĐÚNG danh sách model của nhà cung cấp key đó
+                //   (Gemini ↔ danh sách Gemini, vilao.ai ↔ danh sách vilao.ai)
+                fillModelOptions(keyProvider, keyProvider === "vilao" ? keyModel : "");
+                modelSelect.disabled = false;
+
+                if (keyModel && selectModelValue(keyModel)) {
+                    // Key vilao.ai đã gắn model (đã subscribe) → server luôn dùng model này, khoá lại
+                    if (keyProvider === "vilao") modelSelect.disabled = true;
                     return;
                 }
-
-                modelSelect.disabled = false;
-                if (keyModel) {
-                    for (let i = 0; i < modelSelect.options.length; i++) {
-                        if (modelSelect.options[i].value === keyModel) {
-                            modelSelect.selectedIndex = i;
-                            return;
-                        }
-                    }
-                }
+                const def = modelSelect.dataset.default;
+                if (def) selectModelValue(def);
             }
 
             window.randomModel = function () {
+                if (modelSelect.disabled) return;
                 const opts = modelSelect.options;
                 if (!opts.length) return;
                 let idx;

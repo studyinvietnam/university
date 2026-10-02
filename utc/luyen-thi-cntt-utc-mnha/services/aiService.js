@@ -28,7 +28,11 @@ const {
     VILAO_MAX_TOKENS,
     getSafeVilaoModel,
     normalizeProvider,
-    formatAiLabel
+    formatAiLabel,
+    // ★ model theo key (lấy từ MongoDB) + nhận diện lỗi 403 subscribe
+    resolveModelForKey,
+    isVilaoSubscribeError,
+    extractVilaoMissingModel
 } = require("../config/aiModels");
 
 // SDK mới
@@ -668,17 +672,52 @@ async function callVilaoGenerateContent(prompt, model, apiKeyPlain, timeoutMs = 
 // ------------------------------------------------------------
 // Model được chọn THEO KEY (không theo lúc vào hàm), vì model của bài học
 // có thể là model Gemini trong khi key được gán là vilao.ai (hoặc ngược lại):
-//   - key vilao  → getSafeVilaoModel(model): không thuộc VILAO_MODELS → VILAO_DEFAULT_MODEL
-//   - key gemini → getSafeModel(model): như cũ
+//   - key vilao  → resolveModelForKey(keyDoc, requestedModel):
+//                  AIKey.model (MongoDB) → requestedModel hợp lệ → VILAO_DEFAULT_MODEL
+//                  (mỗi key vilao.ai chỉ subscribe một số model → model gắn
+//                   trên key phải thắng, nếu không sẽ dính 403 subscribe)
+//   - key gemini → getSafeModel(model): GIỮ NGUYÊN như cũ
 // ============================================================
+
+// ★ 403 "Please subscribe to model in the API Key: X" → lỗi cấu hình, nói rõ
+//   cho admin biết key nào thiếu model nào + cách xử lý.
+//   Cố ý KHÔNG đặt err.status (controller có thể map 403 thành "chưa đăng nhập")
+//   và KHÔNG dùng các cụm mà isQuotaError / isOverloadError / isBalanceError
+//   nhận diện, để không bị xoay key hay retry nhầm.
+function buildVilaoSubscribeError(err, keyDoc, modelUsed) {
+    const missingModel = extractVilaoMissingModel(err?.message) || modelUsed;
+    const keyName = keyDoc?.name || String(keyDoc?._id || "");
+    const e = new Error(
+        `Key vilao.ai "${keyName}" chưa đăng ký (subscribe) model "${missingModel}". ` +
+        "Admin cần bật model này cho key trên dashboard vilao.ai, " +
+        "hoặc vào Admin → AI Key đặt lại model mà key đã đăng ký."
+    );
+    e.code = "VILAO_MODEL_NOT_SUBSCRIBED";
+    e.provider = "vilao";
+    e.missingModel = missingModel;
+    e.keyId = keyDoc?._id ? String(keyDoc._id) : null;
+    e.keyName = keyDoc?.name || null;
+    e.noFallback = true; // không nhảy sang Gemini, không xoay key âm thầm
+    return e;
+}
 
 async function callProvider(keyDoc, apiKeyPlain, promptText, requestedModel, timeoutMs) {
     const provider = getKeyProvider(keyDoc);
 
     if (provider === "vilao") {
-        const modelUsed = getSafeVilaoModel(requestedModel);
-        const text = await callVilaoGenerateContent(promptText, modelUsed, apiKeyPlain, timeoutMs);
-        return { text, modelUsed, provider };
+        const modelUsed = resolveModelForKey(keyDoc, requestedModel);
+        try {
+            const text = await callVilaoGenerateContent(promptText, modelUsed, apiKeyPlain, timeoutMs);
+            return { text, modelUsed, provider };
+        } catch (err) {
+            if (isVilaoSubscribeError(err?.status, err?.message)) {
+                console.error(
+                    `🚫 [aiService] key vilao.ai "${keyDoc?.name}" chưa subscribe model "${modelUsed}"`
+                );
+                throw buildVilaoSubscribeError(err, keyDoc, modelUsed);
+            }
+            throw err;
+        }
     }
 
     const modelUsed = getSafeModel(requestedModel);
@@ -807,9 +846,9 @@ async function callWithKeyRotation(promptText, model, timeoutMs, preferredKeyId 
         } catch (err) {
             lastError = err;
 
-            if (isProjectDenied(err)) {
+            if (isProjectDenied(err) || err.noFallback) {
                 console.error(
-                    `🚫 [aiService] Key "${keyDoc.name}" bị nhà cung cấp chặn: ${err.message}`
+                    `🚫 [aiService] Key "${keyDoc.name}" bị chặn / cấu hình sai: ${err.message}`
                 );
                 throw err;
             }
@@ -870,7 +909,9 @@ async function checkSubmissionByGemini(
         throw new Error("Bài làm đang trống.");
     }
 
-    const selectedModel = getSafeModel(model);
+    // ★ KHÔNG ép getSafeModel ở đây: model được chọn THEO KEY trong callWithKeyRotation
+    //   (getSafeModel làm mất tên model vilao.ai, ví dụ chib/deepseek-v4.1-flash → gemini-flash-latest).
+    const selectedModel = model || null;
 
     // ★ Dùng prompt chấm code CNTT (thay vì IELTS)
     const prompt = createCodeGradingPrompt(topic, answer, {
@@ -922,7 +963,9 @@ async function runCustomPrompt(
         throw new Error(`Prompt quá dài (>${MAX_PROMPT_CHARS} ký tự).`);
     }
 
-    const selectedModel = getSafeModel(model);
+    // ★ KHÔNG ép getSafeModel ở đây: model được chọn THEO KEY trong callWithKeyRotation
+    //   (getSafeModel làm mất tên model vilao.ai, ví dụ chib/deepseek-v4.1-flash → gemini-flash-latest).
+    const selectedModel = model || null;
     console.log(
         `🧪 [aiService] runCustomPrompt model=${selectedModel} keyId=${preferredKeyId || "auto"}`
     );
@@ -1025,7 +1068,9 @@ async function testGeminiConnection(
     timeoutMs = 15000,
     preferredKeyId = null
 ) {
-    const selectedModel = getSafeModel(model);
+    // ★ KHÔNG ép getSafeModel ở đây: model được chọn THEO KEY trong callWithKeyRotation
+    //   (getSafeModel làm mất tên model vilao.ai, ví dụ chib/deepseek-v4.1-flash → gemini-flash-latest).
+    const selectedModel = model || null;
 
     const result = await retryOnOverload(
         async () => {
@@ -1079,6 +1124,7 @@ module.exports = {
     VILAO_DEFAULT_MODEL,
     getSafeVilaoModel,
     formatAiLabel,
+    resolveModelForKey,
 
     // Debug
     isBalanceError,

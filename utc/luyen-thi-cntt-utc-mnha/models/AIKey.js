@@ -19,9 +19,13 @@ const aiKeySchema = new mongoose.Schema(
             default: 'gemini'
         },
 
-        // Model ưu tiên cho key (chỉ là nhãn gợi ý)
-        //   provider gemini → thuộc SUPPORTED_MODELS
-        //   provider vilao  → thuộc VILAO_MODELS
+        // Model dùng cho key
+        //   provider vilao  → ★ MODEL THỰC TẾ ĐƯỢC GỌI (aiService.resolveModelForKey).
+        //                     Phải là model mà key ĐÃ subscribe trên dashboard
+        //                     vilao.ai, nếu để trống sẽ dùng VILAO_DEFAULT_MODEL
+        //                     và có thể dính 403 "Please subscribe to model".
+        //   provider gemini → chỉ là nhãn gợi ý, aiService KHÔNG dùng (giữ nguyên
+        //                     hành vi cũ: getSafeModel(model yêu cầu))
         model: {
             type: String,
             default: null

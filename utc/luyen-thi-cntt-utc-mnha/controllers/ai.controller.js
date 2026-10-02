@@ -16,6 +16,16 @@ const {
 
 const { writeJsonFile } = require("../services/githubService");
 
+// ★ vilao.ai: model theo từng key (key vilao chỉ dùng được model đã subscribe)
+const {
+    normalizeProvider,
+    formatAiLabel,
+    getModelOptionsForKey,
+    resolveModelForKey,
+    VILAO_MODELS,
+    VILAO_DEFAULT_MODEL,
+} = require("../config/aiModels");
+
 const GradingPrompt = (() => {
     try { return require("../models/GradingPrompt"); } catch (_) { return null; }
 })();
@@ -75,6 +85,28 @@ function toObjId(v) {
     if (!v) return null;
     const s = String(v).trim();
     return mongoose.Types.ObjectId.isValid(s) ? s : null;
+}
+
+// ★ Đọc key (chỉ field cần thiết, KHÔNG lấy encryptedKey) để biết provider/model.
+async function loadKeyMeta(aiKeyId) {
+    const id = toObjId(aiKeyId);
+    if (!id || !AIKey) return null;
+    try {
+        return await AIKey.findById(id).select("_id name provider model").lean();
+    } catch (_) {
+        return null;
+    }
+}
+
+// ★ Chọn model cuối cùng theo key:
+//   - Có key vilao → resolveModelForKey (model gắn trên key thắng, tránh 403 subscribe)
+//   - Gemini / không chọn key → getSafeModel như cũ
+async function resolveModelByKeyId(aiKeyId, requestedModel) {
+    const keyDoc = await loadKeyMeta(aiKeyId);
+    if (keyDoc && normalizeProvider(keyDoc.provider) === "vilao") {
+        return resolveModelForKey(keyDoc, requestedModel);
+    }
+    return getSafeModel(requestedModel);
 }
 
 /**
@@ -181,7 +213,7 @@ async function listKeys(req, res) {
         const keys = await AIKey.find({
             isRevoked: { $ne: true }
         })
-            .select("_id name model lastFour lastUsedAt usageCount isActive disabledUntil quotaErrorCount")
+            .select("_id name provider model lastFour lastUsedAt usageCount isActive disabledUntil quotaErrorCount")
             .sort({ isActive: -1, lastUsedAt: 1, usageCount: 1 })
             .lean();
 
@@ -193,6 +225,8 @@ async function listKeys(req, res) {
             return {
                 _id: String(k._id),
                 name: k.name || "AI Key",
+                provider: normalizeProvider(k.provider),
+                label: formatAiLabel(k.provider, k.name),
                 model: k.model || null,
                 lastFour: k.lastFour || null,
                 maskedKey: k.lastFour
@@ -499,10 +533,15 @@ async function testPrompt(req, res) {
         });
 
         // Chọn model(s) để chạy
+        const keyMeta = await loadKeyMeta(aiKeyId);
+        const isVilaoKey = keyMeta && normalizeProvider(keyMeta.provider) === "vilao";
         const runAll = req.body?.models === "all";
-        const modelsToRun = runAll
-            ? [...SUPPORTED_MODELS]
-            : pickModels(req.body);
+        // Key vilao: chỉ chạy 1 model (model đã subscribe trên key), không chạy list Gemini
+        const modelsToRun = isVilaoKey
+            ? [resolveModelForKey(keyMeta, safeStr(req.body?.model).trim() || null)]
+            : runAll
+                ? [...SUPPORTED_MODELS]
+                : pickModels(req.body);
 
         const results = [];
         for (const m of modelsToRun) {
@@ -593,9 +632,9 @@ async function checkWriting(req, res) {
     try {
         const topic = safeStr(req.body?.topic || req.body?.prompt).trim();
         const answer = safeStr(req.body?.answer || req.body?.essay).trim();
-        const model = getSafeModel(req.body?.model);
         const timeout = clampTimeout(req.body?.timeoutMs, 45000);
         const aiKeyId = safeStr(req.body?.aiKeyId).trim() || null;
+        const model = await resolveModelByKeyId(aiKeyId, req.body?.model);
 
         const sampleSolution = safeStr(req.body?.sampleSolution).trim();
         const studentName = safeStr(req.body?.studentName).trim();
@@ -798,7 +837,7 @@ async function testConnection(req, res) {
         const model = req.query?.model || req.body?.model || null;
         const aiKeyId = safeStr(req.query?.aiKeyId || req.body?.aiKeyId).trim() || null;
         const timeout = clampTimeout(req.query?.timeoutMs, 30000);
-        const selectedModel = getSafeModel(model);
+        const selectedModel = await resolveModelByKeyId(aiKeyId, model);
 
         const { data, latencyMs, error } = await measure(() =>
             testGeminiConnection(selectedModel, timeout, aiKeyId)
@@ -863,13 +902,42 @@ async function testAllConnections(req, res) {
 // ============================================================
 // 5. LIST MODELS
 // ============================================================
-async function listModels(_req, res) {
-    return res.json({
-        success: true,
-        defaultModel: DEFAULT_MODEL,
-        total: SUPPORTED_MODELS.length,
-        models: SUPPORTED_MODELS,
-    });
+// GET /api/ai/models?aiKeyId=<id>
+//   Có aiKeyId → danh sách THEO KEY (vilao: model đã gắn trên key, hoặc gợi ý)
+//   Không có   → danh sách Gemini như cũ (tương thích ngược)
+async function listModels(req, res) {
+    try {
+        const aiKeyId = safeStr(req.query?.aiKeyId).trim();
+        if (aiKeyId) {
+            const keyDoc = await loadKeyMeta(aiKeyId);
+            if (!keyDoc) {
+                return res.status(404).json({ success: false, message: "Không tìm thấy AI key." });
+            }
+            const opts = getModelOptionsForKey(keyDoc);
+            return res.json({
+                success: true,
+                provider: opts.provider,
+                defaultModel: opts.defaultModel,
+                fixed: opts.fixed,
+                total: opts.models.length,
+                models: opts.models,
+            });
+        }
+        // Trang làm bài đọc 1 lần: models/defaultModel = Gemini,
+        // vilaoModels/vilaoDefaultModel = vilao.ai (chọn theo provider của key đang chọn)
+        return res.json({
+            success: true,
+            provider: "gemini",
+            defaultModel: DEFAULT_MODEL,
+            fixed: false,
+            total: SUPPORTED_MODELS.length,
+            models: SUPPORTED_MODELS,
+            vilaoModels: VILAO_MODELS,
+            vilaoDefaultModel: VILAO_DEFAULT_MODEL,
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
 }
 
 // ============================================================
@@ -879,7 +947,7 @@ async function saveToGithub(req, res) {
     try {
         const topic = safeStr(req.body?.topic).trim();
         const answer = safeStr(req.body?.answer).trim();
-        const model = getSafeModel(req.body?.model);
+        const model = await resolveModelByKeyId(req.body?.aiKeyId, req.body?.model);
         const result = req.body?.result || null;
         const sampleSolution = safeStr(req.body?.sampleSolution).trim();
         const studentName = safeStr(req.body?.studentName).trim();
