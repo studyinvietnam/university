@@ -1,0 +1,107 @@
+/* =============================================================
+   public/css/pagination.css
+   Style cho views/pagination.pug (nav.admin-pagination)
+   - Màu mặc định khớp màu indigo của site (Tailwind indigo-600).
+   - Đổi màu bằng biến trong :root của site:
+       --pg-primary, --pg-primary-soft, --pg-border, --pg-bg, --pg-text
+   - Mũi tên prev/next TỰ VẼ bằng CSS, không phụ thuộc Font Awesome
+     (layout hiện dùng Tailwind + Lucide, có thể chưa nạp Font Awesome).
+   ============================================================= */
+
+.admin-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin: 24px 0;
+  padding: 0 16px;
+}
+
+.admin-pagination-btn {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pg-border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--pg-bg, #fff);
+  color: var(--pg-text, #374151);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-pagination-btn:hover:not(.active):not(.disabled) {
+  border-color: var(--pg-primary, #4f46e5);
+  background: var(--pg-primary-soft, #eef2ff);
+  color: var(--pg-primary, #4f46e5);
+}
+
+.admin-pagination-btn:focus-visible {
+  outline: 2px solid var(--pg-primary, #4f46e5);
+  outline-offset: 2px;
+}
+
+/* Trang hiện tại */
+.admin-pagination-btn.active {
+  border-color: var(--pg-primary, #4f46e5);
+  background: var(--pg-primary, #4f46e5);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Nút prev/next khi không còn trang để đi */
+.admin-pagination-btn.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ---- Mũi tên prev/next: vẽ bằng viền, ẩn icon Font Awesome nếu có ---- */
+.admin-pagination-btn > i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: solid currentColor;
+  border-width: 0 0 2px 2px;
+  font-size: 0;
+  line-height: 0;
+}
+
+.admin-pagination-btn > i::before {
+  content: none !important; /* tránh Font Awesome vẽ chồng lên */
+}
+
+.admin-pagination-btn > i.fa-chevron-left {
+  transform: rotate(45deg);
+  margin-left: 3px;
+}
+
+.admin-pagination-btn > i.fa-chevron-right {
+  transform: rotate(-135deg);
+  margin-right: 3px;
+}
+
+@media (max-width: 480px) {
+  .admin-pagination {
+    gap: 4px;
+  }
+
+  .admin-pagination-btn {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+}

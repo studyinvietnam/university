@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 
 const User = require('../models/User');
 const UserKey = require('../models/UserKey');
+const { paginate } = require('./pagination.controller');
 const {
     getActor,
     isDefaultAdmin,
@@ -63,7 +64,10 @@ async function requireApprovedStudent(req, res, next) {
 // ============================================================
 async function listUserKeys(req, res, next) {
     try {
-        const keys = await UserKey.find().sort({ createdAt: -1 }).lean();
+        const { items: keys, pagination } = await paginate(UserKey, {}, req, {
+            limit: 10,
+            sort: { createdAt: -1 }
+        });
         const ids = keys.map((k) => k._id);
 
         // Thành viên theo tổ chức gốc (userKey) và theo kết nối thêm (connectedUserKeys)
@@ -98,6 +102,7 @@ async function listUserKeys(req, res, next) {
             user: viewUser(req),
             isDefaultAdmin: true,
             userKeys: keys.map((k) => ({ ...k, stats: stat[String(k._id)] })),
+            ...pagination,
             error: req.query.error || null,
             success: req.query.success || null
         });

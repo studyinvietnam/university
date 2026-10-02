@@ -1,6 +1,7 @@
 // controllers/user.controller.js
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const { buildBaseUrl } = require("./pagination.controller");
 
 // Optional models
 let AuditLog = null;
@@ -139,6 +140,10 @@ exports.getUsers = async (req, res, next) => {
             title: "Quản lý tài khoản",
             user: currentAdmin,
             users,
+            // Dùng cho partial views/pagination.pug (giữ nguyên `pagination` bên dưới làm dự phòng)
+            currentPage: page,
+            totalPages,
+            baseUrl: buildBaseUrl(req),
             filters: { q, role: roleFilter, status: statusFilter },
             pagination: {
                 page,

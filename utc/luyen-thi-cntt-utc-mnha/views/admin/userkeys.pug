@@ -60,3 +60,6 @@ block content
                                     td(class="px-5 py-4 text-right")
                                         form(method="POST" action=`/admin/user-keys/${k._id}/toggle` class="inline")
                                             button(type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition")= k.active ? 'Tắt' : 'Bật'
+
+                //- Phân trang
+                include ../pagination

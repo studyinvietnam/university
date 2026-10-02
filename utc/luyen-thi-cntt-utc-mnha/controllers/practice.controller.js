@@ -3,6 +3,8 @@ const Subject = require('../models/Subject');
 const Lesson = require('../models/Lesson');
 const Submission = require('../models/Submission');
 
+const { paginate } = require('./pagination.controller');
+
 // ============================================================
 // LIST PRACTICE — cả admin + student đều vào
 // GET /practice
@@ -32,9 +34,13 @@ exports.listPractice = async (req, res, next) => {
             lessonQuery.subjectId = subjectFilter;
         }
 
-        const [subjects, lessons] = await Promise.all([
+        // Danh sách môn (ô lọc) lấy đủ; danh sách bài chia trang 9 bài/trang
+        const [subjects, { items: lessons, pagination }] = await Promise.all([
             Subject.find(subjectQuery).sort({ order: 1, name: 1 }).lean(),
-            Lesson.find(lessonQuery).sort({ order: 1, createdAt: -1 }).lean()
+            paginate(Lesson, lessonQuery, req, {
+                limit: 9,
+                sort: { order: 1, createdAt: -1 }
+            })
         ]);
 
         // Gắn subject cho từng lesson
@@ -76,7 +82,8 @@ exports.listPractice = async (req, res, next) => {
             subjects,
             lessons: lessonsWithSubject,
             submittedMap,
-            filters: { subject: subjectFilter || '' }
+            filters: { subject: subjectFilter || '' },
+            ...pagination
         });
     } catch (error) {
         console.error('listPractice error:', error);

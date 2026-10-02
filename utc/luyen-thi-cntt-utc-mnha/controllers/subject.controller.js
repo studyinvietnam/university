@@ -2,6 +2,7 @@
 const mongoose = require('mongoose');
 const Subject = require('../models/Subject');
 const Lesson = require('../models/Lesson');
+const { paginate } = require('./pagination.controller');
 
 // ============================================================
 // HELPERS
@@ -83,14 +84,20 @@ function readFlash(req, key) {
 // GET /subjects
 exports.getSubjects = async (req, res, next) => {
     try {
-        const subjects = await Subject.find({
-            isPublished: true,
-            deletedAt: null,
-            deletedForever: { $ne: true },
-        })
-            .populate('createdBy', 'name')
-            .sort({ order: 1, createdAt: -1 })
-            .lean();
+        const { items: subjects, pagination } = await paginate(
+            Subject,
+            {
+                isPublished: true,
+                deletedAt: null,
+                deletedForever: { $ne: true },
+            },
+            req,
+            {
+                limit: 9,
+                sort: { order: 1, createdAt: -1 },
+                populate: { path: 'createdBy', select: 'name' },
+            }
+        );
 
         // ★ FIX (đối chiếu lesson.controller.js): Lesson dùng field
         //   `subjectId` (không phải `subject`) và cờ xoá mềm là `isDeleted`
@@ -107,6 +114,7 @@ exports.getSubjects = async (req, res, next) => {
             title: 'Môn học',
             user: req.user,
             subjects,
+            ...pagination,
         });
     } catch (error) {
         console.error('getSubjects error:', error);
@@ -153,19 +161,26 @@ exports.getSubject = async (req, res, next) => {
 
         // ★ FIX: Lesson dùng `subjectId` + `isDeleted` (xem lesson.controller.js),
         //   không phải `subject` + `isPublished`/`deletedAt`/`deletedForever`.
-        const lessons = await Lesson.find({
-            subjectId: subject._id,
-            isDeleted: false,
-        })
-            .populate('createdBy', 'name')
-            .sort({ createdAt: 1 })
-            .lean();
+        const { items: lessons, pagination } = await paginate(
+            Lesson,
+            {
+                subjectId: subject._id,
+                isDeleted: false,
+            },
+            req,
+            {
+                limit: 10,
+                sort: { createdAt: 1 },
+                populate: { path: 'createdBy', select: 'name' },
+            }
+        );
 
         return res.render('student/subject', {
             title: subject.name,
             user: req.user,
             subject,
             lessons,
+            ...pagination,
         });
     } catch (error) {
         console.error('getSubject error:', error);
@@ -204,11 +219,14 @@ exports.getAdminSubjects = async (req, res, next) => {
             ];
         }
 
-        const subjects = await Subject.find(filter)
-            .populate('createdBy', 'name email')
-            .populate('updatedBy', 'name email')
-            .sort({ order: 1, createdAt: -1 })
-            .lean();
+        const { items: subjects, pagination } = await paginate(Subject, filter, req, {
+            limit: 9,
+            sort: { order: 1, createdAt: -1 },
+            populate: [
+                { path: 'createdBy', select: 'name email' },
+                { path: 'updatedBy', select: 'name email' },
+            ],
+        });
 
         // ★ FIX: Lesson dùng `subjectId` + `isDeleted` (xem lesson.controller.js).
         for (const subject of subjects) {
@@ -222,6 +240,7 @@ exports.getAdminSubjects = async (req, res, next) => {
             title: 'Quản lý môn học',
             user: req.user,
             subjects,
+            ...pagination,
             showDeleted,
             filters: { search },
             success: req.query.success || readFlash(req, 'success'),

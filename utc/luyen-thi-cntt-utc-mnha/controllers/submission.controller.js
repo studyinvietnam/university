@@ -9,6 +9,8 @@ const githubService = require('../services/githubService');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
 
+const { paginate } = require('./pagination.controller');
+
 const {
     getActor,
     getContentScope,
@@ -332,16 +334,25 @@ const getMySubmissions = async (req, res) => {
         const user = req.session?.user;
         const userId = user.id || user._id;
 
-        const submissions = await Submission.find({ userId })
-            .populate('lessonId', 'title subject slug')
-            .populate('subjectId', 'name code')
-            .select('-teacherCommentHistory')
-            .sort({ createdAt: -1 })
-            .lean();
+        const { items: submissions, pagination } = await paginate(
+            Submission,
+            { userId },
+            req,
+            {
+                limit: 10,
+                sort: { createdAt: -1 },
+                select: '-teacherCommentHistory',
+                populate: [
+                    { path: 'lessonId', select: 'title subject slug' },
+                    { path: 'subjectId', select: 'name code' }
+                ]
+            }
+        );
 
         return res.render('student/history', {
             title: 'Lịch sử nộp bài',
-            submissions
+            submissions,
+            ...pagination
         });
     } catch (error) {
         console.error('getMySubmissions error:', error);
@@ -376,22 +387,28 @@ const getAdminSubmissions = async (req, res) => {
             filter._id = null; // không phải admin → không thấy gì
         }
 
-        let submissions = await Submission.find(filter)
-            .populate('userId', 'name email')
-            .populate('lessonId', 'title')
-            .populate('subjectId', 'name code')
-            .sort({ createdAt: -1 })
-            .limit(500)
-            .lean();
-
+        // Tìm theo tên/email người nộp ngay ở DB để phân trang đúng
+        // (trước đây lấy tối đa 500 bài rồi lọc trong bộ nhớ)
         if (search && search.trim()) {
-            const q = search.trim().toLowerCase();
-            submissions = submissions.filter((s) => {
-                const name = (s.userId?.name || '').toLowerCase();
-                const email = (s.userId?.email || '').toLowerCase();
-                return name.includes(q) || email.includes(q);
-            });
+            const safe = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const userIds = await User.find({
+                $or: [
+                    { name: { $regex: safe, $options: 'i' } },
+                    { email: { $regex: safe, $options: 'i' } }
+                ]
+            }).distinct('_id');
+            filter.userId = { $in: userIds };
         }
+
+        const { items: submissions, pagination } = await paginate(Submission, filter, req, {
+            limit: 15,
+            sort: { createdAt: -1 },
+            populate: [
+                { path: 'userId', select: 'name email' },
+                { path: 'lessonId', select: 'title' },
+                { path: 'subjectId', select: 'name code' }
+            ]
+        });
 
         const subjects = await Subject.find(subjectScope)
             .select('name code')
@@ -406,7 +423,8 @@ const getAdminSubmissions = async (req, res) => {
                 search: search || '',
                 status: status || '',
                 subject: subject || ''
-            }
+            },
+            ...pagination
         });
     } catch (error) {
         console.error('getAdminSubmissions error:', error);

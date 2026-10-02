@@ -11,7 +11,7 @@ block content
             if subjects && subjects.length
                 div(class="text-sm text-gray-500")
                     i(data-lucide="book-open", class="w-4 h-4 inline-block mr-1")
-                    | #{subjects.length} môn học
+                    | #{typeof totalItems !== 'undefined' ? totalItems : subjects.length} môn học
 
         //- Empty state
         if !subjects || subjects.length === 0
@@ -65,3 +65,6 @@ block content
                                 span(class="text-sm font-medium text-blue-600")
                                     | Xem môn học
                                     i(data-lucide="chevron-right", class="w-4 h-4 inline-block ml-1")
+
+            //- Phân trang
+            include ../pagination

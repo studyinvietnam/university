@@ -250,7 +250,9 @@ block content
         //- ============================================================
         //- PAGINATION (nếu controller có truyền)
         //- ============================================================
-        if pagination && pagination.totalPages > 1
+        if typeof totalPages !== 'undefined'
+            include ../pagination
+        else if pagination && pagination.totalPages > 1
             div(class="flex items-center justify-between mt-6")
                 p(class="text-sm text-gray-500")
                     | Trang #{pagination.page} / #{pagination.totalPages} — Tổng #{pagination.total} user

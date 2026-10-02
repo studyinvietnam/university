@@ -4,6 +4,7 @@ const GradingPrompt = require('../models/GradingPrompt');
 const Subject = require('../models/Subject');
 const Lesson = require('../models/Lesson');
 const syncQueueService = require('../services/syncQueueService');
+const { paginate } = require('./pagination.controller');
 
 // ★ PHÂN QUYỀN THEO userKey
 const { isDefaultAdmin } = require('../middleware/auth');
@@ -204,13 +205,16 @@ exports.getPrompts = async (req, res, next) => {
             filter.name = { $regex: search.trim(), $options: 'i' };
         }
 
-        const [prompts, subjects, lessons] = await Promise.all([
-            GradingPrompt.find(filter)
-                .populate('subjectId', 'name code')
-                .populate('lessonIds', 'title')
-                .populate('createdBy', 'name email')
-                .sort({ isDefault: -1, createdAt: -1 })
-                .lean(),
+        const [{ items: prompts, pagination }, subjects, lessons] = await Promise.all([
+            paginate(GradingPrompt, filter, req, {
+                limit: 8,
+                sort: { isDefault: -1, createdAt: -1 },
+                populate: [
+                    { path: 'subjectId', select: 'name code' },
+                    { path: 'lessonIds', select: 'title' },
+                    { path: 'createdBy', select: 'name email' }
+                ]
+            }),
             Subject.find({ deletedAt: null, deletedForever: { $ne: true }, ...ownContentFilter(actor, Subject) })
                 .sort({ name: 1 }).lean(),
             Lesson.find({ deletedAt: null, deletedForever: { $ne: true }, ...ownContentFilter(actor, Lesson) })
@@ -230,6 +234,7 @@ exports.getPrompts = async (req, res, next) => {
             prompts,
             subjects,
             lessons,
+            ...pagination,
             filters: {
                 scope: scope || '',
                 active: active || '',

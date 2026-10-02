@@ -11,6 +11,7 @@ const githubService = require("../services/githubService");
 const syncQueueService = require("../services/syncQueueService");
 const { resolvePrompt, findUnknownPlaceholders } = require("../services/promptService");
 const { getContentScope } = require("../services/userKeyService");
+const { paginate } = require("./pagination.controller");
 
 /* ============================================================
  * HELPERS
@@ -129,11 +130,16 @@ exports.listSubjects = async (req, res, next) => {
         const isAdmin = req.user?.role === "admin";
         const scope = await getContentScope(req); // ★ USER KEY
 
-        const subjects = await Subject.find({
-            deletedAt: null,
-            deletedForever: false,
-            ...scope.filter,
-        }).sort({ createdAt: -1 }).lean();
+        const { items: subjects, pagination } = await paginate(
+            Subject,
+            {
+                deletedAt: null,
+                deletedForever: false,
+                ...scope.filter,
+            },
+            req,
+            { limit: 9, sort: { createdAt: -1 } }
+        );
 
         const subjectIds = subjects.map((s) => s._id);
 
@@ -154,6 +160,7 @@ exports.listSubjects = async (req, res, next) => {
             user: req.user,
             subjects: data,
             isAdminView: isAdmin,
+            ...pagination,
         });
     } catch (err) {
         next(err);
@@ -448,11 +455,14 @@ exports.getAdminLessons = async (req, res, next) => {
 
         // ★ FIX: populate để view hiện tên/email người tạo - người sửa
         //   thay vì chỉ là ObjectId thô (xem lessons.pug)
-        const lessons = await Lesson.find(filter)
-            .sort({ createdAt: -1 })
-            .populate("createdBy", "name email")
-            .populate("updatedBy", "name email")
-            .lean();
+        const { items: lessons, pagination } = await paginate(Lesson, filter, req, {
+            limit: 10,
+            sort: { createdAt: -1 },
+            populate: [
+                { path: "createdBy", select: "name email" },
+                { path: "updatedBy", select: "name email" },
+            ],
+        });
         const lessonsWithSubject = await attachSubjects(lessons);
 
         const allSubjects = await Subject.find({
@@ -467,6 +477,7 @@ exports.getAdminLessons = async (req, res, next) => {
             lessons: lessonsWithSubject,
             subjects: allSubjects,
             showDeleted,
+            ...pagination,
             filters: { subject: subjectQuery, search },
             success: readFlash(req, "success"),
             error: readFlash(req, "error"),
