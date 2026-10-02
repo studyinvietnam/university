@@ -7,7 +7,7 @@ Hệ thống web cho phép sinh viên nộp bài tập trực tuyến, tự đ�
 - **Backend:** Node.js (Express) + Pug (view engine)
 - **Database:** MongoDB (Mongoose)
 - **Storage đề bài & bài nộp:** GitHub (JSON)
-- **AI chấm bài:** Google Gemini API
+- **AI chấm bài:** Google Gemini API (mặc định) + vilao.ai API (thêm tuỳ chọn, xem mục "Hỗ Trợ Thêm vilao.ai")
 - **Email:** Nodemailer (xác thực đăng ký / quên mật khẩu)
 - **Xác thực:** Email + Password (bcrypt hash), session/JWT
 - **Thông báo:** Notification system (polling, không cần WebSocket)
@@ -95,8 +95,10 @@ User     { _id, email, passwordHash, name, role, verified, userKey, connectedUse
 Role     { _id, name, permissions, deletedAt, deletedForever }
 Subject  { _id, name, slug, githubFolder, promptId (optional), deletedAt, deletedForever }
 Lesson   { _id, subjectId, title, slug, githubFile, promptId (optional), deletedAt, deletedForever }
-Submission { _id, userId, lessonId, githubFile, score, gradedAt, submittedAt, promptSnapshot, teacherComment (null nếu không ai viết) }
-AIKey    { _id, name, encryptedKey: { iv, content, authTag }, active, createdAt }
+Submission { _id, userId, lessonId, githubFile, score, gradedAt, submittedAt, promptSnapshot, teacherComment (null nếu không ai viết),
+             aiProvider, aiKeyName }   // 2 field cuối MỚI: snapshot lúc chấm; bài cũ thiếu = Gemini
+AIKey    { _id, name, encryptedKey: { iv, content, authTag }, active, createdAt,
+           provider }   // provider MỚI: 'gemini' | 'vilao'; thiếu = 'gemini'
 OTP      { _id, email, code, type ('register'|'reset'), attempts, expiresAt }
 Notification {
   _id, userId, type, title, message, link, isRead, createdAt
@@ -293,6 +295,82 @@ Trong trang **Môn học** hoặc **Bài học**:
 - `public/js/modelCompare.js`: xử lý gọi API và render bảng so sánh phía client.
 
 **Cần thêm `GEMINI_API_KEY` hợp lệ trong `.env`** — nếu thiếu hoặc còn giá trị placeholder (`1111`, `YOUR_NEW_GEMINI_API_KEY`), `aiService.js` sẽ chủ động báo lỗi `GEMINI_API_KEY chưa được cấu hình.` thay vì gọi API thất bại mập mờ.
+
+---
+
+## 🐋 Hỗ Trợ Thêm vilao.ai (Gemini Vẫn Là Mặc Định)
+
+### Nguyên tắc: chỉ THÊM, không sửa phần Gemini
+- **Không đổi** `checkWritingByGemini`, `SUPPORTED_MODELS`, `DEFAULT_MODEL`, `GEMINI_API_KEY`, tên/kiểu/index của field đã có. Chỉ thêm field mới, **không `required`, không `unique`** → không có migration bắt buộc, không đụng kết nối/schema DB hiện tại.
+- Dữ liệu cũ không có `provider` ⇒ luôn coi là `gemini`. Query dùng `.lean()` **không** áp `default` của Mongoose, nên mọi nơi đọc phải viết `key.provider || 'gemini'` (và `submission.aiProvider || 'gemini'`).
+- **Xoay key** (bài học không gán `aiKeyId`): chỉ xoay trong các key Gemini. vilao.ai chỉ được dùng khi bài học **gán đích danh** một key vilao.ai. Nhờ vậy hành vi cũ giữ nguyên, kể cả bài của admin user_key (vốn không gán được key).
+- Key vilao.ai lưu **mã hoá AES-256-GCM** trong `AIKey` y như Gemini (cùng `cryptoService`, cùng `ENCRYPTION_MASTER_KEY`); giải mã trong RAM ngay trước khi gọi, không log.
+- **Không thêm biến nào vào `.env`**: key vilao.ai nhập ở trang Admin → lưu mã hoá trong MongoDB (`AIKey`); địa chỉ API là hằng số trong code. `.env` giữ nguyên như hiện tại.
+- Định danh trong code/DB của nhà cung cấp này là `vilao` (giá trị `provider`); tên hiển thị cho người dùng là `vilao.ai`.
+
+### Thông số gọi vilao.ai (API tương thích OpenAI)
+| Tham số | Giá trị |
+|---|---|
+| base_url | `https://api.vilao.ai` (hằng số `VILAO_BASE_URL` trong `config/aiModels.js`, không đặt trong `.env`) |
+| Endpoint | `POST /v1/chat/completions` |
+| Header | `Authorization: Bearer <api_key>`, `Content-Type: application/json` |
+| model | ví dụ `gpt-4o` (mặc định cho vilao.ai, khai báo ở `VILAO_DEFAULT_MODEL`) |
+| max_tokens | ví dụ `1024`, để trong config |
+
+Gọi mẫu:
+
+```bash
+curl -X POST https://api.vilao.ai/v1/chat/completions \
+  -H "Authorization: Bearer sk-your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [
+      {"role": "system", "content": "Bạn là trợ lý AI hữu ích."},
+      {"role": "user", "content": "Xin chào! Giới thiệu về bạn."}
+    ],
+    "max_tokens": 1024
+  }'
+```
+
+- Body gửi từ `aiService.js`: `{ model, messages: [{role:'system',...},{role:'user',...}], max_tokens }`. Phản hồi theo chuẩn OpenAI: nội dung nằm ở `choices[0].message.content`.
+- Danh sách model hợp lệ và các tham số khác (ép đầu ra JSON, nhiệt độ…) **đọc tài liệu của vilao.ai trước khi dùng**, chưa xác nhận trong tài liệu đã có. Mã lỗi 401/429/5xx cũng đối chiếu theo tài liệu vilao.ai.
+- Dù có ép JSON hay không, vẫn dùng bước **parse an toàn có sẵn** (bóc code fence, retry 1 lần). Lỗi quota (429) → thử key vilao.ai khác đang `active`, **không** nhảy sang Gemini.
+- Khuyến nghị gọi bằng `fetch` (Node ≥ 18) để không thêm dependency; muốn dùng SDK `openai` thì chỉ cần đổi `baseURL` thành `https://api.vilao.ai/v1`.
+
+### Dữ liệu (chỉ thêm)
+- `AIKey.provider`: `{ type: String, enum: ['gemini','vilao'], default: 'gemini' }`. `AIKey.name` chính là `{ten-api}` hiển thị ra nhãn.
+- `Submission.aiProvider` (`default: 'gemini'`) và `Submission.aiKeyName`: **snapshot lúc chấm**, để đổi tên/xoá key sau này không làm đổi nhãn của bài đã chấm. Bài cũ không có `aiKeyName` ⇒ nhãn chỉ hiện `Gemini`.
+- Model dùng để chấm: dùng lại field lưu model hiện có của `Submission`; model hợp lệ của vilao.ai khai báo riêng trong `config/aiModels.js` (`VILAO_MODELS`, `VILAO_DEFAULT_MODEL`), **tách khỏi** `SUPPORTED_MODELS` của Gemini.
+
+### Nhãn hiển thị
+- Hàm dùng chung `formatAiLabel(provider, keyName)` (đặt trong `services/aiService.js` hoặc `utils/aiLabel.js`):
+  - `gemini` → `Gemini: {ten-api}`
+  - `vilao`  → `vilao.ai: {ten-api}`
+  - không có `keyName` → chỉ `Gemini` / `vilao.ai`.
+- **Trang làm bài** (`views/student/lesson.pug`): nếu bài học gán key → hiện nhãn của key đó; nếu bài dùng xoay key → hiện `Gemini` (mặc định), vì chưa biết key nào sẽ chấm.
+- **Sau khi chấm**: `POST /submissions` trả thêm `aiLabel` (+ `aiProvider`, `aiKeyName`); khối kết quả ở `lesson.pug` và `views/student/submission-detail.pug` hiện nhãn thật của key đã chấm. Trang review của admin (`submission_review.pug`) và dropdown AI Key ở `lesson-form.pug` cũng dùng cùng nhãn.
+- ⚠️ Nhãn làm lộ **tên key** cho sinh viên → đặt tên key không chứa thông tin nhạy cảm (không đặt kiểu email/ghi chú nội bộ).
+
+### Form thêm key (`views/admin/aikeys.pug` + `aikey.controller.js`)
+- Thêm ô chọn **Nhà cung cấp** (Gemini mặc định / vilao.ai); danh sách key hiện huy hiệu provider.
+- Chỉ **cảnh báo mềm** theo tiền tố key (gợi ý: Gemini thường bắt đầu `AIza`, vilao.ai bắt đầu `sk-`), không chặn lưu.
+- Vẫn chỉ admin default thấy menu và route AI Key (`requireDefaultAdmin`).
+
+### File cần sửa / cần gửi
+| Mức | File | Việc |
+|---|---|---|
+| Bắt buộc | `models/AIKey.js` | thêm `provider` (`'gemini'` \| `'vilao'`) |
+| Bắt buộc | `models/Submission.js` | thêm `aiProvider`, `aiKeyName` |
+| Bắt buộc | `services/aiService.js` | thêm nhánh gọi vilao.ai (`/v1/chat/completions`), chọn key theo provider, trả `provider`/`keyName`/`model` |
+| Bắt buộc | `services/submissionService.js` | nơi điều phối chấm: lưu snapshot, trả `aiLabel` |
+| Bắt buộc | `config/aiModels.js` | thêm hằng số `VILAO_BASE_URL = 'https://api.vilao.ai'` (cố định trong code), `VILAO_MODELS`, `VILAO_DEFAULT_MODEL` |
+| Bắt buộc | `controllers/aikey.controller.js` | nhận/validate `provider` khi thêm key |
+| Bắt buộc | `models/Lesson.js` | xem field `aiKeyId` để lấy nhãn key của bài |
+| Giao diện | `views/admin/aikeys.pug`, `views/admin/lesson-form.pug` | chọn provider, nhãn trong dropdown |
+| Giao diện | `views/student/lesson.pug`, `views/student/submission-detail.pug`, `views/admin/submission_review.pug` | hiện nhãn |
+| Đã có | `controllers/submission.controller.js`, `controllers/lesson.controller.js` | truyền `aiLabel` vào view / response |
+| Làm sau | `controllers/prompt.controller.js`, `public/js/modelCompare.js` | Test prompt & so sánh model cho vilao.ai (hiện chỉ Gemini) |
 
 ---
 
@@ -506,7 +584,7 @@ Subject.find({
 - [x] `middleware/userKeyGuard.js` (mới) — `requireDefaultAdmin` (chặn tầng route), `attachAdminFlags` (ẩn menu).
 - [x] `controllers/auth.controller.js` — đăng ký nhận mã tổ chức, gắn `userKey` khi tạo user.
 - [x] `controllers/lesson.controller.js` — lọc Subject/Lesson theo phạm vi ở mọi handler (list, show, create, edit, update, xoá mềm/khôi phục/xoá cứng). Truy cập ngoài phạm vi trả **404**.
-- [x] `models/GradingPrompt.js` — đã có sẵn `createdBy`, không cần sửa. `models/AIKey.js` — không cần sửa.
+- [x] `models/GradingPrompt.js` — đã có sẵn `createdBy`, không cần sửa. `models/AIKey.js` — không cần sửa cho phần user_key (riêng vilao.ai có thêm field `provider`, xem mục vilao.ai).
 
 **Còn phải làm (nằm ngoài các file đã gửi):**
 - [ ] `models/Subject.js` và `models/Lesson.js`: thêm field `userKey` (và `createdBy` cho Subject nếu chưa có). **Chưa thêm thì `getContentScope` cố tình ném lỗi** thay vì lọc hụt và lộ dữ liệu.
@@ -706,7 +784,8 @@ Frontend hiển thị lịch sử + badge 🔔 tăng
 | DB | MongoDB + Mongoose |
 | Auth | bcrypt, JWT / express-session |
 | Mail | Nodemailer |
-| AI | Google Gemini API (@google/genai) |
+| AI | Google Gemini API (@google/genai) — mặc định |
+| AI (tuỳ chọn) | vilao.ai API (tương thích OpenAI, gọi bằng `fetch`) |
 | Storage | GitHub REST API (Octokit) |
 | Crypto | Node.js `crypto` (AES-256-GCM) |
 | Queue (đồng bộ GitHub) | BullMQ + Redis (hoặc in-memory nếu quy mô nhỏ) |
@@ -879,6 +958,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - [x] Giảng viên nhận xét bài làm — tuỳ chọn, không cần duyệt (`submission_review.pug`, `saveTeacherComment`, cột "Nhận xét GV")
 - [ ] Đối chiếu `saveTeacherComment` với `Notification` / `AuditLog` / `Submission.js` thật (xem mục "Giảng Viên Nhận Xét")
 - [x] Đa tổ chức `user_key` — phần nền: `UserKey`, `User.userKey/connectedUserKeys`, đăng ký kèm mã tổ chức, lọc Subject/Lesson trong `lesson.controller.js`, `requireDefaultAdmin`
+- [ ] vilao.ai (Gemini vẫn mặc định, không đổi): `AIKey.provider`, `Submission.aiProvider/aiKeyName`, nhánh gọi vilao.ai trong `aiService.js`, chọn provider ở form thêm key, nhãn "Gemini: {tên}" / "vilao.ai: {tên}" ở trang làm bài + sau khi chấm (xem mục "Hỗ Trợ Thêm vilao.ai")
 - [ ] Đa tổ chức `user_key` — phần còn lại: field `userKey` ở Subject/Lesson, `subject.controller`, duyệt user, `submission.controller`, `userkey.controller`, view (xem "Trạng thái triển khai")
 
 ---

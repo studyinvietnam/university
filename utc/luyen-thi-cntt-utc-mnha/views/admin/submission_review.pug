@@ -9,6 +9,7 @@ extends ../layout
       - submission.userId         : populated { name, email }
       - submission.score          : number | null  (thang điểm mặc định /10, giống history.pug)
       - submission.model          : string | null   (model AI đã dùng)
+      - aiLabel                   : string          (vd "Gemini: Key A" / "vilao.ai: Key B", controller truyền vào)
       - submission.status         : 'graded' | 'grading' | 'pending' | 'failed'
       - submission.feedback       : string  — nhận xét tổng quan của AI
       - submission.breakdown      : [{ criterion, score, comment }]
@@ -66,9 +67,12 @@ block content
                         i(data-lucide="calendar", class="w-4 h-4 inline-block mr-1")
                         | Nộp lúc: #{submission.submittedAt ? new Date(submission.submittedAt).toLocaleString("vi-VN") : (submission.createdAt ? new Date(submission.createdAt).toLocaleString("vi-VN") : "Không rõ")}
 
-                    if submission.model
-                        p(class="mt-2")
-                            span(class="text-xs font-mono px-2 py-1 rounded bg-indigo-50 text-indigo-700")= submission.model
+                    if submission.model || aiLabel
+                        p(class="mt-2 flex flex-wrap items-center gap-2")
+                            if submission.model
+                                span(class="text-xs font-mono px-2 py-1 rounded bg-indigo-50 text-indigo-700")= submission.model
+                            if aiLabel
+                                span(class="text-xs px-2 py-1 rounded bg-purple-50 text-purple-700")= aiLabel
 
                 div(class="text-right flex-shrink-0")
                     div(class="text-3xl font-bold text-blue-600")

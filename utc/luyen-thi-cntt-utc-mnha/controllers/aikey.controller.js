@@ -4,7 +4,14 @@ const AIKey = require('../models/AIKey');
 const {
     SUPPORTED_MODELS,
     DEFAULT_MODEL,
-    isSupportedModel
+    isSupportedModel,
+    // vilao.ai
+    VILAO_MODELS,
+    VILAO_DEFAULT_MODEL,
+    isSupportedVilaoModel,
+    AI_PROVIDERS,
+    isValidProvider,
+    normalizeProvider
 } = require('../config/aiModels');
 const { isDefaultAdmin } = require('../middleware/auth');
 
@@ -28,6 +35,35 @@ function denyIfNotDefaultAdmin(req, res) {
         user: req.user
     });
     return true;
+}
+
+// ★ Dữ liệu model/provider truyền cho view aikeys.pug (dùng chung 3 chỗ render)
+function getProviderViewData() {
+    return {
+        supportedModels: SUPPORTED_MODELS,   // Gemini (giữ nguyên tên biến cũ)
+        defaultModel: DEFAULT_MODEL,
+        vilaoModels: VILAO_MODELS,
+        vilaoDefaultModel: VILAO_DEFAULT_MODEL,
+        providers: [
+            { value: 'gemini', label: 'Gemini' },
+            { value: 'vilao', label: 'vilao.ai' }
+        ]
+    };
+}
+
+// ★ Cảnh báo MỀM theo tiền tố key — KHÔNG chặn lưu.
+//   - vilao.ai thường bắt đầu "sk-"
+//   - Gemini có nhiều dạng (AIza..., AQ....) nên KHÔNG cảnh báo theo "AIza";
+//     chỉ cảnh báo khi chọn Gemini mà key trông như key vilao.ai ("sk-").
+function getKeyPrefixWarning(provider, apiKey) {
+    const looksLikeSk = apiKey.startsWith('sk-');
+    if (provider === 'vilao' && !looksLikeSk) {
+        return 'Lưu ý: key vilao.ai thường bắt đầu bằng "sk-". Hãy kiểm tra lại nhà cung cấp/ key.';
+    }
+    if (provider !== 'vilao' && looksLikeSk) {
+        return 'Lưu ý: key bắt đầu bằng "sk-" thường là key vilao.ai, nhưng bạn đang chọn Gemini.';
+    }
+    return null;
 }
 
 function getMasterKey() {
@@ -57,14 +93,17 @@ const getAIKeys = async (req, res) => {
                     ? '••••••••••••' + k.lastFour
                     : '••••••••••••••••';
             }
+
+            // ★ .lean() không áp default → key cũ thiếu provider coi là gemini
+            k.provider = normalizeProvider(k.provider);
+            k.providerLabel = k.provider === 'vilao' ? 'vilao.ai' : 'Gemini';
         });
 
         return res.render('admin/aikeys', {
             title: 'AI API Keys',
             user: req.user,
             aiKeys,
-            supportedModels: SUPPORTED_MODELS,
-            defaultModel: DEFAULT_MODEL,
+            ...getProviderViewData(),
             success: req.query.success || null,
             error: req.query.error || null
         });
@@ -74,8 +113,7 @@ const getAIKeys = async (req, res) => {
             title: 'AI API Keys',
             user: req.user,
             aiKeys: [],
-            supportedModels: SUPPORTED_MODELS,
-            defaultModel: DEFAULT_MODEL,
+            ...getProviderViewData(),
             error: 'Không thể tải danh sách AI key.'
         });
     }
@@ -90,6 +128,20 @@ const createAIKey = async (req, res) => {
     try {
         const { name, provider, apiKey, model } = req.body;
 
+        // ★ Nhà cung cấp: bỏ trống → 'gemini' (hành vi cũ). Giá trị lạ → báo lỗi
+        //   thay vì để Mongoose ném lỗi enum khó hiểu.
+        const rawProvider = typeof provider === 'string' ? provider.trim().toLowerCase() : '';
+        const providerValue = rawProvider || 'gemini';
+        if (!isValidProvider(providerValue)) {
+            return res.redirect(
+                '/admin/ai-keys?error=' +
+                encodeURIComponent(
+                    'Nhà cung cấp không hợp lệ. Chọn một trong: ' + AI_PROVIDERS.join(', ') + '.'
+                )
+            );
+        }
+        const isVilao = normalizeProvider(providerValue) === 'vilao';
+
         if (!name || !name.trim()) {
             return res.redirect('/admin/ai-keys?error=' + encodeURIComponent('Tên không được để trống.'));
         }
@@ -102,8 +154,13 @@ const createAIKey = async (req, res) => {
         // SUPPORTED_MODELS lúc chấm bài (model thực tế do prompt/lesson quyết định).
         // Nếu người dùng không chọn hoặc chọn giá trị không hợp lệ → để trống (null),
         // không tự ép về DEFAULT_MODEL để tránh hiểu nhầm là bị giới hạn.
+        //   ★ Kiểm tra nhãn model theo ĐÚNG danh sách của provider (Gemini ↔ SUPPORTED_MODELS,
+        //     vilao.ai ↔ VILAO_MODELS); model của provider khác → null.
         const trimmedModel = typeof model === 'string' ? model.trim() : '';
-        const preferredModel = trimmedModel && isSupportedModel(trimmedModel) ? trimmedModel : null;
+        const modelIsValid = isVilao
+            ? isSupportedVilaoModel(trimmedModel)
+            : isSupportedModel(trimmedModel);
+        const preferredModel = trimmedModel && modelIsValid ? trimmedModel : null;
 
         // Mã hoá AES-256-GCM
         let masterKey;
@@ -126,7 +183,7 @@ const createAIKey = async (req, res) => {
 
         await AIKey.create({
             name: name.trim(),
-            provider: provider || 'gemini',
+            provider: providerValue,
             model: preferredModel,                // ★ Nhãn ưu tiên (có thể null = mọi model)
             encryptedKey: encrypted.toString('hex'),
             iv: iv.toString('hex'),
@@ -137,7 +194,11 @@ const createAIKey = async (req, res) => {
             createdBy: getUserId(req)
         });
 
-        return res.redirect('/admin/ai-keys?success=' + encodeURIComponent('Đã thêm API Key.'));
+        // ★ Cảnh báo mềm theo tiền tố key (không chặn lưu)
+        const warning = getKeyPrefixWarning(providerValue, apiKey.trim());
+        const successMsg = warning ? 'Đã thêm API Key. ' + warning : 'Đã thêm API Key.';
+
+        return res.redirect('/admin/ai-keys?success=' + encodeURIComponent(successMsg));
     } catch (error) {
         console.error('Create AI key error:', error);
         return res.redirect('/admin/ai-keys?error=' + encodeURIComponent('Không thể thêm key: ' + error.message));

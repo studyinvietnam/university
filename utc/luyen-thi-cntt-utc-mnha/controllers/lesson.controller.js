@@ -11,6 +11,7 @@ const githubService = require("../services/githubService");
 const syncQueueService = require("../services/syncQueueService");
 const { resolvePrompt, findUnknownPlaceholders } = require("../services/promptService");
 const { getContentScope } = require("../services/userKeyService");
+const { formatAiLabel } = require("../utils/aiLabel");
 const { paginate } = require("./pagination.controller");
 
 /* ============================================================
@@ -31,6 +32,51 @@ function slugify(str = "") {
 
 function isObjectId(str) {
     return mongoose.Types.ObjectId.isValid(str) && String(str).length === 24;
+}
+
+// ★ vilao.ai: gắn nhãn "Gemini: {tên}" / "vilao.ai: {tên}" cho từng key (key cũ thiếu provider = gemini)
+function withAiLabels(aiKeys) {
+    return (aiKeys || []).map((k) => ({
+        ...k,
+        provider: k.provider || "gemini",
+        aiLabel: formatAiLabel(k.provider || "gemini", k.name),
+    }));
+}
+
+// ★ vilao.ai: nhãn AI hiện ở trang làm bài.
+//   - Bài gán đích danh 1 key  -> nhãn của key đó
+//   - Bài dùng xoay key        -> "Gemini" (mặc định, chưa biết key nào sẽ chấm)
+async function getLessonAiLabel(lesson) {
+    try {
+        if (lesson && lesson.aiKeyId) {
+            const AIKey = require("../models/AIKey");
+            const key = await AIKey.findById(lesson.aiKeyId).select("name provider").lean();
+            if (key) return formatAiLabel(key.provider || "gemini", key.name);
+        }
+    } catch (err) {
+        console.warn("[lesson] Không lấy được nhãn AI key:", err.message);
+    }
+    return formatAiLabel("gemini");
+}
+
+// ★ Lấy provider THẬT của từng AI key từ MongoDB -> { "<keyId>": "vilao" | "gemini" }
+//   View dùng map này để gắn nhãn đúng (không phụ thuộc /api/ai/keys có trả provider hay không).
+//   Chỉ trả id + provider (không trả tên/khoá).
+async function getAiKeyProviderMap() {
+    try {
+        const AIKey = require("../models/AIKey");
+        const rows = await AIKey.find({ isRevoked: { $ne: true } })
+            .select("_id provider")
+            .lean();
+        const map = {};
+        rows.forEach((r) => {
+            map[String(r._id)] = String(r.provider || "gemini").toLowerCase();
+        });
+        return map;
+    } catch (err) {
+        console.warn("[lesson] Không lấy được provider của AI key:", err.message);
+        return {};
+    }
 }
 
 // ★ FIX: đổi model sang 1 field `isDeleted` (boolean) = XOÁ MỀM (vào thùng rác).
@@ -382,11 +428,20 @@ async function renderLessonPage(req, res, lesson) {
         lessonId: lesson._id,
     }).sort({ submittedAt: -1 }).lean();
 
+    // ★ vilao.ai: nhãn của key thực tế đã chấm (snapshot lúc chấm; bài cũ = Gemini)
+    if (lastSubmission) {
+        lastSubmission.aiLabel = formatAiLabel(lastSubmission.aiProvider || "gemini", lastSubmission.aiKeyName);
+    }
+
     const canSeeSample = !!lastSubmission;
     const sampleSolution = canSeeSample ? finalSampleSolution : "";
 
     // ★ duration từ DB — fallback 20 phút
     const duration = Number(lesson.duration) || 20;
+
+    // ★ vilao.ai: nhãn AI chấm bài
+    const aiLabel = await getLessonAiLabel(lesson);
+    const aiKeyProviders = await getAiKeyProviderMap();
 
     res.render("student/lesson", {
         title: lessonContent.title || lesson.title,
@@ -403,6 +458,8 @@ async function renderLessonPage(req, res, lesson) {
         isAdminView: user.role === "admin",
         resolvedPrompt,             // ★ NEW
         promptUnknownPlaceholders,  // ★ NEW
+        aiLabel,                    // ★ vilao.ai
+        aiKeyProviders,             // ★ provider thật từ MongoDB cho từng key
     });
 }
 
@@ -495,7 +552,7 @@ exports.getAdminLessons = async (req, res, next) => {
 exports.showCreateLesson = async (req, res, next) => {
     try {
         const AIKey = require("../models/AIKey");
-        const { SUPPORTED_MODELS, DEFAULT_MODEL } = require("../config/aiModels");
+        const { SUPPORTED_MODELS, DEFAULT_MODEL, VILAO_MODELS, VILAO_DEFAULT_MODEL } = require("../config/aiModels");
 
         // ★ USER KEY: admin user_key KHÔNG được thấy/chọn AI key (README: menu API Key
         //   ẩn hoàn toàn) → không query AIKey, trả mảng rỗng + cờ để view ẩn dropdown.
@@ -516,10 +573,12 @@ exports.showCreateLesson = async (req, res, next) => {
             lesson: null,
             subjects,
             prompts,
-            aiKeys,
+            aiKeys: withAiLabels(aiKeys),
             canPickAIKey,
             supportedModels: SUPPORTED_MODELS,
             defaultModel: DEFAULT_MODEL,
+            vilaoModels: VILAO_MODELS || [],            // ★ vilao.ai
+            vilaoDefaultModel: VILAO_DEFAULT_MODEL || "", // ★ vilao.ai
             isAdminView: true,
         });
     } catch (err) {
@@ -648,7 +707,7 @@ exports.showEditLesson = async (req, res, next) => {
         }
 
         const AIKey = require("../models/AIKey");
-        const { SUPPORTED_MODELS, DEFAULT_MODEL } = require("../config/aiModels");
+        const { SUPPORTED_MODELS, DEFAULT_MODEL, VILAO_MODELS, VILAO_DEFAULT_MODEL } = require("../config/aiModels");
 
         // ★ USER KEY (xem showCreateLesson)
         const scope = await getContentScope(req);
@@ -676,10 +735,12 @@ exports.showEditLesson = async (req, res, next) => {
             lesson,
             subjects,
             prompts,
-            aiKeys,
+            aiKeys: withAiLabels(aiKeys),
             canPickAIKey,
             supportedModels: SUPPORTED_MODELS,
             defaultModel: DEFAULT_MODEL,
+            vilaoModels: VILAO_MODELS || [],            // ★ vilao.ai
+            vilaoDefaultModel: VILAO_DEFAULT_MODEL || "", // ★ vilao.ai
             isAdminView: true,
         });
     } catch (err) {

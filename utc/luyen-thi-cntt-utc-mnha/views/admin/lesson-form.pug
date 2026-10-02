@@ -74,9 +74,10 @@ block content
                                         option(
                                             value=k._id
                                             data-model=(k.model || '')
+                                            data-provider=(k.provider || 'gemini')
                                             selected=(lesson && lesson.aiKeyId && String(lesson.aiKeyId) === String(k._id))
                                         )
-                                            = k.name
+                                            = k.aiLabel || ((k.provider === 'vilao' ? 'vilao.ai' : 'Gemini') + ': ' + k.name)
                                             if k.model
                                                 |  (#{k.model})
                             p(class="text-xs text-gray-500 mt-1")
@@ -102,6 +103,17 @@ block content
                                     each m in supportedModels
                                         option(
                                             value=m
+                                            data-provider="gemini"
+                                            selected=(lesson && lesson.model === m)
+                                        )
+                                            = m
+                                if vilaoModels && vilaoModels.length
+                                    each m in vilaoModels
+                                        option(
+                                            value=m
+                                            data-provider="vilao"
+                                            hidden
+                                            disabled
                                             selected=(lesson && lesson.model === m)
                                         )
                                             = m
@@ -252,7 +264,27 @@ block content
 
             if (!keySelect || !modelSelect) return;
 
+            // Chỉ hiện model đúng nhà cung cấp của key đang chọn
+            // (không chọn key = coi như gemini, giữ hành vi cũ)
+            function filterModelsByProvider() {
+                var opt = keySelect.options[keySelect.selectedIndex];
+                var provider = (opt && opt.value) ? (opt.getAttribute('data-provider') || 'gemini') : 'gemini';
+                for (var i = 0; i < modelSelect.options.length; i++) {
+                    var o = modelSelect.options[i];
+                    var op = o.getAttribute('data-provider');
+                    if (!op) continue; // option placeholder
+                    var show = op === provider;
+                    o.hidden = !show;
+                    o.disabled = !show;
+                }
+                var cur = modelSelect.options[modelSelect.selectedIndex];
+                if (cur && cur.getAttribute('data-provider') && cur.getAttribute('data-provider') !== provider) {
+                    modelSelect.value = '';
+                }
+            }
+
             function syncFromKey() {
+                filterModelsByProvider();
                 var opt = keySelect.options[keySelect.selectedIndex];
                 var keyModel = opt ? (opt.getAttribute('data-model') || '') : '';
 
@@ -291,6 +323,8 @@ block content
             }
 
             keySelect.addEventListener('change', syncFromKey);
+
+            filterModelsByProvider();
 
             if (keySelect.value) {
                 modelSelect.disabled = false;

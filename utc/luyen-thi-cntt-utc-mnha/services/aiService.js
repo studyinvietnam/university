@@ -1,6 +1,11 @@
 // ============================================================
-// AI SERVICE - Gemini API
+// AI SERVICE - Gemini API (mặc định) + vilao.ai (thêm tuỳ chọn)
 // ------------------------------------------------------------
+// - Gemini: giữ nguyên hoàn toàn (SDK @google/genai + fallback fetch)
+// - vilao.ai: API tương thích OpenAI (POST /v1/chat/completions), gọi bằng fetch.
+//   Chỉ dùng khi bài học GÁN ĐÍCH DANH một key vilao.ai (preferredKeyId).
+//   Bài không gán key → xoay key CHỈ trong các key Gemini (như cũ).
+//   Quota (429) trên key vilao.ai → thử key vilao.ai khác, KHÔNG nhảy sang Gemini.
 // Chấm bài code CNTT (thay vì IELTS)
 // - Prompt chấm code: logic, chất lượng, edge case, trình bày
 // - Hỗ trợ biến: {đề_bài}, {bài_làm}, {lời_giải_mẫu}, {student_name}, {max_score}
@@ -15,7 +20,15 @@ const {
     SUPPORTED_MODELS,
     DEFAULT_MODEL,
     isSupportedModel,
-    getSafeModel
+    getSafeModel,
+    // vilao.ai
+    VILAO_BASE_URL,
+    VILAO_MODELS,
+    VILAO_DEFAULT_MODEL,
+    VILAO_MAX_TOKENS,
+    getSafeVilaoModel,
+    normalizeProvider,
+    formatAiLabel
 } = require("../config/aiModels");
 
 // SDK mới
@@ -88,11 +101,23 @@ async function findKeyById(keyId) {
         .exec();
 }
 
-async function findNextActiveKey(excludeIds) {
+// ★ Provider của 1 key doc (hỗ trợ cả .lean() thiếu field): 'gemini' | 'vilao'
+function getKeyProvider(keyDoc) {
+    return normalizeProvider(keyDoc?.provider);
+}
+
+// ★ Chọn key kế tiếp TRONG CÙNG provider.
+//   - 'gemini' (mặc định): mọi key KHÁC vilao → gồm cả doc cũ thiếu provider / 'google'
+//   - 'vilao': chỉ key vilao
+async function findNextActiveKey(excludeIds, provider = "gemini") {
+    const providerFilter =
+        provider === "vilao" ? { provider: "vilao" } : { provider: { $ne: "vilao" } };
+
     return AIKey.findOne({
         isActive: true,
         isRevoked: false,
-        _id: { $nin: excludeIds }
+        _id: { $nin: excludeIds },
+        ...providerFilter
     })
         .select("+encryptedKey +iv +authTag")
         .sort({ lastUsedAt: 1, usageCount: 1 })
@@ -126,6 +151,22 @@ function isQuotaError(err) {
         msg.includes("429") ||
         msg.includes("rate limit") ||
         msg.includes("resource_exhausted")
+    );
+}
+
+// ★ Hết số dư / hết tiền (vilao.ai trả 402 "Insufficient balance...").
+//   Tách riêng khỏi isQuotaError vì 402 không chứa chữ "quota"/"429".
+function isBalanceError(err) {
+    const msg = String(err?.message || "").toLowerCase();
+    const status = Number(err?.status || err?.code);
+    return (
+        status === 402 ||
+        msg.includes("(402)") ||
+        msg.includes("insufficient balance") ||
+        msg.includes("insufficient credit") ||
+        msg.includes("insufficient funds") ||
+        msg.includes("payment required") ||
+        msg.includes("out of credit")
     );
 }
 
@@ -516,33 +557,180 @@ async function callGeminiGenerateContent(prompt, model, apiKeyPlain, timeoutMs =
 }
 
 // ============================================================
+// ★ GỌI vilao.ai (API tương thích OpenAI)
+// ------------------------------------------------------------
+// POST {VILAO_BASE_URL}/v1/chat/completions
+// Header: Authorization: Bearer <key>
+// Body  : { model, messages: [system, user], max_tokens }
+// Trả về: choices[0].message.content
+// Message lỗi luôn kèm mã HTTP ("vilao.ai lỗi (429): ...") để
+// isQuotaError / isOverloadError nhận diện được như Gemini.
+// ⚠️ Mã lỗi 401/429/5xx cần đối chiếu tài liệu vilao.ai.
+// ============================================================
+
+const VILAO_SYSTEM_PROMPT =
+    "Bạn là trợ lý AI chấm bài. Làm đúng theo yêu cầu và định dạng đầu ra " +
+    "được nêu trong tin nhắn của người dùng.";
+
+async function callVilaoViaFetch(prompt, model, apiKeyPlain, timeoutMs = 45000) {
+    if (typeof fetch !== "function") {
+        throw new Error("Node.js >= 18 là bắt buộc để gọi vilao.ai (thiếu fetch).");
+    }
+
+    const url = `${VILAO_BASE_URL}/v1/chat/completions`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apiKeyPlain}`
+            },
+            body: JSON.stringify({
+                model,
+                messages: [
+                    { role: "system", content: VILAO_SYSTEM_PROMPT },
+                    { role: "user", content: prompt }
+                ],
+                max_tokens: VILAO_MAX_TOKENS
+            }),
+            signal: controller.signal
+        });
+
+        // Đọc text trước: lỗi 5xx có thể trả HTML, response.json() sẽ throw khó hiểu
+        const raw = await response.text();
+        let data = null;
+        try {
+            data = raw ? JSON.parse(raw) : null;
+        } catch (_) {
+            data = null;
+        }
+
+        if (!response.ok) {
+            const apiMsg =
+                data?.error?.message ||
+                (typeof data?.error === "string" ? data.error : null) ||
+                data?.message ||
+                (raw ? raw.slice(0, 200) : "");
+            const err = new Error(
+                `vilao.ai lỗi (${response.status})${apiMsg ? ": " + apiMsg : "."}`
+            );
+            err.status = response.status;
+            err.code = data?.error?.code;
+            throw err;
+        }
+
+        const choice = data?.choices?.[0];
+        const content = choice?.message?.content;
+        const text =
+            typeof content === "string"
+                ? content
+                : Array.isArray(content)
+                    ? content.map((p) => p?.text || "").join("")
+                    : "";
+
+        if (!text) {
+            throw new Error(
+                "vilao.ai không trả về nội dung text. Response: " +
+                (raw || "").slice(0, 300)
+            );
+        }
+
+        if (choice?.finish_reason === "length") {
+            console.warn(
+                `⚠️ [aiService] vilao.ai bị cắt do max_tokens (${VILAO_MAX_TOKENS}) — JSON có thể không đầy đủ. Tăng VILAO_MAX_TOKENS nếu hay gặp.`
+            );
+        }
+
+        return text;
+    } catch (error) {
+        if (error.name === "AbortError") {
+            throw new Error(`vilao.ai không phản hồi sau ${timeoutMs / 1000}s.`);
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
+async function callVilaoGenerateContent(prompt, model, apiKeyPlain, timeoutMs = 45000) {
+    if (!apiKeyPlain) {
+        throw new Error("Thiếu API key để gọi vilao.ai.");
+    }
+    return callVilaoViaFetch(prompt, model, apiKeyPlain, timeoutMs);
+}
+
+// ============================================================
+// ★ GỌI THEO PROVIDER CỦA KEY
+// ------------------------------------------------------------
+// Model được chọn THEO KEY (không theo lúc vào hàm), vì model của bài học
+// có thể là model Gemini trong khi key được gán là vilao.ai (hoặc ngược lại):
+//   - key vilao  → getSafeVilaoModel(model): không thuộc VILAO_MODELS → VILAO_DEFAULT_MODEL
+//   - key gemini → getSafeModel(model): như cũ
+// ============================================================
+
+async function callProvider(keyDoc, apiKeyPlain, promptText, requestedModel, timeoutMs) {
+    const provider = getKeyProvider(keyDoc);
+
+    if (provider === "vilao") {
+        const modelUsed = getSafeVilaoModel(requestedModel);
+        const text = await callVilaoGenerateContent(promptText, modelUsed, apiKeyPlain, timeoutMs);
+        return { text, modelUsed, provider };
+    }
+
+    const modelUsed = getSafeModel(requestedModel);
+    const text = await callGeminiGenerateContent(promptText, modelUsed, apiKeyPlain, timeoutMs);
+    return { text, modelUsed, provider };
+}
+
+function buildKeyResult(keyDoc, r) {
+    return {
+        text: r.text,
+        modelUsed: r.modelUsed,
+        provider: r.provider,
+        keyUsed: {
+            id: String(keyDoc._id),
+            name: keyDoc.name || null,
+            provider: r.provider
+        }
+    };
+}
+
+// ============================================================
 // CALL VỚI KEY XOAY VÒNG
+// ------------------------------------------------------------
+// - Có preferredKeyId: dùng key đó trước; hết quota → xoay sang key KHÁC
+//   CÙNG provider với key được gán (vilao ↔ vilao, gemini ↔ gemini).
+// - Không có preferredKeyId: chỉ xoay trong các key Gemini (hành vi cũ).
+// - Trả về { text, keyUsed:{id,name,provider}, modelUsed, provider }
 // ============================================================
 
 async function callWithKeyRotation(promptText, model, timeoutMs, preferredKeyId = null) {
     const triedIds = [];
     let lastError = null;
+    let pool = "gemini"; // provider của nhóm key sẽ xoay
 
     if (preferredKeyId) {
         try {
             const keyDoc = await findKeyById(preferredKeyId);
             if (keyDoc) {
+                pool = getKeyProvider(keyDoc);
                 triedIds.push(keyDoc._id);
                 const apiKeyPlain = decryptKey(keyDoc);
 
                 try {
-                    const text = await callGeminiGenerateContent(promptText, model, apiKeyPlain, timeoutMs);
+                    const r = await callProvider(keyDoc, apiKeyPlain, promptText, model, timeoutMs);
                     await markKeyUsed(keyDoc);
-                    return {
-                        text,
-                        keyUsed: { id: String(keyDoc._id), name: keyDoc.name || null }
-                    };
+                    return buildKeyResult(keyDoc, r);
                 } catch (err) {
                     lastError = err;
 
                     if (isProjectDenied(err)) {
                         console.error(
-                            `🚫 [aiService] Key "${keyDoc.name}" bị Google chặn: ${err.message}`
+                            `🚫 [aiService] Key "${keyDoc.name}" bị nhà cung cấp chặn: ${err.message}`
                         );
                         throw err;
                     }
@@ -551,18 +739,35 @@ async function callWithKeyRotation(promptText, model, timeoutMs, preferredKeyId 
                         throw err;
                     }
 
-                    if (isQuotaError(err)) {
+                    if (isQuotaError(err) || isBalanceError(err)) {
                         console.warn(
-                            `⚠️ [aiService] key "${keyDoc.name}" hết quota, xoay key khác...`
+                            `⚠️ [aiService] key "${keyDoc.name}" ${
+                                isBalanceError(err) ? "hết số dư (402)" : "hết quota"
+                            }, xoay key khác cùng provider...`
                         );
                         await markKeyQuotaError(keyDoc);
                     } else {
                         throw err;
                     }
                 }
+            } else {
+                // Không có key active với id này. Nếu đó là key vilao.ai (bị tắt/thu hồi)
+                // thì báo lỗi rõ ràng, KHÔNG âm thầm chấm bằng Gemini ngoài ý giảng viên.
+                // (Key Gemini bị tắt → giữ hành vi cũ: xoay sang key Gemini khác.)
+                const meta = await AIKey.findById(preferredKeyId)
+                    .select("provider name")
+                    .lean();
+                if (meta && getKeyProvider(meta) === "vilao") {
+                    const e = new Error(
+                        `Key vilao.ai "${meta.name}" được gán cho bài này đang tắt hoặc đã bị thu hồi. ` +
+                        "Vui lòng bật lại key hoặc gán key khác."
+                    );
+                    e.noFallback = true;
+                    throw e;
+                }
             }
         } catch (e) {
-            if (isOverloadError(e) || isProjectDenied(e)) {
+            if (isOverloadError(e) || isProjectDenied(e) || e.noFallback) {
                 throw e;
             }
             console.warn("[aiService] preferred key failed:", e.message);
@@ -570,7 +775,7 @@ async function callWithKeyRotation(promptText, model, timeoutMs, preferredKeyId 
     }
 
     for (let i = 0; i < MAX_KEYS_TO_TRY; i++) {
-        const keyDoc = await findNextActiveKey(triedIds);
+        const keyDoc = await findNextActiveKey(triedIds, pool);
 
         if (!keyDoc) {
             if (triedIds.length === 0) {
@@ -596,18 +801,15 @@ async function callWithKeyRotation(promptText, model, timeoutMs, preferredKeyId 
         }
 
         try {
-            const text = await callGeminiGenerateContent(promptText, model, apiKeyPlain, timeoutMs);
+            const r = await callProvider(keyDoc, apiKeyPlain, promptText, model, timeoutMs);
             await markKeyUsed(keyDoc);
-            return {
-                text,
-                keyUsed: { id: String(keyDoc._id), name: keyDoc.name || null }
-            };
+            return buildKeyResult(keyDoc, r);
         } catch (err) {
             lastError = err;
 
             if (isProjectDenied(err)) {
                 console.error(
-                    `🚫 [aiService] Key "${keyDoc.name}" bị Google chặn: ${err.message}`
+                    `🚫 [aiService] Key "${keyDoc.name}" bị nhà cung cấp chặn: ${err.message}`
                 );
                 throw err;
             }
@@ -616,15 +818,35 @@ async function callWithKeyRotation(promptText, model, timeoutMs, preferredKeyId 
                 throw err;
             }
 
-            if (isQuotaError(err)) {
+            if (isQuotaError(err) || isBalanceError(err)) {
                 console.warn(
-                    `⚠️ [aiService] key ${keyDoc._id} hết quota, xoay key khác...`
+                    `⚠️ [aiService] key ${keyDoc._id} (${keyDoc.name}) ${
+                        isBalanceError(err) ? "hết số dư (402)" : "hết quota"
+                    }, xoay key khác...`
                 );
                 await markKeyQuotaError(keyDoc);
                 continue;
             }
             throw err;
         }
+    }
+
+    // ★ Hết sạch key mà lỗi cuối là hết số dư → báo rõ nguyên nhân + cách xử lý
+    //   (tránh lộ nguyên văn "Insufficient balance..." của nhà cung cấp).
+    //   Lưu ý: KHÔNG dùng các cụm "unavailable"/"try again later"/"503" trong
+    //   message này, kẻo isOverloadError nhận nhầm và retryOnOverload chạy lại.
+    if (lastError && isBalanceError(lastError)) {
+        const providerName = pool === "vilao" ? "vilao.ai" : "Gemini";
+        console.error(`❌ [aiService] Mọi key ${providerName} đều hết số dư:`, lastError.message);
+        const e = new Error(
+            `Tài khoản ${providerName} của key chấm bài đã hết số dư. ` +
+            "Admin cần nạp thêm tiền hoặc gán key khác cho bài học này."
+        );
+        e.status = 402;
+        e.code = "AI_BALANCE_EXHAUSTED";
+        e.provider = pool;
+        e.noFallback = true;
+        throw e;
     }
 
     throw lastError || new Error("Tất cả AI Key đều lỗi hoặc hết quota.");
@@ -742,24 +964,26 @@ async function gradeSubmission(renderedPrompt, options = {}) {
         throw new Error(`Prompt quá dài (>${MAX_PROMPT_CHARS} ký tự).`);
     }
 
-    const selectedModel = getSafeModel(model);
+    // ★ Model thực tế được chọn THEO KEY trong callWithKeyRotation
+    //   (key Gemini → getSafeModel, key vilao.ai → getSafeVilaoModel).
+    //   Với Gemini kết quả y hệt trước đây: getSafeModel(model).
+    const requestedModel = model;
     const t0 = Date.now();
 
     console.log(
-        `🧑‍🏫 [aiService] gradeSubmission model=${selectedModel} keyId=${preferredKeyId || "auto"} len=${renderedPrompt.length}`
+        `🧑‍🏫 [aiService] gradeSubmission model=${requestedModel || "default"} keyId=${preferredKeyId || "auto"} len=${renderedPrompt.length}`
     );
 
     const result = await retryOnOverload(
         async () => {
-            const { text, keyUsed } = await callWithKeyRotation(
+            return callWithKeyRotation(
                 renderedPrompt,
-                selectedModel,
+                requestedModel,
                 timeoutMs,
                 preferredKeyId
             );
-            return { text, keyUsed };
         },
-        `gradeSubmission:${selectedModel}`
+        `gradeSubmission:${requestedModel || "default"}`
     );
 
     const latencyMs = Date.now() - t0;
@@ -771,15 +995,23 @@ async function gradeSubmission(renderedPrompt, options = {}) {
         parsed = { score: null, feedback: result.text, breakdown: [] };
     }
 
+    // ★ Snapshot nhà cung cấp + tên key lúc chấm (để đổi tên/xoá key sau này
+    //   không làm đổi nhãn của bài đã chấm)
+    const aiProvider = result.provider || "gemini";
+    const aiKeyName = result.keyUsed?.name || null;
+
     return {
         score: parsed?.score ?? null,
         feedback: parsed?.feedback ?? parsed?.overall_comment ?? "",
         breakdown: Array.isArray(parsed?.breakdown) ? parsed.breakdown : [],
         grammar: parsed?.grammar ?? null,
         sampleComparison: parsed?.sampleComparison ?? null,
-        modelUsed: selectedModel,
+        modelUsed: result.modelUsed,
         latencyMs,
         keyUsed: result.keyUsed || null,
+        aiProvider,
+        aiKeyName,
+        aiLabel: formatAiLabel(aiProvider, aiKeyName),
         raw: parsed
     };
 }
@@ -797,20 +1029,22 @@ async function testGeminiConnection(
 
     const result = await retryOnOverload(
         async () => {
-            const { text, keyUsed } = await callWithKeyRotation(
+            const { text, keyUsed, modelUsed, provider } = await callWithKeyRotation(
                 "Reply only with the word OK.",
                 selectedModel,
                 timeoutMs,
                 preferredKeyId
             );
-            return { text, keyUsed };
+            return { text, keyUsed, modelUsed, provider };
         },
         `testConnection:${selectedModel}`
     );
 
     return {
         connected: true,
-        model: selectedModel,
+        // key vilao.ai → model thực tế là model vilao.ai (không phải selectedModel Gemini)
+        model: result.modelUsed || selectedModel,
+        provider: result.provider || "gemini",
         response: (result.text || "").trim() || "OK",
         keyUsed: result.keyUsed
     };
@@ -840,7 +1074,14 @@ module.exports = {
     isSupportedModel,
     getSafeModel,
 
+    // vilao.ai + nhãn
+    VILAO_MODELS,
+    VILAO_DEFAULT_MODEL,
+    getSafeVilaoModel,
+    formatAiLabel,
+
     // Debug
+    isBalanceError,
     isOverloadError,
     retryOnOverload
 };

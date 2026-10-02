@@ -10,6 +10,7 @@ const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
 
 const { paginate } = require('./pagination.controller');
+const { formatAiLabel } = require('../utils/aiLabel');
 
 const {
     getActor,
@@ -199,6 +200,11 @@ const createSubmission = async (req, res) => {
                     submissionId: result._id,
                     score: result.score,
                     status: 'graded',
+                    // ★ vilao.ai: nhãn thật của key đã chấm (snapshot lúc chấm)
+                    model: result.model || null,
+                    aiProvider: result.aiProvider || 'gemini',
+                    aiKeyName: result.aiKeyName || null,
+                    aiLabel: formatAiLabel(result.aiProvider || 'gemini', result.aiKeyName),
                     redirect: `/submissions/${result._id}`
                 });
             }
@@ -210,7 +216,20 @@ const createSubmission = async (req, res) => {
             let friendlyMsg = result.errorMessage || 'Chấm bài thất bại.';
             const msg = String(friendlyMsg).toLowerCase();
 
-            if (msg.includes('high demand') || msg.includes('503') || msg.includes('try again')) {
+            if (result.aiProvider === 'vilao') {
+                // ★ vilao.ai: không dùng thông báo "Google" của Gemini
+                if (msg.includes('401') || msg.includes('403') || msg.includes('unauthorized') || msg.includes('invalid api key')) {
+                    friendlyMsg = 'API Key vilao.ai không hợp lệ hoặc chưa được cấp quyền. Liên hệ admin.';
+                } else if (msg.includes('quota') || msg.includes('429') || msg.includes('rate limit')) {
+                    friendlyMsg = 'vilao.ai đã hết quota hoặc bị giới hạn tốc độ. Vui lòng thử lại sau 1 phút.';
+                } else if (msg.includes('503') || msg.includes('502') || msg.includes('504') || msg.includes('timeout') || msg.includes('overloaded')) {
+                    friendlyMsg = 'vilao.ai đang quá tải. Vui lòng thử nộp lại sau 30 giây.';
+                } else if (msg.includes('model') && (msg.includes('not found') || msg.includes('does not exist') || msg.includes('không hỗ trợ'))) {
+                    friendlyMsg = 'Model vilao.ai không tồn tại. Liên hệ admin đổi model.';
+                } else if (msg.includes('không tải được nội dung prompt')) {
+                    friendlyMsg = 'Hệ thống chưa đồng bộ xong prompt. Vui lòng thử nộp lại sau ít phút.';
+                }
+            } else if (msg.includes('high demand') || msg.includes('503') || msg.includes('try again')) {
                 friendlyMsg = 'Model AI đang quá tải. Vui lòng thử nộp lại sau 30 giây.';
             } else if (msg.includes('denied access') || msg.includes('403')) {
                 friendlyMsg = 'API Key chưa được Google cấp quyền. Liên hệ admin.';
@@ -308,6 +327,7 @@ const getSubmission = async (req, res) => {
         return res.render('student/submission-detail', {
             title: 'Chi tiết bài nộp',
             submission,
+            aiLabel: formatAiLabel(submission.aiProvider || 'gemini', submission.aiKeyName), // ★ vilao.ai
             isAdmin,
             error: req.query.error || null,
             success: req.query.success || null
@@ -476,6 +496,7 @@ const getSubmissionReview = async (req, res) => {
         return res.render('admin/submission_review', {
             title: 'Nhận xét bài làm',
             submission,
+            aiLabel: formatAiLabel(submission.aiProvider || 'gemini', submission.aiKeyName), // ★ vilao.ai
             answerHtml: submission.answerHtml || '',
             error: req.query.error || null,
             success: req.query.success || null

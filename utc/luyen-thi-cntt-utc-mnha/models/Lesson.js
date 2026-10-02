@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { formatAiLabel } = require('../config/aiModels');
 
 const lessonSchema = new mongoose.Schema(
     {
@@ -67,7 +68,11 @@ const lessonSchema = new mongoose.Schema(
             default: null
         },
 
-        // ★ AI KEY dùng để chấm bài này (nếu trống → key mặc định)
+        // ★ AI KEY dùng để chấm bài này (nếu trống → xoay key Gemini như cũ)
+        //   Key có thể là Gemini hoặc vilao.ai (AIKey.provider). vilao.ai CHỈ được
+        //   dùng khi bài gán đích danh key vilao.ai ở đây.
+        //   Muốn lấy nhãn key: populate('aiKeyId', 'name provider') rồi dùng
+        //   lesson.aiLabel (document) hoặc Lesson.getAiLabel(lesson) (lean).
         aiKeyId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'AIKey',
@@ -76,6 +81,8 @@ const lessonSchema = new mongoose.Schema(
         },
 
         // ★ MODEL AI dùng để chấm bài này
+        //   Key Gemini  → thuộc SUPPORTED_MODELS (sai/trống → DEFAULT_MODEL)
+        //   Key vilao.ai → thuộc VILAO_MODELS (sai/trống → VILAO_DEFAULT_MODEL)
         model: {
             type: String,
             default: null
@@ -142,5 +149,35 @@ const lessonSchema = new mongoose.Schema(
 );
 
 lessonSchema.index({ subjectId: 1, isDeleted: 1, isPublished: 1, order: 1 });
+
+// ============================================================
+// ★ NHÃN AI CỦA BÀI HỌC
+// ------------------------------------------------------------
+// - Bài gán key (đã populate 'aiKeyId' với name + provider)
+//     → "Gemini: {tên}" hoặc "vilao.ai: {tên}"
+// - Bài không gán key (hoặc key đã bị xoá → populate ra null)
+//     → "Gemini" (mặc định, vì chưa biết key nào sẽ chấm)
+// - Bài gán key nhưng CHƯA populate → null (tránh hiện nhãn sai;
+//     nơi gọi cần populate trước)
+// Dùng được với cả document lẫn object .lean().
+// ============================================================
+function getLessonAiLabel(lesson) {
+    if (!lesson) return formatAiLabel('gemini', null);
+
+    const k = lesson.aiKeyId;
+    if (!k) return formatAiLabel('gemini', null);
+
+    // Đã populate: object có `name` hoặc `provider` (ObjectId thuần thì không có)
+    const populated = typeof k === 'object' && (k.name !== undefined || k.provider !== undefined);
+    if (!populated) return null;
+
+    return formatAiLabel(k.provider || 'gemini', k.name);
+}
+
+lessonSchema.virtual('aiLabel').get(function () {
+    return getLessonAiLabel(this);
+});
+
+lessonSchema.statics.getAiLabel = getLessonAiLabel;
 
 module.exports = mongoose.model('Lesson', lessonSchema);

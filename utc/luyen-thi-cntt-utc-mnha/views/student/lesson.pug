@@ -405,6 +405,8 @@ block content
                 div(class="ai-icon") 🤖
                 div
                     div(class="ai-title") Trạng thái AI chấm bài
+                    if aiLabel
+                        div(class="ai-desc", id="aiLabelText", style="font-weight:600")= '🤖 ' + aiLabel
                     div(class="ai-desc", id="aiDesc") Chưa kiểm tra kết nối.
 
             div(class="ai-selectors")
@@ -539,9 +541,9 @@ block content
                         if lastSubmission.model
                             span(class="text-xs text-gray-500")
                                 | 🤖 #{lastSubmission.model}
-                        if lastSubmission.aiKeyName
+                        if lastSubmission.aiLabel
                             span(class="text-xs text-gray-500")
-                                | 🔑 #{lastSubmission.aiKeyName}
+                                | 🔑 #{lastSubmission.aiLabel}
 
                         span(class="text-xs text-gray-500")
                             = new Date(lastSubmission.createdAt).toLocaleString('vi-VN')
@@ -554,6 +556,8 @@ block content
         (function () {
             const LESSON_ID = "!{lesson._id}";
             const API_AI = "/api/ai";
+            // ★ provider thật của từng key lấy từ MongoDB (server truyền xuống)
+            const AI_KEY_PROVIDERS = !{JSON.stringify(aiKeyProviders || {}).replace(/</g, "\\u003c")};
 
             let aiConnected = false;
             let checkingAI = false;
@@ -573,6 +577,27 @@ block content
             const aiStatusPill = document.getElementById("aiStatusPill");
             const aiStatusText = document.getElementById("aiStatusText");
             const aiDesc = document.getElementById("aiDesc");
+            // ★ Nhãn "🤖 Gemini / vilao.ai: {tên}" ở khung trạng thái: server chỉ render nhãn mặc định,
+            //   nên phải cập nhật theo key đang chọn trong dropdown.
+            const aiLabelText = document.getElementById("aiLabelText");
+            const defaultAiLabelText = aiLabelText ? aiLabelText.textContent : "";
+            function isVilao(p) {
+                return /vilao/i.test(String(p || ""));
+            }
+            function providerName(provider) {
+                return isVilao(provider) ? "vilao.ai" : "Gemini";
+            }
+            // DB (AI_KEY_PROVIDERS) được ưu tiên; /api/ai/keys chỉ là phương án dự phòng
+            function resolveKeyProvider(k) {
+                const fromDb = AI_KEY_PROVIDERS[String(k._id)];
+                return isVilao(fromDb) || isVilao(k.provider) ? "vilao" : "gemini";
+            }
+            function updateAiLabelFromSelection() {
+                if (!aiLabelText) return;
+                const o = aiKeySelect.options[aiKeySelect.selectedIndex];
+                const label = aiKeySelect.value && o ? o.getAttribute("data-label") : "";
+                aiLabelText.textContent = label ? "🤖 " + label : defaultAiLabelText;
+            }
             const resultBox = document.getElementById("resultBox");
             const resultBody = document.getElementById("resultBody");
             const aiKeySelect = document.getElementById("aiKeySelect");
@@ -807,19 +832,38 @@ block content
             // ============================================
             // LOAD MODELS
             // ============================================
+            // ★ vilao.ai: danh sách model tách theo nhà cung cấp.
+            //   /api/ai/models có thể trả thêm vilaoModels + vilaoDefaultModel;
+            //   nếu không có thì mọi key dùng danh sách Gemini như cũ.
+            const modelLists = { gemini: [], vilao: [] };
+            const defaultModels = { gemini: "", vilao: "" };
+            let currentModelProvider = "gemini";
+
+            function fillModelOptions(provider) {
+                const list = provider === "vilao" && modelLists.vilao.length
+                    ? modelLists.vilao
+                    : modelLists.gemini;
+                currentModelProvider = list === modelLists.vilao ? "vilao" : "gemini";
+                modelSelect.innerHTML = '<option value="">— Chọn AI Key trước —</option>';
+                list.forEach((m) => {
+                    const opt = document.createElement("option");
+                    opt.value = m;
+                    opt.textContent = m;
+                    modelSelect.appendChild(opt);
+                });
+                modelSelect.dataset.default = defaultModels[currentModelProvider] || "";
+            }
+
             async function loadModels() {
                 try {
                     const res = await fetch(API_AI + "/models");
                     const data = await res.json();
                     if (data.success) {
-                        modelSelect.innerHTML = '<option value="">— Chọn AI Key trước —</option>';
-                        data.models.forEach((m) => {
-                            const opt = document.createElement("option");
-                            opt.value = m;
-                            opt.textContent = m;
-                            modelSelect.appendChild(opt);
-                        });
-                        modelSelect.dataset.default = data.defaultModel || "";
+                        modelLists.gemini = data.models || [];
+                        modelLists.vilao = data.vilaoModels || [];
+                        defaultModels.gemini = data.defaultModel || "";
+                        defaultModels.vilao = data.vilaoDefaultModel || "";
+                        fillModelOptions("gemini");
                     }
                 } catch (e) {
                     console.warn("loadModels:", e);
@@ -842,8 +886,13 @@ block content
                             const opt = document.createElement("option");
                             opt.value = k._id;
                             opt.setAttribute("data-model", k.model || "");
+                            const keyProvider = resolveKeyProvider(k);
+                            opt.setAttribute("data-provider", keyProvider);
 
-                            let label = k.name;
+                            // ★ vilao.ai: "Gemini: {tên}" / "vilao.ai: {tên}"
+                            const baseLabel = providerName(keyProvider) + ": " + k.name;
+                            opt.setAttribute("data-label", baseLabel);
+                            let label = baseLabel;
                             if (k.model) label += " (" + k.model + ")";
 
                             if (!k.usable) {
@@ -893,8 +942,15 @@ block content
             }
 
             function syncModelFromKey() {
+                updateAiLabelFromSelection();
                 const opt = aiKeySelect.options[aiKeySelect.selectedIndex];
                 const keyModel = opt ? opt.getAttribute("data-model") || "" : "";
+
+                // ★ vilao.ai: đổi danh sách model theo nhà cung cấp của key đang chọn
+                const keyProvider = aiKeySelect.value && opt
+                    ? opt.getAttribute("data-provider") || "gemini"
+                    : "gemini";
+                if (keyProvider !== currentModelProvider) fillModelOptions(keyProvider);
 
                 if (!aiKeySelect.value) {
                     modelSelect.disabled = false;
@@ -960,6 +1016,11 @@ block content
                     }
 
                     aiConnected = true;
+                    if (aiLabelText && (data.aiLabel || data.provider)) {
+                        const realLabel = data.aiLabel ||
+                            providerName(data.provider) + (data.keyName ? ": " + data.keyName : "");
+                        aiLabelText.textContent = "🤖 " + realLabel;
+                    }
                     const keyLabel = data.keyName ? " • Key: " + data.keyName : "";
                     setAIStatus(
                         "connected",
@@ -1077,7 +1138,9 @@ block content
 
                 let meta = "";
                 if (data.model) meta += "🤖 " + escapeHTML(data.model);
-                if (data.aiKeyName) meta += (meta ? " • " : "") + "🔑 " + escapeHTML(data.aiKeyName);
+                // ★ vilao.ai: nhãn thật của key đã chấm; fallback khi server chưa trả aiLabel
+                const resultLabel = data.aiLabel || (data.aiKeyName ? providerName(data.aiProvider) + ": " + data.aiKeyName : "");
+                if (resultLabel) meta += (meta ? " • " : "") + "🔑 " + escapeHTML(resultLabel);
 
                 resultBody.innerHTML =
                     '<div class="overall">' +
@@ -1131,7 +1194,8 @@ block content
             updateLock();
             updateAudioBarState();
 
-            Promise.all([loadModels(), loadKeys()]).then(() => {
+            // ★ vilao.ai: tải model trước, rồi mới tải key (key cần danh sách model đã có để chọn đúng provider)
+            loadModels().then(loadKeys).then(() => {
                 checkAIConnection();
             });
         })();

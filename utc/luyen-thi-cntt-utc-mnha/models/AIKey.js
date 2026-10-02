@@ -8,13 +8,20 @@ const aiKeySchema = new mongoose.Schema(
             trim: true
         },
 
+        // ★ Nhà cung cấp AI: 'gemini' (mặc định) | 'vilao' (vilao.ai).
+        //   'google' là giá trị cũ → GIỮ trong enum để doc cũ không lỗi
+        //   validate khi .save() (markKeyUsed/markKeyQuotaError gọi save()).
+        //   Doc cũ thiếu provider ⇒ coi là 'gemini'. Query .lean() không áp
+        //   default → nơi đọc phải viết `key.provider || 'gemini'`.
         provider: {
             type: String,
-            enum: ['gemini', 'google'],
+            enum: ['gemini', 'google', 'vilao'],
             default: 'gemini'
         },
 
         // Model ưu tiên cho key (chỉ là nhãn gợi ý)
+        //   provider gemini → thuộc SUPPORTED_MODELS
+        //   provider vilao  → thuộc VILAO_MODELS
         model: {
             type: String,
             default: null
@@ -108,6 +115,11 @@ const aiKeySchema = new mongoose.Schema(
 
 // Index cho query tìm key active
 aiKeySchema.index({ isActive: 1, isRevoked: 1, disabledUntil: 1 });
+
+// Virtual: providerLabel ("Gemini" / "vilao.ai")
+aiKeySchema.virtual('providerLabel').get(function () {
+    return this.provider === 'vilao' ? 'vilao.ai' : 'Gemini';
+});
 
 // Virtual: maskedKey
 aiKeySchema.virtual('maskedKey').get(function () {
