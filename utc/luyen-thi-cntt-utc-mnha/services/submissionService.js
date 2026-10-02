@@ -2,6 +2,8 @@ const Lesson = require('../models/Lesson');
 const Subject = require('../models/Subject');
 const Submission = require('../models/Submission');
 const User = require('../models/User');
+const AIKey = require('../models/AIKey');
+const { normalizeProvider } = require('../config/aiModels');
 
 const { resolvePrompt, buildPrompt, buildSnapshot } = require('./promptService');
 const { wrapUserContent } = require('./sanitizeService');
@@ -118,6 +120,8 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
                     model: aiResult.modelUsed,
                     aiKeyId: aiResult.keyUsed?.id || null,
                     aiKeyName: aiResult.keyUsed?.name || null,
+                    // ★ Snapshot nhà cung cấp lúc chấm (vilao / gemini)
+                    aiProvider: normalizeProvider(aiResult.aiProvider || aiResult.keyUsed?.provider),
                     latencyMs: aiResult.latencyMs,
                     gradedAt: new Date(),
                     status: 'graded',
@@ -139,6 +143,22 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
             `❌ [submissionService] Chấm thất bại: ${submission._id} — ${err.message}`
         );
 
+        // ★ Chấm lỗi vẫn ghi lại key + provider đã được chọn (nếu có),
+        //   để controller hiển thị đúng thông báo lỗi của vilao.ai / Gemini.
+        let failedKeyMeta = {};
+        if (aiKeyId) {
+            try {
+                const k = await AIKey.findById(aiKeyId).select('name provider').lean();
+                if (k) {
+                    failedKeyMeta = {
+                        aiKeyId: k._id,
+                        aiKeyName: k.name || null,
+                        aiProvider: normalizeProvider(k.provider)
+                    };
+                }
+            } catch (_) { /* bỏ qua: chỉ là metadata */ }
+        }
+
         await Submission.updateOne(
             { _id: submission._id },
             {
@@ -146,7 +166,8 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
                     status: 'failed',
                     errorMessage: err.message,
                     gradedAt: new Date(),
-                    model: model || null
+                    model: model || null,
+                    ...failedKeyMeta
                 }
             }
         );
@@ -238,6 +259,9 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
                     model: aiResult?.modelUsed || model || null,
                     aiKeyId: aiResult?.keyUsed?.id || null,
                     aiKeyName: aiResult?.keyUsed?.name || null,
+                    aiProvider: aiResult
+                        ? normalizeProvider(aiResult.aiProvider || aiResult.keyUsed?.provider)
+                        : null,
                     latencyMs: aiResult?.latencyMs || null,
 
                     // ===== PROMPT SNAPSHOT =====

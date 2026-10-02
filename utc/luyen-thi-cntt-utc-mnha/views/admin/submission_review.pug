@@ -67,12 +67,15 @@ block content
                         i(data-lucide="calendar", class="w-4 h-4 inline-block mr-1")
                         | Nộp lúc: #{submission.submittedAt ? new Date(submission.submittedAt).toLocaleString("vi-VN") : (submission.createdAt ? new Date(submission.createdAt).toLocaleString("vi-VN") : "Không rõ")}
 
-                    if submission.model || aiLabel
+                    //- ★ Nhãn AI giống lesson.pug: ưu tiên snapshot lưu trên bài nộp (submission.aiLabel)
+                    //-   → fallback aiLabel controller truyền vào
+                    - const shownAiLabel = submission.aiLabel || aiLabel
+                    if submission.model || shownAiLabel
                         p(class="mt-2 flex flex-wrap items-center gap-2")
                             if submission.model
                                 span(class="text-xs font-mono px-2 py-1 rounded bg-indigo-50 text-indigo-700")= submission.model
-                            if aiLabel
-                                span(class="text-xs px-2 py-1 rounded bg-purple-50 text-purple-700")= aiLabel
+                            if shownAiLabel
+                                span(class="text-xs px-2 py-1 rounded bg-purple-50 text-purple-700")= shownAiLabel
 
                 div(class="text-right flex-shrink-0")
                     div(class="text-3xl font-bold text-blue-600")

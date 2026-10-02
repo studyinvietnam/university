@@ -93,6 +93,17 @@ const submissionSchema = new mongoose.Schema(
             default: null
         },
 
+        // ★ Nhà cung cấp AI lúc chấm (snapshot): 'gemini' | 'vilao'.
+        //   Bài cũ không có field này → nơi đọc phải tra provider qua aiKeyId
+        //   (xem resolveAiLabel trong submission.controller.js).
+        aiProvider: {
+            type: String,
+            enum: ['gemini', 'vilao'],
+            // null (không phải 'gemini') để bài cũ không bị gán nhầm Gemini khi đọc
+            // bằng Mongoose document; nơi đọc dùng `aiProvider || tra theo aiKeyId`.
+            default: null
+        },
+
         latencyMs: {
             type: Number,
             default: null

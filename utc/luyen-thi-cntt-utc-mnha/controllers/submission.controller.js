@@ -11,6 +11,27 @@ const AuditLog = require('../models/AuditLog');
 
 const { paginate } = require('./pagination.controller');
 const { formatAiLabel } = require('../utils/aiLabel');
+const AIKey = require('../models/AIKey');
+
+// ★ Nhãn AI của 1 bài nộp: "Gemini: tên" / "vilao.ai: tên".
+//   - Bài mới: dùng snapshot submission.aiProvider.
+//   - Bài cũ (chưa có aiProvider, .lean() không áp default): tra provider thật
+//     của key qua aiKeyId, tránh hiện nhầm "Gemini" cho key vilao.ai.
+async function resolveAiLabel(submission) {
+    let provider = submission.aiProvider || null;
+    let keyName = submission.aiKeyName || null;
+
+    if (!provider && submission.aiKeyId) {
+        try {
+            const k = await AIKey.findById(submission.aiKeyId).select('name provider').lean();
+            if (k) {
+                provider = k.provider;
+                if (!keyName) keyName = k.name || null;
+            }
+        } catch (_) { /* bỏ qua, rơi về Gemini */ }
+    }
+    return formatAiLabel(provider || 'gemini', keyName);
+}
 
 const {
     getActor,
@@ -327,7 +348,7 @@ const getSubmission = async (req, res) => {
         return res.render('student/submission-detail', {
             title: 'Chi tiết bài nộp',
             submission,
-            aiLabel: formatAiLabel(submission.aiProvider || 'gemini', submission.aiKeyName), // ★ vilao.ai
+            aiLabel: await resolveAiLabel(submission), // ★ vilao.ai
             isAdmin,
             error: req.query.error || null,
             success: req.query.success || null
@@ -496,7 +517,7 @@ const getSubmissionReview = async (req, res) => {
         return res.render('admin/submission_review', {
             title: 'Nhận xét bài làm',
             submission,
-            aiLabel: formatAiLabel(submission.aiProvider || 'gemini', submission.aiKeyName), // ★ vilao.ai
+            aiLabel: await resolveAiLabel(submission), // ★ vilao.ai
             answerHtml: submission.answerHtml || '',
             error: req.query.error || null,
             success: req.query.success || null
