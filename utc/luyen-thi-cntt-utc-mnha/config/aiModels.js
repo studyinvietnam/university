@@ -85,6 +85,7 @@ const VILAO_MODELS = [
     "gpt-3.5-turbo",
 
     // === Anthropic (nếu vilao.ai hỗ trợ) ===
+    "occ/claude-opus-5",
     "claude-3-5-sonnet",
     "claude-3-5-haiku",
     "claude-3-opus",
