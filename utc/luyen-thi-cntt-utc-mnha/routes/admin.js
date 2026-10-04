@@ -369,7 +369,23 @@ router.post("/users/:id/approve", async (req, res) => {
             userKey: req.body.userKey || undefined
         });
 
-        await User.updateOne({ _id: targetUser._id }, { $set: changes });
+        // Ghi có điều kiện: nếu giữa chừng có admin khác đã duyệt / nhận user này rồi
+        // (status hoặc userKey đã đổi) thì không ghi đè → báo 409.
+        const result = await User.updateOne(
+            {
+                _id: targetUser._id,
+                status: targetUser.status,
+                role: targetUser.role,
+                userKey: targetUser.userKey || null
+            },
+            { $set: changes }
+        );
+        if (!result.matchedCount) {
+            return res.status(409).json({
+                success: false,
+                message: "Tài khoản này vừa được xử lý bởi người khác. Hãy tải lại trang."
+            });
+        }
 
         return res.json({ success: true });
     } catch (error) {
@@ -399,6 +415,15 @@ router.post("/users/:id/update", async (req, res) => {
         const targetUser = await User.findOne({ $and: [{ _id: req.params.id }, scope] });
         if (!targetUser) {
             return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
+        }
+
+        // ★ Client mới chưa gán tổ chức: admin user_key chỉ được DUYỆT (nhận về tổ chức mình),
+        //   không được sửa/từ chối — tránh tác động tới người chưa thuộc tổ chức mình.
+        if (!isDef && !targetUser.userKey) {
+            return res.status(403).json({
+                success: false,
+                message: "Hãy bấm Duyệt để nhận tài khoản này vào tổ chức của bạn trước khi chỉnh sửa."
+            });
         }
 
         // Admin user_key không được nâng ai lên admin

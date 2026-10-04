@@ -221,14 +221,23 @@ async function getContentScope(req) {
 
 /**
  * Filter danh sách user mà admin được nhìn thấy trong trang duyệt user.
- * Admin user_key: chỉ client/student cùng userKey. Admin default: tất cả.
+ * Admin user_key: client/student cùng userKey + client pending chưa gán tổ chức.
+ * Admin default: tất cả.
  */
 function buildUserListFilter(actor) {
     if (isDefaultAdmin(actor)) return {};
     if (isOrgAdmin(actor)) {
+        // Lưu ý: filter này có $or ở TOP-LEVEL → caller phải gộp bằng $and
+        // ({ $and: [filter, extra] }), không spread cùng một $or khác.
         return {
-            userKey: actor.userKey,
-            role: { $in: ['client', 'student'] }
+            $or: [
+                // 1) user đã thuộc tổ chức của admin
+                { userKey: actor.userKey, role: { $in: ['client', 'student'] } },
+                // 2) ★ client MỚI ĐĂNG KÝ, chưa ai duyệt, chưa gán tổ chức (userKey null/thiếu):
+                //    đăng ký không có mã tổ chức nên userKey = null (xem auth.controller verifyOtp);
+                //    admin user_key phải thấy để duyệt → duyệt = nhận về tổ chức của mình.
+                { userKey: null, role: 'client', status: 'pending' }
+            ]
         };
     }
     return { _id: null }; // không phải admin → không thấy ai
@@ -238,7 +247,8 @@ function buildUserListFilter(actor) {
  * Tính các field cần $set khi ADMIN DUYỆT một user.
  * Gọi hàm này trong controller duyệt user rồi User.updateOne / save.
  *
- *   - Admin user_key: chỉ duyệt user CÙNG userKey, chỉ thành 'student',
+ *   - Admin user_key: chỉ duyệt user CÙNG userKey (hoặc client pending chưa gán
+ *                     tổ chức → nhận về tổ chức mình), chỉ thành 'student',
  *     userKey bị CỐ ĐỊNH theo admin — mọi userKey gửi lên bị bỏ qua.
  *   - Admin default : chọn role 'student' | 'admin'; được đổi userKey
  *     (input.userKey: '' hoặc null = tổ chức default).
@@ -254,7 +264,10 @@ async function resolveApproval(actor, target, input = {}) {
     const approvedFields = { status: 'approved', approvedAt: new Date(), approvedBy: actor._id };
 
     if (isOrgAdmin(actor)) {
-        if (toId(target.userKey) !== toId(actor.userKey)) {
+        // ★ client mới đăng ký (pending, chưa có tổ chức) → được duyệt & nhận về tổ chức mình
+        const isUnclaimed =
+            !target.userKey && target.role === 'client' && target.status === 'pending';
+        if (!isUnclaimed && toId(target.userKey) !== toId(actor.userKey)) {
             throw httpError(403, 'Bạn chỉ được duyệt user thuộc tổ chức của mình.');
         }
         if (!['client', 'student'].includes(target.role)) {
