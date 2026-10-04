@@ -30,12 +30,19 @@ block content
                         | Danh sách
 
                 if !showDeleted
+                    //- ★ Hai loại bài: tự luận (form cũ, giữ nguyên) và trắc nghiệm (form mới)
                     a(
                         href="/admin/lessons/create"
                         class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
                     )
-                        i(data-lucide="plus", class="w-4 h-4")
-                        | Thêm bài học
+                        i(data-lucide="pen-line", class="w-4 h-4")
+                        | Tạo bài tự luận
+                    a(
+                        href=(filters && filters.subject) ? `/admin/quiz/new?subjectId=${filters.subject}` : "/admin/quiz/new"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
+                    )
+                        i(data-lucide="list-checks", class="w-4 h-4")
+                        | Tạo bài trắc nghiệm
 
         //- ============================================================
         //- FLASH
@@ -99,6 +106,10 @@ block content
         if lessons && lessons.length
             div(class="space-y-3")
                 each lesson, index in lessons
+                    //- ★ Bài cũ không có `type` (lean không áp default) → essay
+                    - const isQuiz = (lesson.type || 'essay') === 'quiz'
+                    - const qc = lesson.quizCounts || {}
+                    - const quizTotal = (qc.mcq || 0) + (qc.tf || 0) + (qc.fill || 0)
                     div(class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition")
 
                         div(class="flex flex-col lg:flex-row lg:items-start justify-between gap-4")
@@ -119,6 +130,17 @@ block content
                                                 i(data-lucide="book-open", class="w-3 h-3")
                                                 = lesson.subject.name
 
+                                        if isQuiz
+                                            span(class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium")
+                                                i(data-lucide="list-checks", class="w-3 h-3")
+                                                | Trắc nghiệm
+                                                if quizTotal
+                                                    |  · #{quizTotal} câu
+                                        else
+                                            span(class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 font-medium")
+                                                i(data-lucide="pen-line", class="w-3 h-3")
+                                                | Tự luận
+
                                         span(class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium")
                                             i(data-lucide="clock", class="w-3 h-3")
                                             = (lesson.duration || 20) + ' phút'
@@ -132,7 +154,12 @@ block content
 
                                     //- AI CONFIG
                                     div(class="flex items-center gap-2 mt-2 flex-wrap text-xs")
-                                        if lesson.aiKeyId || lesson.model
+                                        if isQuiz
+                                            //- Trắc nghiệm: điểm do server chấm, AI chỉ dùng khi sinh viên bấm "Phân tích AI"
+                                            span(class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium")
+                                                i(data-lucide="zap", class="w-3 h-3")
+                                                | Chấm tự động
+                                        else if lesson.aiKeyId || lesson.model
                                             span(class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium")
                                                 i(data-lucide="bot", class="w-3 h-3")
                                                 = lesson.model || 'Chưa chọn model'
@@ -179,7 +206,7 @@ block content
 
                                     //- Sửa
                                     a(
-                                        href=`/admin/lessons/${lesson._id}/edit`
+                                        href=isQuiz ? `/admin/quiz/${lesson._id}/edit` : `/admin/lessons/${lesson._id}/edit`
                                         class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-indigo-600 transition"
                                         title="Chỉnh sửa"
                                     )
@@ -247,9 +274,16 @@ block content
                         | Hãy tạo bài học đầu tiên để bắt đầu.
 
                 if !showDeleted
-                    a(
-                        href="/admin/lessons/create"
-                        class="inline-flex items-center gap-2 mt-5 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
-                    )
-                        i(data-lucide="plus", class="w-4 h-4")
-                        | Thêm bài học
+                    div(class="flex items-center justify-center gap-2 mt-5 flex-wrap")
+                        a(
+                            href="/admin/lessons/create"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
+                        )
+                            i(data-lucide="pen-line", class="w-4 h-4")
+                            | Tạo bài tự luận
+                        a(
+                            href="/admin/quiz/new"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
+                        )
+                            i(data-lucide="list-checks", class="w-4 h-4")
+                            | Tạo bài trắc nghiệm

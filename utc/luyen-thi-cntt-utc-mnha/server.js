@@ -349,6 +349,7 @@ let aiRoutes;
 let adminRoutes;
 let layoutSettingsRoutes;
 let userConnectRoutes;
+let quizRoutes = null;
 
 try {
     authRoutes = require("./routes/auth");
@@ -366,6 +367,26 @@ try {
 } catch (error) {
     logError("ROUTE MODULE LOAD ERROR", error);
     process.exit(1);
+}
+
+// ★ TRẮC NGHIỆM — routes/quiz.js (tự khai báo đường dẫn tuyệt đối:
+//   /admin/quiz/*, /admin/quiz-submissions/:id/review, /api/quiz/*, /quiz/submissions/:id).
+//   Tách khỏi khối try ở trên có chủ đích: thiếu CHÍNH file routes/quiz.js (chưa
+//   triển khai) chỉ cảnh báo và bỏ qua, KHÔNG làm sập server của tính năng tự luận.
+//   Mọi lỗi khác (cú pháp, thiếu dependency bên trong quiz.js…) vẫn dừng server
+//   như các route khác để không chạy với tính năng hỏng âm thầm.
+try {
+    quizRoutes = require("./routes/quiz");
+} catch (error) {
+    const missingQuizFile =
+        error.code === "MODULE_NOT_FOUND" &&
+        /routes[\\/]quiz['"]?/.test(String(error.message).split("\n")[0]);
+    if (missingQuizFile) {
+        console.warn("⚠️ [server] Chưa có routes/quiz.js — tính năng trắc nghiệm chưa bật.");
+    } else {
+        logError("QUIZ ROUTE MODULE LOAD ERROR", error);
+        process.exit(1);
+    }
 }
 
 // ============================================================
@@ -395,6 +416,12 @@ app.use("/api/ai", aiRoutes);
 app.use("/layout", layoutSettingsRoutes.logoRouter);        // GET /layout/logo/:userKeyId
 app.use("/admin/layout", layoutSettingsRoutes);             // GET/POST /admin/layout, POST /admin/layout/reset
 app.use("/admin/users/connect", userConnectRoutes);         // tài khoản kết nối (admin user_key)
+
+// ★ Trắc nghiệm: mount TRƯỚC adminRoutes để /admin/quiz/* và /admin/quiz-submissions/*
+//   không bị route chung của adminRoutes nuốt. Router tự giới hạn đúng các đường dẫn của nó.
+if (quizRoutes) {
+    app.use("/", quizRoutes);
+}
 
 app.use("/admin", adminRoutes);
 

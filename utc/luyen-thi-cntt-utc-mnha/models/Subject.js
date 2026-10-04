@@ -48,6 +48,14 @@ const subjectSchema = new mongoose.Schema(
             default: null
         },
 
+        // ★ Prompt PHÂN TÍCH TRẮC NGHIỆM riêng cho môn (GradingPrompt.kind = 'quiz').
+        //   Tách khỏi promptId (prompt chấm tự luận) để không lẫn nhau.
+        quizPromptId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'GradingPrompt',
+            default: null
+        },
+
         // Công khai cho sinh viên
         isPublished: {
             type: Boolean,

@@ -1,0 +1,263 @@
+extends ../layout
+
+//- ================================================================
+//-  Trang LÀM BÀI TRẮC NGHIỆM (student)
+//-  Controller phải truyền:
+//-    lesson          : { _id, title, duration? (phút, 1–600, mặc định 20 như bài tự luận), subject?: { name }, contentHtml? }
+//-    quiz            : kết quả của toStudentView() — KHÔNG có correct / answers / explanationHtml
+//-                      { maxScore, parts: { mcq:{pointsPerQuestion,questions}, tf:{...}, fill:{...,note} } }
+//-    isAdminView     : (tuỳ chọn) true → chỉ xem, không nộp
+//-    analysisAis     : (tuỳ chọn) [{ id, label }] các AI cho phép phân tích
+//-    maxAnalyses     : (tuỳ chọn) mặc định 5
+//- ================================================================
+
+block content
+    - var qz = quiz || {}
+    - var qparts = qz.parts || {}
+    - var PART_TITLES = { mcq: 'Trắc nghiệm nhiều đáp án', tf: 'Đúng / Sai', fill: 'Điền số liệu / đáp án' }
+    - var PART_KEYS = ['mcq', 'tf', 'fill'].filter(function (k) { return qparts[k] && qparts[k].questions && qparts[k].questions.length })
+    - var totalQuestions = PART_KEYS.reduce(function (n, k) { return n + qparts[k].questions.length }, 0)
+    - var duration = lesson.duration || 20
+    - var maxScore = qz.maxScore || 10
+    - var studentName = (typeof user !== 'undefined' && user && user.name) ? user.name : 'THÍ SINH'
+    - var subjectName = (typeof subject !== 'undefined' && subject && subject.name) ? subject.name : (lesson.subject && lesson.subject.name ? lesson.subject.name : '')
+    - var payload = { lessonId: String(lesson._id), title: lesson.title, duration: duration, maxScore: maxScore, readOnly: false, parts: qparts, analysisAis: analysisAis || [], maxAnalyses: maxAnalyses || 5, alarmSrc: '/musics/iphone-17-pro-max.mp3' }
+    - var safeJson = JSON.stringify(payload).replace(/</g, '\\u003c')
+
+    link(rel="stylesheet", href="/css/quiz-exam.css")
+
+    div(class="quiz-pre")
+        a(href="/practice", class="quiz-back") ← Quay lại luyện tập
+
+    div(class="exam-page" + (PART_KEYS.length ? " qx-pending" : ""))
+
+        if !PART_KEYS.length
+            div(class="lock-msg show") Bài trắc nghiệm này chưa có câu hỏi nào.
+        else
+            //- ===== MÀN HÌNH BẮT ĐẦU (đề + đồng hồ chỉ chạy sau khi bấm) =====
+            div(class="qx-start", id="qxStart")
+                div(class="qx-start-card")
+                    span(class="qx-kicker") BÀI TRẮC NGHIỆM
+                    h2= lesson.title
+                    if subjectName
+                        p(class="qx-sub")= subjectName
+                    div(class="qx-facts")
+                        div
+                            strong= totalQuestions
+                            span câu hỏi
+                        div
+                            strong= duration
+                            span phút
+                        div
+                            strong= maxScore
+                            span thang điểm
+                    ul(class="qx-rules")
+                        li Câu hỏi chỉ hiện sau khi bạn bấm nút bên dưới.
+                        li Đồng hồ đếm ngược bắt đầu chạy ngay khi bấm.
+                        li Hết giờ chuông sẽ reo, hãy nộp bài trước khi hết giờ.
+                        li Không tải lại trang khi đang làm bài.
+                    button(type="button", id="qxStartBtn", class="qx-start-btn")= '▶ BẮT ĐẦU LÀM BÀI'
+
+            //- ===== CHUÔNG BÁO HẾT GIỜ (giống lesson.pug) =====
+            div(id="audioBar", class="audio-bar locked")
+                div(class="audio-bar-icon") 🔊
+                div(class="audio-bar-info")
+                    div(class="title")
+                        | Chuông báo hết giờ
+                        span(id="audioBadge", class="audio-badge") 🔒 Đang khoá
+                    div(class="desc")
+                        | Chỉ tự động reo lặp khi đồng hồ về 00:00 — tự tắt khi bạn nộp bài.
+                audio(id="timeUpAudio", controls, preload="auto", src="/musics/iphone-17-pro-max.mp3")
+                    | Trình duyệt của bạn không hỗ trợ thẻ audio.
+
+            div(id="lockMessage", class="lock-msg")
+
+            //- ===== THANH THÔNG TIN =====
+            section(class="exam-bar")
+                div(class="student-info")
+                    strong= studentName
+                    span= 'Môn: ' + (subjectName || '—')
+                    span= 'Bài: ' + lesson.title
+                div(class="exam-status")
+                    div(id="timerWrap", class="timer-wrap")
+                        span(class="timer-icon") ◷
+                        span(id="timer")= String(duration).padStart(2, '0') + ':00'
+                    span(id="connectionDot", class="connection-dot")
+                    span(id="statusText", class="connection-text") Đang làm bài
+                    button(type="button", class="submit-top", id="submitTop") NỘP BÀI
+                    button(type="button", class="fullscreen-btn", id="fullscreenBtn", title="Toàn màn hình") ⛶
+
+            //- ===== TOOLBAR =====
+            div(class="toolbar", id="toolbar")
+                button(type="button", class="tool-btn", id="prevBtn") ← Câu trước
+                button(type="button", class="tool-btn primary", id="nextBtn") Câu tiếp theo →
+                div(class="progress-info")
+                    span Số câu đã trả lời:
+                    strong(id="answeredCount") 0
+                    span= '/ ' + totalQuestions
+                span(id="saveHint", class="save-hint")
+                button(type="button", class="tool-btn save", id="saveBtn", style="margin-left:0") Lưu nháp
+
+            //- ===== NỘI DUNG CHÍNH =====
+            main(class="exam-content", id="examContent")
+                aside(class="chapter-panel")
+                    div(class="panel-heading")
+                        span= lesson.title
+                        small= (subjectName ? subjectName.toUpperCase() + ' • ' : '') + totalQuestions + ' CÂU • ' + duration + ' PHÚT • THANG ' + maxScore
+
+                    div(class="chapter-summary")
+                        h3 Cấu trúc đề
+                        each k, i in PART_KEYS
+                            div(class="summary-item")
+                                span= '0' + (i + 1)
+                                p
+                                    = PART_TITLES[k]
+                                    small= qparts[k].questions.length + ' câu' + (qparts[k].pointsPerQuestion ? ' • ' + qparts[k].pointsPerQuestion + ' điểm/câu' : '')
+
+                    if lesson.contentHtml
+                        div(class="lesson-desc")
+                            != lesson.contentHtml
+
+                    div(class="exam-note")
+                        h3 Hướng dẫn
+                        ul
+                            li= 'Thời gian làm bài: ' + duration + ' phút (đồng hồ đếm ngược ở góc trên).'
+                            li Câu có ô vuông: chọn <b>tất cả</b> đáp án đúng. Câu có ô tròn: chọn <b>một</b> đáp án.
+                            li Chuyển câu bằng nút, phím ← → hoặc bấm số câu phía dưới.
+                            li Hết giờ chuông sẽ reo lặp cho tới khi bạn nộp bài.
+                            li Sau khi nộp, hệ thống hiện đáp án, giải thích và cho phép phân tích AI.
+                            li= 'Điểm quy đổi theo thang ' + maxScore + '.'
+
+                    div(class="left-progress")
+                        div(class="progress-title")
+                            span TIẾN ĐỘ
+                            b(id="progressPercent") 0%
+                        div(class="progress-track")
+                            div(class="progress-fill", id="progressFill")
+
+                section(class="question-panel")
+                    div(class="question-top")
+                        div
+                            span(class="question-label") CÂU HỎI
+                            strong(id="questionNumber")= '1 / ' + totalQuestions
+                        button(type="button", class="flag-btn", id="flagBtn") ⚑ Đánh dấu
+                    div(id="questionContainer")
+
+            //- ===== DANH SÁCH CÂU =====
+            section(class="question-nav", id="questionNav")
+                div(class="nav-title")
+                    strong DANH SÁCH CÂU HỎI
+                    span ● Đã trả lời &nbsp;&nbsp; ○ Chưa trả lời &nbsp;&nbsp; ⚑ Đánh dấu
+                div(class="question-numbers", id="questionNumbers")
+
+            //- ===== VÙNG NỘP =====
+            section(class="submit-area", id="submitArea")
+                div
+                    h3 Đã hoàn thành bài?
+                    p Kiểm tra lại các câu chưa trả lời trước khi nộp.
+                button(type="button", class="submit-main", id="submitMain") NỘP BÀI & XEM KẾT QUẢ
+
+            //- ===== KẾT QUẢ =====
+            section(class="result-section hidden", id="resultSection")
+                div(class="result-header")
+                    div
+                        span(class="result-kicker") KẾT QUẢ BÀI LÀM
+                        h2= lesson.title
+                    div(class="score-box")
+                        span ĐIỂM
+                        strong(id="scoreValue") 0
+                        small(id="scoreMax")= '/ ' + maxScore
+
+                div(class="result-stats")
+                    div(class="stat correct")
+                        span Đúng
+                        strong(id="correctCount") 0
+                    div(class="stat wrong")
+                        span Sai
+                        strong(id="wrongCount") 0
+                    div(class="stat unanswered")
+                        span Chưa trả lời
+                        strong(id="unansweredCount") 0
+                    div(class="stat percent")
+                        span Tỷ lệ đúng
+                        strong(id="resultPercent") 0%
+
+                div(class="parts-breakdown", id="partsBreakdown")
+                div(class="result-message", id="resultMessage")
+
+                div(class="review-heading")
+                    h3 ĐÁP ÁN & GIẢI THÍCH
+                    p Đáp án đúng được tô xanh; đáp án bạn chọn sai được tô đỏ.
+                div(class="review-list", id="reviewList")
+
+                //- ===== PHÂN TÍCH AI (nằm dưới đề + đáp án) =====
+                div(class="ai-section", id="aiSection")
+                    h3 🤖 Phân tích AI
+                    p AI chỉ ra lỗ hổng kiến thức và giải thích vì sao sai. Điểm số đã được server chấm tự động, AI không thay đổi điểm.
+                    div(class="ai-actions")
+                        select(id="aiPick", class="hidden")
+                        button(type="button", class="btn-analyze", id="analyzeBtn", disabled) ⏳ Đang lưu bài…
+                        span(id="analyzeMsg", class="analyze-msg")
+                    div(class="analysis-list", id="analysisList")
+
+                button(type="button", class="retry-btn", id="retryBtn") LÀM LẠI BÀI
+
+            script(id="quizData", type="application/json")!= safeJson
+            style.
+                .exam-page.qx-pending > *:not(.qx-start) { display: none !important; }
+                .qx-start { display: flex; justify-content: center; padding: 32px 16px; }
+                .qx-start-card { width: 100%; max-width: 560px; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px 28px; text-align: center; box-shadow: 0 8px 30px rgba(15, 23, 42, .08); }
+                .qx-kicker { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #2563eb; margin-bottom: 8px; }
+                .qx-start-card h2 { margin: 0 0 4px; font-size: 24px; color: #0f172a; }
+                .qx-sub { margin: 0 0 20px; color: #64748b; }
+                .qx-facts { display: flex; gap: 12px; justify-content: center; margin: 20px 0; }
+                .qx-facts > div { flex: 1; background: #f1f5f9; border-radius: 12px; padding: 14px 8px; }
+                .qx-facts strong { display: block; font-size: 28px; color: #0f172a; line-height: 1.1; }
+                .qx-facts span { font-size: 13px; color: #64748b; }
+                .qx-rules { text-align: left; margin: 0 0 24px; padding-left: 20px; color: #334155; line-height: 1.7; font-size: 14px; }
+                .qx-start-btn { width: 100%; padding: 14px 20px; border: 0; border-radius: 12px; background: #2563eb; color: #fff; font-size: 17px; font-weight: 700; cursor: pointer; }
+                .qx-start-btn:hover { background: #1d4ed8; }
+                .qx-start-btn:disabled { opacity: .7; cursor: wait; }
+            script.
+                (function () {
+                  var btn = document.getElementById('qxStartBtn');
+                  var page = document.querySelector('.exam-page');
+                  var started = false;
+                  if (!btn || !page) return;
+
+                  // Đang có bài làm dở (quizTake.js lưu nháp + giờ kết thúc) → đổi chữ nút
+                  try {
+                    var cfg = JSON.parse(document.getElementById('quizData').textContent);
+                    var d = JSON.parse(localStorage.getItem('quiz-draft:' + cfg.lessonId) || 'null');
+                    if (d && d.endAt && Date.now() < d.endAt + 30 * 60 * 1000) {
+                      btn.textContent = '▶ TIẾP TỤC LÀM BÀI';
+                    }
+                  } catch (e) { /* bỏ qua */ }
+                  var label = btn.textContent;
+
+                  btn.addEventListener('click', function () {
+                    if (started) return;
+                    started = true;
+                    btn.disabled = true;
+                    btn.textContent = 'Đang tải đề…';
+
+                    // Hiện đề TRƯỚC khi nạp script để quizTake.js vẽ đúng layout;
+                    // đồng hồ chỉ bắt đầu chạy từ lúc này (hoặc tiếp tục theo nháp cũ).
+                    var start = document.getElementById('qxStart');
+                    page.classList.remove('qx-pending');
+                    if (start) start.style.display = 'none';
+
+                    var s = document.createElement('script');
+                    s.src = '/js/quizTake.js';
+                    s.onload = function () { if (start) start.remove(); window.scrollTo(0, 0); };
+                    s.onerror = function () {
+                      started = false;
+                      page.classList.add('qx-pending');
+                      if (start) start.style.display = '';
+                      btn.disabled = false;
+                      btn.textContent = label;
+                      alert('Không tải được bài làm. Vui lòng thử lại.');
+                    };
+                    document.body.appendChild(s);
+                  });
+                })();

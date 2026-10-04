@@ -1,0 +1,111 @@
+//- views/partials/quiz-result.pug
+//- Mixin hiển thị khối đề + đáp án + phân tích AI (dùng cho cả SV và admin)
+mixin renderQuizResult(doc, formatAiLabel, opts)
+  - opts = opts || {}
+  - const quiz = doc.quizSnapshot
+  - const result = doc.result
+
+  //- ① Tổng quan
+  .bg-white.border.rounded-lg.p-4.shadow.mb-4
+    h2.text-xl.font-bold.mb-2 Kết quả
+    .text-lg Điểm: <b>#{result.score}</b> / #{result.maxScore}
+    .text-sm.text-gray-600 Đúng #{result.correctCount}/#{result.totalCount} câu
+    each partKey in ['mcq', 'tf', 'fill']
+      - const ps = result.parts[partKey]
+      if ps
+        .text-sm.text-gray-600
+          = (partKey === 'mcq' ? 'Phần 1' : partKey === 'tf' ? 'Phần 2' : 'Phần 3') + `: ${ps.correct}/${ps.total} câu (${ps.earned}/${ps.points} điểm)`
+
+  //- ② Đề + bài làm + đáp án
+  each partKey in ['mcq', 'tf', 'fill']
+    - const p = quiz.parts[partKey]
+    if p && p.questions && p.questions.length
+      section.mb-6
+        h3.text-lg.font-semibold.mb-2
+          = (partKey === 'mcq' ? 'Phần 1 — Trắc nghiệm' : partKey === 'tf' ? 'Phần 2 — Đúng/Sai' : 'Phần 3 — Điền đáp án')
+        if partKey === 'fill' && p.note
+          .text-sm.italic.text-gray-600.mb-2= p.note
+        each q in p.questions
+          - const item = (result.items || []).find(x => x.id === q.id) || {}
+          - const status = item.correct ? 'correct' : (item.studentAnswer == null || item.studentAnswer === '' || (Array.isArray(item.studentAnswer) && !item.studentAnswer.length)) ? 'blank' : 'wrong'
+          .border.rounded-lg.p-3.mb-3(class=status)
+            .font-medium.mb-2
+              span.text-gray-500= q.id + '. '
+              //- q.text là text thuần → render bằng `=` (tự escape), xuống dòng bằng CSS
+              span(style="white-space:pre-line")= q.text
+              if item.points != null
+                span.text-xs.text-gray-500.ml-2= ' (' + item.earned + '/' + item.points + 'đ)'
+            if q.image
+              img(src=q.image loading="lazy" referrerpolicy="no-referrer" style="max-height:200px").mb-2
+
+            if partKey === 'mcq'
+              each o in q.options
+                - const chosen = (item.studentAnswer || []).includes(o.key)
+                - const isCorrect = (q.correct || []).includes(o.key)
+                div(class=(isCorrect ? 'text-green-700 font-semibold' : '') + (chosen && !isCorrect ? ' text-red-600 line-through' : ''))
+                  = o.key + '. ' + o.text
+                  if chosen then span.text-xs  (bạn chọn)
+                  if isCorrect then span.text-xs  ✔
+            else if partKey === 'tf'
+              .text-sm
+                | Bạn chọn: <b>#{item.studentAnswer === true ? 'Đúng' : item.studentAnswer === false ? 'Sai' : '(bỏ trống)'}</b>
+                |  — Đáp án: <b class="text-green-700">#{q.correct ? 'Đúng' : 'Sai'}</b>
+            else
+              .text-sm
+                | Bạn điền: <b>#{item.studentAnswer || '(bỏ trống)'}</b>
+                |  — Đáp án chấp nhận: <b class="text-green-700">#{(q.answers || []).join(' | ')}</b>
+
+            if q.explanationHtml
+              .mt-2.text-sm.bg-blue-50.border.border-blue-200.rounded.p-2
+                b Giải thích:
+                //- explanationHtml đã sanitize ở controller (prepareDocForView) + lúc lưu đề
+                span!= q.explanationHtml
+
+  //- ③ Phân tích AI
+  if doc.aiAnalyses && doc.aiAnalyses.length
+    .bg-white.border.rounded-lg.p-4.shadow.mb-4
+      h3.text-lg.font-semibold.mb-3 Phân tích AI
+      each an in doc.aiAnalyses.slice().reverse()
+        .border.rounded.p-3.mb-3.bg-purple-50
+          .text-sm.text-gray-600.mb-2
+            | 🤖 #{formatAiLabel(an.aiProvider || 'gemini', an.aiKeyName)} · #{an.model || ''} · #{new Date(an.analyzedAt).toLocaleString('vi-VN')}
+          .text-xs.text-gray-500.mb-2 Prompt: #{an.promptName} v#{an.promptVersion}
+          if an.status === 'parse_failed'
+            .text-sm.whitespace-pre-wrap= an.rawText
+          else if an.result
+            - const r = an.result
+            if r.summary
+              p.mb-2= r.summary
+            if r.weakTopics && r.weakTopics.length
+              .mb-2
+                b Chủ đề cần ôn:
+                ul.list-disc.ml-5
+                  each t in r.weakTopics
+                    li
+                      b= t.topic
+                      |  (#{t.wrongCount} câu sai) — #{t.advice || ''}
+            if r.mistakes && r.mistakes.length
+              .mb-2
+                b Lỗi cụ thể:
+                ul.list-disc.ml-5
+                  each m in r.mistakes
+                    li
+                      | [#{m.id}] #{m.why}
+                      br
+                      i Đúng: #{m.correctReasoning}
+                      br
+                      small 💡 #{m.tip}
+            if r.studyPlan && r.studyPlan.length
+              div
+                b Kế hoạch học:
+                ol.list-decimal.ml-5
+                  each s in r.studyPlan
+                    li= s
+
+  //- ④ Nhận xét GV
+  if doc.teacherComment
+    .bg-white.border.rounded-lg.p-4.shadow.mb-4
+      h3.text-lg.font-semibold.mb-2 Nhận xét của giảng viên
+      p= doc.teacherComment.content
+      .text-xs.text-gray-500.mt-2
+        | — #{doc.teacherComment.commentedByName || 'Giảng viên'}, #{new Date(doc.teacherComment.commentedAt).toLocaleString('vi-VN')}

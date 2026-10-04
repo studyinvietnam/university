@@ -9,7 +9,24 @@ const githubService = (() => {
     try { return require('./githubService'); } catch (_) { return null; }
 })();
 
+const {
+    QUIZ_PLACEHOLDERS,
+    DEFAULT_QUIZ_ANALYSIS_PROMPT
+} = require('../config/quizConfig');
+
 const GITHUB_READ_TIMEOUT_MS = 5000;
+
+// ★ kind = 'essay' (mặc định, gồm prompt cũ chưa có field kind) | 'quiz'
+function normalizeKind(kind) {
+    return kind === 'quiz' ? 'quiz' : 'essay';
+}
+
+// Filter theo kind. Prompt tự luận phải khớp cả document cũ thiếu `kind`.
+function kindFilter(kind) {
+    return normalizeKind(kind) === 'quiz'
+        ? { kind: 'quiz' }
+        : { kind: { $in: [null, 'essay'] } };
+}
 
 function readPromptFromGithub(filePath) {
     if (!githubService) return Promise.reject(new Error('githubService không khả dụng'));
@@ -110,17 +127,25 @@ const KNOWN_PLACEHOLDERS = [
     '{rubric}', '{max_score}', '{strictness}', '{student_name}'
 ];
 
-function findUnknownPlaceholders(text) {
+function findUnknownPlaceholders(text, kind = 'essay') {
+    const known = normalizeKind(kind) === 'quiz' ? QUIZ_PLACEHOLDERS : KNOWN_PLACEHOLDERS;
     const found = String(text || '').match(/\{[^{}]{1,40}\}/g) || [];
-    return [...new Set(found)].filter(p => !KNOWN_PLACEHOLDERS.includes(p));
+    return [...new Set(found)].filter(p => !known.includes(p));
 }
 
-function renderPromptTemplate(promptContent, variables = {}) {
+function renderPromptTemplate(promptContent, variables = {}, kind = 'essay') {
+    const isQuiz = normalizeKind(kind) === 'quiz';
     const template = promptContent && String(promptContent).trim()
         ? promptContent
-        : FALLBACK_PROMPT;
+        : (isQuiz ? DEFAULT_QUIZ_ANALYSIS_PROMPT : FALLBACK_PROMPT);
 
-    const map = {
+    const map = isQuiz ? {
+        '{đề_trắc_nghiệm}': escapeForPrompt(variables.quizText),
+        '{bài_làm}': escapeForPrompt(variables.essay),
+        '{kết_quả}': escapeForPrompt(variables.resultText),
+        '{max_score}': String(variables.maxScore ?? 10),
+        '{student_name}': escapeForPrompt(variables.studentName) || 'học sinh'
+    } : {
         '{đề_bài}': escapeForPrompt(variables.topic),
         '{bài_làm}': escapeForPrompt(variables.essay),
         '{lời_giải_mẫu}': variables.sampleSolution
@@ -139,7 +164,23 @@ function renderPromptTemplate(promptContent, variables = {}) {
     return rendered;
 }
 
-function buildFallbackPromptObject() {
+function buildFallbackPromptObject(kind = 'essay') {
+    if (normalizeKind(kind) === 'quiz') {
+        return {
+            _id: null,
+            name: 'Fallback phân tích trắc nghiệm (hardcoded)',
+            description: 'Dùng khi chưa có GradingPrompt kind=quiz nào active phù hợp trong DB.',
+            content: DEFAULT_QUIZ_ANALYSIS_PROMPT,
+            rubric: null,
+            strictness: 'normal',
+            maxScore: 10,
+            scope: 'fallback',
+            kind: 'quiz',
+            version: 0,
+            isFallback: true,
+            hydrateFailed: false
+        };
+    }
     return {
         _id: null,
         name: 'Fallback mặc định (hardcoded)',
@@ -149,42 +190,63 @@ function buildFallbackPromptObject() {
         strictness: 'normal',
         maxScore: 10,
         scope: 'fallback',
+        kind: 'essay',
         version: 0,
         isFallback: true,
         hydrateFailed: false
     };
 }
 
-async function resolvePrompt(lesson, subject) {
+// ------------------------------------------------------------
+// resolvePrompt(lesson, subject, kind = 'essay')
+//  - essay: Lesson.promptId → Subject.promptId → global default → fallback
+//  - quiz : Lesson.promptId → Subject.quizPromptId → global default quiz → fallback quiz
+//  Mọi bước đều lọc theo `kind` để prompt tự luận và trắc nghiệm KHÔNG lẫn nhau
+//  (gán nhầm prompt khác loại cho bài/môn → bỏ qua, rơi xuống tầng kế tiếp).
+// ------------------------------------------------------------
+async function resolvePrompt(lesson, subject, kind = 'essay') {
+    const k = normalizeKind(kind);
     if (!GradingPrompt) {
         console.warn('⚠️ [promptService] Model GradingPrompt chưa có — dùng fallback prompt.');
-        return buildFallbackPromptObject();
+        return buildFallbackPromptObject(k);
     }
     try {
         if (lesson?.promptId) {
             const lessonPrompt = await GradingPrompt.findOne({
-                _id: lesson.promptId, active: { $ne: false }
+                _id: lesson.promptId, active: { $ne: false }, ...kindFilter(k)
             }).lean();
             if (lessonPrompt) return hydrateFromGithub({ ...lessonPrompt, scope: 'lesson' });
         }
-        if (subject?.promptId) {
+        const subjectPromptId = k === 'quiz' ? subject?.quizPromptId : subject?.promptId;
+        if (subjectPromptId) {
             const subjectPrompt = await GradingPrompt.findOne({
-                _id: subject.promptId, active: { $ne: false }
+                _id: subjectPromptId, active: { $ne: false }, ...kindFilter(k)
             }).lean();
             if (subjectPrompt) return hydrateFromGithub({ ...subjectPrompt, scope: 'subject' });
         }
         const globalDefault = await GradingPrompt.findOne({
-            scope: 'global', isDefault: true, active: { $ne: false }
+            scope: 'global', isDefault: true, active: { $ne: false }, ...kindFilter(k)
         }).lean();
         if (globalDefault) return hydrateFromGithub(globalDefault);
     } catch (error) {
         console.error('❌ [promptService] resolvePrompt lỗi, dùng fallback:', error.message);
     }
-    return buildFallbackPromptObject();
+    return buildFallbackPromptObject(k);
 }
 
 function buildPrompt(promptDoc, vars = {}) {
     const content = promptDoc?.content;
+    const kind = normalizeKind(promptDoc?.kind);
+    if (kind === 'quiz') {
+        const text = renderPromptTemplate(content, {
+            quizText: vars['đề_trắc_nghiệm'],
+            essay: vars['bài_làm'],
+            resultText: vars['kết_quả'],
+            maxScore: vars.max_score,
+            studentName: vars.student_name
+        }, 'quiz');
+        return { text, unknownPlaceholders: findUnknownPlaceholders(content, 'quiz') };
+    }
     const text = renderPromptTemplate(content, {
         topic: vars['đề_bài'],
         essay: vars['bài_làm'],
@@ -193,18 +255,20 @@ function buildPrompt(promptDoc, vars = {}) {
         maxScore: promptDoc?.maxScore,
         strictness: promptDoc?.strictness,
         studentName: vars.student_name
-    });
-    return { text, unknownPlaceholders: findUnknownPlaceholders(content) };
+    }, 'essay');
+    return { text, unknownPlaceholders: findUnknownPlaceholders(content, 'essay') };
 }
 
 function buildSnapshot(promptDoc, unknownPlaceholders = []) {
     if (!promptDoc) {
         return { ...buildFallbackPromptObject(), unknownPlaceholders: [], snapshotAt: new Date() };
     }
+    const kind = normalizeKind(promptDoc.kind);
     return {
+        kind,
         promptId: promptDoc._id || null,
         name: promptDoc.name || null,
-        content: promptDoc.content || FALLBACK_PROMPT,
+        content: promptDoc.content || (kind === 'quiz' ? DEFAULT_QUIZ_ANALYSIS_PROMPT : FALLBACK_PROMPT),
         rubric: promptDoc.rubric || null,
         strictness: promptDoc.strictness || 'normal',
         maxScore: promptDoc.maxScore ?? 10,
@@ -218,6 +282,11 @@ function buildSnapshot(promptDoc, unknownPlaceholders = []) {
 
 module.exports = {
     FALLBACK_PROMPT,
+    DEFAULT_QUIZ_ANALYSIS_PROMPT,
+    QUIZ_PLACEHOLDERS,
+    normalizeKind,
+    kindFilter,
+    buildFallbackPromptObject,
     renderPromptTemplate,
     resolvePrompt,
     buildPrompt,

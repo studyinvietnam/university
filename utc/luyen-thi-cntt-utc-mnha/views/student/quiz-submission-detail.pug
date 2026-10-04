@@ -1,0 +1,36 @@
+//- views/student/quiz-submission-detail.pug
+//- Controller (showSubmissionDetail) truyền: submission, lesson, subject, doc (đã sanitize giải thích),
+//-   quizConfig, formatAiLabel, analysisAiOptions ([{id,label}] — rỗng = dùng AI mặc định)
+extends ../layout
+include ../partials/quiz-result
+
+block content
+  .max-w-4xl.mx-auto.px-4.py-6
+    h1.text-2xl.font-bold.mb-2= lesson.title
+    .text-sm.text-gray-500.mb-4= subject ? subject.name : ''
+
+    +renderQuizResult(doc, formatAiLabel)
+
+    //- Nút phân tích luôn hiện cho chủ bài (dropdown chỉ hiện khi bài cho phép chọn AI)
+    .bg-white.border.rounded-lg.p-4.shadow.mb-4
+      h3.text-lg.font-semibold.mb-1 🤖 Phân tích AI
+      p.text-sm.text-gray-500.mb-3 AI chỉ ra lỗ hổng kiến thức và giải thích vì sao sai. Điểm đã do server chấm tự động, AI không đổi điểm.
+      .flex.gap-2.items-center.flex-wrap
+        if analysisAiOptions && analysisAiOptions.length
+          select#aiSelect.border.rounded.px-2.py-1
+            option(value="") — AI mặc định —
+            each o in analysisAiOptions
+              option(value=o.id)= o.label
+        button#analyzeBtn.px-4.py-2.bg-purple-600.text-white.rounded(type="button" disabled) ⏳ Đang kiểm tra…
+        span#analyzeMsg.text-sm.text-gray-500
+
+    a(href="/student/history").inline-block.mt-4.text-blue-600 ← Về lịch sử
+
+  script.
+    window.__QUIZ_SUBMISSION_ID__ = '#{submission._id}';
+    window.__QUIZ_STATUS__ = '#{submission.status || ""}';
+    window.__QUIZ_MAX_ANALYSES__ = #{quizConfig.MAX_ANALYSES_PER_SUBMISSION || 5};
+    window.__QUIZ_ANALYSIS_COUNT__ = #{submission.analysisCount || 0};
+
+  //- Trang này KHÔNG dùng quizTake.js (không có #quizData nên script đó thoát sớm)
+  script(src="/js/quizDetail.js")

@@ -37,6 +37,14 @@ const submissionSchema = new mongoose.Schema(
             index: true
         },
 
+        // ★ Loại bài nộp: thiếu = 'essay' (lean: `s.type || 'essay'`)
+        type: {
+            type: String,
+            enum: ['essay', 'quiz'],
+            default: 'essay',
+            index: true
+        },
+
         // Nội dung bài làm
         answerHtml: {
             type: String,
@@ -108,6 +116,15 @@ const submissionSchema = new mongoose.Schema(
             type: Number,
             default: null
         },
+
+        // ★ TRẮC NGHIỆM: score đã quy về thang maxScore (server chấm, không dùng AI)
+        maxScore: { type: Number, default: null },
+        correctCount: { type: Number, default: null },
+        totalCount: { type: Number, default: null },
+
+        // ★ Phân tích AI (quiz): dùng để giới hạn số lần + cooldown
+        analysisCount: { type: Number, default: 0 },
+        lastAnalyzedAt: { type: Date, default: null },
 
         // Trạng thái
         status: {

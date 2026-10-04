@@ -18,6 +18,16 @@ const gradingPromptSchema = new mongoose.Schema(
         // ❌ ĐÃ BỎ: rubric    → nội dung thật nằm trên GitHub
         // ❌ ĐÃ BỎ: variables → nội dung thật nằm trên GitHub
 
+        // ★ Loại prompt: 'essay' (chấm tự luận) | 'quiz' (phân tích trắc nghiệm).
+        //   Thiếu = essay. Query prompt tự luận phải dùng kind: { $in: [null, 'essay'] }
+        //   vì .lean()/query không áp default cho document cũ.
+        kind: {
+            type: String,
+            enum: ['essay', 'quiz'],
+            default: 'essay',
+            index: true
+        },
+
         // Mức độ chặt
         strictness: {
             type: String,
@@ -110,6 +120,7 @@ const gradingPromptSchema = new mongoose.Schema(
 
 // Index tổng hợp
 gradingPromptSchema.index({ active: 1, scope: 1, isDefault: -1 });
+gradingPromptSchema.index({ kind: 1, scope: 1, isDefault: 1, active: 1 });
 gradingPromptSchema.index({ subjectId: 1, active: 1 });
 gradingPromptSchema.index({ lessonIds: 1, active: 1 });
 

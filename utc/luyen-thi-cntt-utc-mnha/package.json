@@ -41,7 +41,8 @@
     "multer": "^2.4.0",
     "nodemailer": "^10.0.10",
     "openai": "^7.27.0",
-    "pug": "^3.0.4"
+    "pug": "^3.0.4",
+    "sanitize-html": "^2.18.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

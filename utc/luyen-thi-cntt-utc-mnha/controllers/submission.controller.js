@@ -42,6 +42,14 @@ const {
 
 const MAX_COMMENT_LENGTH = 5000;
 
+// ★ TRẮC NGHIỆM: bài quiz có trang riêng (views/student/quiz-submission-detail.pug,
+//   views/admin/quiz_submission_review.pug) do quiz.controller.js phục vụ.
+//   Danh sách bài nộp dùng chung URL → controller này chỉ RẼ NHÁNH, không đụng logic tự luận.
+//   Bài cũ không có `type` (lean không áp default) → coi là essay.
+const isQuizSubmission = (s) => (s?.type || 'essay') === 'quiz';
+const quizDetailUrl = (id) => `/quiz/submissions/${id}`;
+const quizReviewUrl = (id) => `/admin/quiz-submissions/${id}/review`;
+
 // ============================================================
 // HELPER
 // ============================================================
@@ -205,6 +213,16 @@ const createSubmission = async (req, res) => {
             return res.redirect(`/lessons/${lessonId}?error=${encodeURIComponent('Không tìm thấy bài học.')}`);
         }
 
+        // ★ Bài trắc nghiệm KHÔNG đi qua luồng AI chấm tự luận (server chấm riêng
+        //   ở POST /api/quiz/:lessonId/submit). Chặn để không ai nộp essay vào bài quiz.
+        if ((lesson.type || 'essay') === 'quiz') {
+            const msg = 'Đây là bài trắc nghiệm, vui lòng làm và nộp trên trang bài học.';
+            if (wantsJson(req)) {
+                return res.status(400).json({ success: false, message: msg });
+            }
+            return res.redirect(`/lessons/${lessonId}?error=${encodeURIComponent(msg)}`);
+        }
+
         const result = await submissionService.gradeAndSave({
             userId,
             lessonId: String(lesson._id),
@@ -335,6 +353,11 @@ const getSubmission = async (req, res) => {
         // ★ USER KEY: admin xem bài của người khác → phải cùng tổ chức
         if (!isOwner && isAdmin && !(await adminCanSeeSubmission(req, submission))) {
             return renderSubmissionNotFound(res);
+        }
+
+        // ★ Trắc nghiệm → trang riêng
+        if (isQuizSubmission(submission)) {
+            return res.redirect(quizDetailUrl(submission._id));
         }
 
         // 2. Data nặng từ GitHub
@@ -512,6 +535,11 @@ const getSubmissionReview = async (req, res) => {
             return renderSubmissionNotFound(res);
         }
 
+        // ★ Trắc nghiệm → trang review riêng (nhận xét lưu bằng saveQuizTeacherComment)
+        if (isQuizSubmission(submission)) {
+            return res.redirect(quizReviewUrl(submission._id));
+        }
+
         await hydrateFromGithub(submission, 'getSubmissionReview');
 
         return res.render('admin/submission_review', {
@@ -561,11 +589,15 @@ const saveTeacherComment = async (req, res) => {
         }
 
         const current = await Submission.findById(id)
-            .select('teacherComment status githubFile userId lessonId')
+            .select('teacherComment status githubFile userId lessonId type')
             .populate('lessonId', 'title userKey')
             .lean();
         if (!current || !(await adminCanSeeSubmission(req, current))) {
             return back('error', 'Không tìm thấy bài nộp.');
+        }
+        // ★ Bài quiz dùng saveQuizTeacherComment (quiz.controller.js), không đi hàm tự luận này
+        if (isQuizSubmission(current)) {
+            return res.redirect(quizReviewUrl(id));
         }
 
         // Tên người chấm: ưu tiên session, thiếu thì tra DB

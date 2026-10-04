@@ -94,6 +94,30 @@ const lessonSchema = new mongoose.Schema(
             index: true
         },
 
+        // ★ LOẠI BÀI: 'essay' (tự luận, AI chấm) | 'quiz' (trắc nghiệm, server chấm).
+        //   Bài cũ không có field → coi là essay. Với dữ liệu .lean() dùng:
+        //   `lesson.type || 'essay'` (lean không áp default của Mongoose).
+        type: {
+            type: String,
+            enum: ['essay', 'quiz'],
+            default: 'essay',
+            index: true
+        },
+
+        // ★ Số câu từng phần (chỉ để hiện "20 câu" ở danh sách, khỏi đọc GitHub)
+        quizCounts: {
+            mcq: { type: Number, default: 0 },
+            tf: { type: Number, default: 0 },
+            fill: { type: Number, default: 0 }
+        },
+
+        // ★ Các AI Key cho phép sinh viên chọn khi bấm "Phân tích AI" (quiz).
+        //   Rỗng = dùng aiKeyId của bài / xoay key Gemini.
+        analysisAiKeyIds: {
+            type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'AIKey' }],
+            default: []
+        },
+
         // ★ USER KEY (đa tổ chức): kế thừa từ Subject khi tạo/chuyển môn.
         //   null = tổ chức default. Bài cũ thiếu field vẫn khớp { userKey: null }.
         userKey: {
@@ -149,6 +173,10 @@ const lessonSchema = new mongoose.Schema(
 );
 
 lessonSchema.index({ subjectId: 1, isDeleted: 1, isPublished: 1, order: 1 });
+
+lessonSchema.virtual('isQuiz').get(function () {
+    return this.type === 'quiz';
+});
 
 // ============================================================
 // ★ NHÃN AI CỦA BÀI HỌC

@@ -87,8 +87,93 @@ function wrapUserContent(label, content) {
     ].join('\n');
 }
 
+// ============================================================
+// ★ TRẮC NGHIỆM
+// ============================================================
+
+// sanitize-html (package.json: "sanitize-html"). Nếu thiếu package → FAIL CLOSED:
+// escape toàn bộ HTML thay vì để HTML thô lọt qua.
+let sanitizeHtmlLib = null;
+try {
+    sanitizeHtmlLib = require('sanitize-html');
+} catch (_) {
+    console.warn('⚠️ [sanitizeService] Chưa cài sanitize-html — giải thích sẽ bị escape toàn bộ. Chạy: npm i sanitize-html');
+}
+
+const EXPLANATION_ALLOWED_TAGS = [
+    'b', 'i', 'u', 'strong', 'em', 'br', 'p', 'ul', 'ol', 'li',
+    'code', 'pre', 'sub', 'sup', 'span', 'a'
+];
+
+function escapeHtml(text) {
+    return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * Làm sạch HTML giải thích (`++)`) của câu trắc nghiệm.
+ * Gọi 2 lớp: khi LƯU đề và khi HIỂN THỊ. Chỉ sau hàm này mới được render bằng `!=`.
+ */
+function sanitizeExplanationHtml(raw, opts = {}) {
+    if (raw == null || raw === '') return '';
+    const maxLength = opts.maxLength || 3000;
+    const input = String(raw).slice(0, maxLength);
+
+    if (!sanitizeHtmlLib) return escapeHtml(input);
+
+    return sanitizeHtmlLib(input, {
+        allowedTags: EXPLANATION_ALLOWED_TAGS,
+        allowedAttributes: {
+            a: ['href', 'rel', 'target'],
+            span: [] // không cho style/class/on*
+        },
+        allowedSchemes: ['https'],
+        allowedSchemesAppliedToAttributes: ['href'],
+        allowProtocolRelative: false,
+        disallowedTagsMode: 'discard',
+        transformTags: {
+            a: (tagName, attribs) => ({
+                tagName: 'a',
+                attribs: { href: attribs.href || '', rel: 'noopener noreferrer', target: '_blank' }
+            })
+        }
+    }).trim();
+}
+
+/**
+ * Dữ liệu bài làm trắc nghiệm gửi cho AI. Đáp án gõ tự do (ô `fill`) là nơi
+ * sinh viên có thể chèn lệnh → sanitize từng giá trị rồi bọc delimiter,
+ * giống {bài_làm} của tự luận.
+ *
+ * @param {Array<{id:string, part:string, studentAnswer:any, correct:boolean}>} items
+ */
+function wrapQuizAnswers(items = []) {
+    const lines = items.map((it) => {
+        const ans = Array.isArray(it.studentAnswer)
+            ? it.studentAnswer.join(', ')
+            : (it.studentAnswer === null || it.studentAnswer === undefined || it.studentAnswer === ''
+                ? '(bỏ trống)'
+                : String(it.studentAnswer));
+        const clean = sanitizeForAI(ans, { maxLength: 500 }) || '(bỏ trống)';
+        return `${it.id} [${it.correct ? 'ĐÚNG' : 'SAI'}]: ${clean}`;
+    });
+    return [
+        '<<<BEGIN_QUIZ_ANSWERS>>>',
+        lines.join('\n'),
+        '<<<END_QUIZ_ANSWERS>>>'
+    ].join('\n');
+}
+
 module.exports = {
     sanitizeForAI,
     wrapUserContent,
-    escapeDelimiters
+    escapeDelimiters,
+    // trắc nghiệm
+    sanitizeExplanationHtml,
+    wrapQuizAnswers,
+    escapeHtml
 };

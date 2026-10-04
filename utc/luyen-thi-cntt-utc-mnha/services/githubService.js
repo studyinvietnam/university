@@ -130,6 +130,75 @@ async function readJsonFile(path) {
 }
 
 /**
+ * Đọc file JSON kèm SHA (null nếu không tồn tại).
+ * Dùng khi cần so sánh phiên bản (vd form sửa đề trắc nghiệm giữ SHA lúc mở;
+ * lưu mà SHA đã đổi → báo "Đề đã bị đổi, tải lại" thay vì ghi đè).
+ * @returns {Promise<{data:object, sha:string}|null>}
+ */
+async function readJsonFileWithSha(path) {
+    assertConfigured();
+
+    try {
+        const res = await octokit.repos.getContent({
+            owner, repo, path, ref: branch
+        });
+        if (Array.isArray(res.data)) {
+            throw new Error(`Path không phải file: ${path}`);
+        }
+        const data = JSON.parse(Buffer.from(res.data.content, 'base64').toString('utf8'));
+        return { data, sha: res.data.sha };
+    } catch (e) {
+        if (e.status === 404) return null;
+        throw e;
+    }
+}
+
+/**
+ * Ghi file JSON CHỈ KHI SHA hiện tại khớp `expectedSha` (khoá lạc quan).
+ * Khác writeJsonFile (tự lấy SHA mới nhất → ghi đè). Lệch SHA → ném lỗi
+ * có `code = 'SHA_CONFLICT'` và KHÔNG ghi gì. Không retry 409 ở đây.
+ * expectedSha = null → chỉ được tạo mới (file đã tồn tại cũng là xung đột).
+ */
+async function writeJsonFileIfSha(path, data, expectedSha, commitMessage = 'Update JSON') {
+    assertConfigured();
+
+    const currentSha = await getFileSha(path);
+    if ((currentSha || null) !== (expectedSha || null)) {
+        const err = new Error('File trên GitHub đã bị thay đổi, vui lòng tải lại.');
+        err.code = 'SHA_CONFLICT';
+        throw err;
+    }
+
+    try {
+        const res = await octokit.repos.createOrUpdateFileContents({
+            owner,
+            repo,
+            branch,
+            path,
+            message: commitMessage,
+            content: Buffer.from(JSON.stringify(data, null, 2), 'utf8').toString('base64'),
+            sha: currentSha || undefined,
+            committer: {
+                name: 'Luyen Thi CNTT Bot',
+                email: 'bot@luyen-thi-cntt.local'
+            }
+        });
+        return {
+            path,
+            sha: res.data.content.sha,
+            commitSha: res.data.commit.sha
+        };
+    } catch (e) {
+        if ((e.status || e.response?.status) === 409) {
+            const err = new Error('File trên GitHub đã bị thay đổi, vui lòng tải lại.');
+            err.code = 'SHA_CONFLICT';
+            throw err;
+        }
+        throw e;
+    }
+}
+
+/**
  * Đọc → sửa → ghi lại file JSON trong CÙNG một lần thử, dùng đúng SHA vừa đọc.
  * Nếu GitHub trả 409 (SHA cũ) thì withRetry chạy lại TOÀN BỘ: đọc lại bản mới
  * nhất rồi áp updater lại → không ghi đè mất thay đổi của nơi khác.
@@ -298,6 +367,8 @@ module.exports = {
     // Core
     writeJsonFile,
     readJsonFile,
+    readJsonFileWithSha,
+    writeJsonFileIfSha,
     updateJsonFile,
     writeBinaryFile,
     readBinaryFile,

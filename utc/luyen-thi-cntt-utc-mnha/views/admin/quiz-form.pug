@@ -1,0 +1,131 @@
+extends ../layout
+
+//- ================================================================
+//-  Admin: TẠO / SỬA BÀI TRẮC NGHIỆM
+//-  Controller (quiz.controller.js) truyền:
+//-    mode ('create'|'edit'), subjectId, subjects, prompts, aiKeys, canPickAIKey,
+//-    quiz (null | file đề GitHub { title, contentHtml, quiz:{ maxScore, parts } }),
+//-    lesson (null | Lesson — có field duration (phút) giống bài tự luận), rawTexts {mcq,tf,fill}, submissionCount, sha (edit), quizConfig
+//- ================================================================
+
+block content
+    - var isEdit = (typeof mode !== 'undefined' && mode === 'edit')
+    - var q0 = (quiz && quiz.quiz) ? quiz.quiz : {}
+    - var cfgq = (typeof quizConfig !== 'undefined' && quizConfig) ? quizConfig : {}
+    - var chosenAi = (lesson && lesson.analysisAiKeyIds ? lesson.analysisAiKeyIds : []).map(String)
+    - var payload = { mode: isEdit ? 'edit' : 'create', lessonId: lesson ? String(lesson._id) : null, sha: (typeof sha !== 'undefined' && sha) ? sha : null, parts: q0.parts || {}, raw: rawTexts || { mcq: '', tf: '', fill: '' }, authoringPrompt: cfgq.QUIZ_AUTHORING_PROMPT || null, allowedImageHosts: cfgq.ALLOWED_IMAGE_HOSTS || ['raw.githubusercontent.com'], maxOptions: cfgq.MAX_OPTIONS_PER_QUESTION || 10, defaults: { ppq: cfgq.DEFAULT_POINTS_PER_QUESTION || 1, maxScore: cfgq.DEFAULT_MAX_SCORE || 10, duration: (lesson && lesson.duration) || cfgq.DEFAULT_DURATION || 20 }, durationLimits: { min: 1, max: 600 } }
+    - var safeJson = JSON.stringify(payload).replace(/</g, '\\u003c')
+
+    link(rel="stylesheet", href="/css/quiz-form.css")
+
+    div(class="qf")
+        div(class="qf-top")
+            a(href="/admin/lessons", class="qf-back") ← Danh sách bài học
+            h1= isEdit ? 'Sửa bài trắc nghiệm' : 'Tạo bài trắc nghiệm'
+            p Dán đề do AI tạo theo đúng định dạng → bấm “Chuyển” → sửa từng câu (đổi/xoá ảnh, đổi đáp án, giải thích) → Lưu.
+
+        if isEdit && submissionCount
+            div(class="qf-alert warn")
+                | ⚠️ Đã có #{submissionCount} bài nộp. Các bài đó giữ nguyên đề cũ (đã lưu snapshot), sửa đề không làm đổi điểm của họ.
+
+        div(id="qfErrors", class="qf-alert err", hidden)
+        div(id="qfOk", class="qf-alert ok", hidden)
+
+        //- ========== 1. THÔNG TIN CHUNG ==========
+        section(class="qf-card")
+            h2 1. Thông tin chung
+            div(class="qf-grid")
+                div(class="qf-field")
+                    label(for="fSubject") Môn học
+                    select(id="fSubject", disabled=isEdit)
+                        option(value="") — Chọn môn —
+                        each s in (subjects || [])
+                            option(value=s._id, selected=(String(s._id) === String(subjectId)))= s.name
+                    if isEdit
+                        small Không đổi môn khi sửa bài.
+                div(class="qf-field")
+                    label(for="fTitle") Tiêu đề bài
+                    input(id="fTitle", type="text", maxlength="200", value=(quiz && quiz.title) || (lesson && lesson.title) || '', placeholder="Kiểm tra chương 1")
+                if !isEdit
+                    div(class="qf-field")
+                        label(for="fSlug") Slug (tuỳ chọn)
+                        input(id="fSlug", type="text", maxlength="120", placeholder="để trống = tự sinh từ tiêu đề")
+                div(class="qf-field")
+                    label(for="fMax") Thang điểm tối đa
+                    input(id="fMax", type="text", inputmode="decimal", autocomplete="off", value=(q0.maxScore || cfgq.DEFAULT_MAX_SCORE || 10), placeholder="VD: 10 hoặc 2.5")
+                    small Có thể nhập số thập phân (VD 10, 2.5, 0.5).
+                div(class="qf-field")
+                    label(for="fDuration") ⏱ Thời gian làm bài (phút)
+                    input(id="fDuration", type="number", min="1", max="600", step="1", value=(lesson && lesson.duration) || cfgq.DEFAULT_DURATION || 20, placeholder="20")
+                    small Số phút dùng để đếm ngược ở trang làm bài. Mặc định 20.
+                div(class="qf-field")
+                    label(for="fPrompt") Prompt phân tích AI
+                    select(id="fPrompt")
+                        option(value="") — Mặc định hệ thống —
+                        each p in (prompts || [])
+                            option(value=p._id, selected=(lesson && String(lesson.promptId) === String(p._id)))= p.name + ' (v' + p.version + ')'
+            div(class="qf-field")
+                label(for="fDesc") Mô tả / hướng dẫn chung (tuỳ chọn, HTML ngắn)
+                textarea(id="fDesc", rows="3", placeholder="Ví dụ: Thời gian 45 phút, không dùng tài liệu.")= (quiz && quiz.contentHtml) || ''
+
+            if canPickAIKey
+                div(class="qf-field")
+                    label Cho phép sinh viên chọn AI để phân tích
+                    div(class="qf-checks")
+                        each k in (aiKeys || [])
+                            label(class="qf-check")
+                                input(type="checkbox", name="aiKeyIds", value=k._id, checked=(chosenAi.indexOf(String(k._id)) !== -1))
+                                span= (k.provider === 'vilao' ? 'vilao.ai' : 'Gemini') + ': ' + k.name
+                        if !(aiKeys || []).length
+                            small Chưa có AI Key nào đang bật.
+                    small Không chọn = dùng AI của bài / xoay key Gemini.
+
+        //- ========== 2. PROMPT MẪU ==========
+        section(class="qf-card")
+            h2 2. Prompt mẫu nhờ AI tạo đề
+            ol(class="qf-steps")
+                li Bấm <b>Sao chép prompt</b> bên dưới.
+                li Dán vào ChatGPT / Gemini / Claude, thay các chỗ <code>[...]</code> (chủ đề, mức độ, số câu mỗi phần).
+                li AI trả về <b>3 khối code</b>. Copy <b>từng khối</b> dán vào đúng ô Phần 1 / 2 / 3 ở bước 3.
+            div(class="qf-promptbar")
+                button(type="button", id="btnCopyPrompt", class="qf-btn primary") 📋 Sao chép prompt
+                button(type="button", id="btnTogglePrompt", class="qf-btn") Xem / ẩn prompt
+                span(id="copyMsg", class="qf-msg")
+            pre(id="promptBox", class="qf-prompt", hidden)
+
+        //- ========== 3. NHẬP ĐỀ 3 PHẦN ==========
+        section(class="qf-card")
+            h2 3. Nhập đề &amp; chỉnh từng câu
+            div(class="qf-bar")
+                button(type="button", id="btnParse", class="qf-btn primary") ⬇ Chuyển text → câu hỏi
+                button(type="button", id="btnExport", class="qf-btn") ⬆ Xuất câu hỏi → text
+                span(id="syncHint", class="qf-msg")
+
+            each part in [{ k: 'mcq', t: 'Phần 1 · Trắc nghiệm nhiều đáp án', hint: 'Mỗi câu: “- câu hỏi”, các dòng “+)đáp án”, rồi “=> A” (nhiều đáp án đúng: “=> A, C”).' }, { k: 'tf', t: 'Phần 2 · Đúng / Sai', hint: 'Mỗi câu: “- câu hỏi”, rồi “=> Đúng” hoặc “=> Sai”.' }, { k: 'fill', t: 'Phần 3 · Điền số liệu / đáp án', hint: 'Mỗi câu: “- câu hỏi”, rồi “=> đáp án” (nhiều cách viết ngăn bằng |).' }]
+                div(class="qf-part", id="part-" + part.k)
+                    div(class="qf-parthead")
+                        h3= part.t
+                        span(class="qf-msg", id="sum-" + part.k)
+                        span(class="qf-count", id="count-" + part.k) 0 câu
+                    p(class="qf-hint")= part.hint + ' Điểm / câu nhập được số thập phân (VD 0.1, 0.2, 0.25).'
+                    div(class="qf-partcfg")
+                        label
+                            | Điểm / câu
+                            input(type="text", inputmode="decimal", autocomplete="off", id="ppq-" + part.k, value=(q0.parts && q0.parts[part.k] && q0.parts[part.k].pointsPerQuestion) || cfgq.DEFAULT_POINTS_PER_QUESTION || 1, placeholder="VD: 0.1 · 0.2 · 0.25 · 1")
+                        if part.k === 'fill'
+                            label
+                                | Sai số cho phép
+                                input(type="text", inputmode="decimal", autocomplete="off", id="tolerance", value=(q0.parts && q0.parts.fill && q0.parts.fill.tolerance) || 0, placeholder="VD: 0 · 0.01 · 0.5")
+                            label(class="qf-wide")
+                                | Ghi chú hướng dẫn điền (không viết = không hiện)
+                                input(type="text", id="fillNote", maxlength="300", value=(q0.parts && q0.parts.fill && q0.parts.fill.note) || '', placeholder="Làm tròn 2 chữ số thập phân, chỉ nhập số, không ghi đơn vị.")
+                    textarea(class="qf-paste", id="paste-" + part.k, rows="6", spellcheck="false", placeholder="Dán khối text AI tạo cho phần này… (để trống nếu không có phần này)")
+                    div(class="qf-cards", id="cards-" + part.k)
+                    button(type="button", class="qf-btn", data-add=part.k) ＋ Thêm câu vào phần này
+
+        div(class="qf-save")
+            span(id="saveSummary", class="qf-msg") Chưa có câu hỏi
+            button(type="button", id="btnSave", class="qf-btn primary big")= isEdit ? '💾 Lưu thay đổi' : '💾 Tạo bài trắc nghiệm'
+
+    script(id="qfData", type="application/json")!= safeJson
+    script(src="/js/quizEditor.js")

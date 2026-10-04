@@ -15,6 +15,12 @@ const { canManageOwned, ownContentFilter } = require('../middleware/role');
 //   githubService.getFileContent, ...) thì đổi lại require + tên hàm
 //   trong readPromptJsonFromGithub() cho khớp.
 const githubService = require('../services/githubService');
+const {
+    normalizeKind,
+    kindFilter,
+    findUnknownPlaceholders
+} = require('../services/promptService');
+const { QUIZ_PLACEHOLDERS } = require('../config/quizConfig');
 
 // ============================================================
 // HELPERS
@@ -118,6 +124,28 @@ const DEFAULT_VARIABLES = [
     '{student_name}', '{lời_giải_mẫu}'
 ];
 
+// ★ Prompt trắc nghiệm (kind = 'quiz') có bộ biến riêng
+const variablesForKind = (kind) =>
+    normalizeKind(kind) === 'quiz' ? [...QUIZ_PLACEHOLDERS] : DEFAULT_VARIABLES;
+
+// ★ Biến lạ / biến của loại khác → báo lỗi theo kind.
+//   Quiz: chặn cứng (dùng {rubric}… sẽ không được thay → AI nhận nguyên chữ {rubric}).
+//   Essay: giữ hành vi cũ (chỉ cảnh báo ở nơi chấm), không chặn lưu.
+function validatePlaceholders(content, kind) {
+    if (normalizeKind(kind) !== 'quiz') return { ok: true };
+    const unknown = findUnknownPlaceholders(content, 'quiz');
+    if (!unknown.length) return { ok: true };
+    return {
+        ok: false,
+        error:
+            `Prompt trắc nghiệm có biến không hợp lệ: ${unknown.join(', ')}. ` +
+            `Biến hợp lệ: ${QUIZ_PLACEHOLDERS.join(', ')}.`
+    };
+}
+
+// kind lấy từ body (lúc tạo) hoặc query; luôn chuẩn hoá về 'essay' | 'quiz'
+const kindFromReq = (req) => normalizeKind(req.body?.kind || req.query?.kind);
+
 // ============================================================
 // GITHUB I/O — nguồn thật duy nhất của content / rubric / variables
 // ============================================================
@@ -168,6 +196,7 @@ function pushPromptToGithub(prompt, content, rubric, variables) {
                     strictness: prompt.strictness,
                     maxScore: prompt.maxScore,
                     scope: prompt.scope,
+                    kind: normalizeKind(prompt.kind),
                     variables: variables || [],
                     version: prompt.version,
                     active: prompt.active,
@@ -197,7 +226,9 @@ exports.getPrompts = async (req, res, next) => {
         const { scope, active, search } = req.query;
         const actor = req.user;
 
-        const filter = {};
+        // ★ Tab Tự luận | Trắc nghiệm (mặc định tự luận; khớp cả prompt cũ thiếu `kind`)
+        const kind = normalizeKind(req.query.kind);
+        const filter = { ...kindFilter(kind) };
         if (scope) filter.scope = scope;
         if (active === '1') filter.active = true;
         if (active === '0') filter.active = false;
@@ -234,6 +265,7 @@ exports.getPrompts = async (req, res, next) => {
             prompts,
             subjects,
             lessons,
+            kind,
             ...pagination,
             filters: {
                 scope: scope || '',
@@ -273,10 +305,22 @@ exports.createPrompt = async (req, res, next) => {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('Nội dung prompt không được để trống.'));
         }
 
-        const rubric = parseRubric(req.body);
-        const check = validateRubric(rubric);
-        if (!check.ok) {
-            return res.redirect('/admin/prompts?error=' + encodeURIComponent(check.error));
+        // ★ kind chọn lúc tạo và KHÔNG đổi sau khi tạo
+        const kind = kindFromReq(req);
+        const backUrl = `/admin/prompts?kind=${kind}&error=`;
+
+        // Prompt quiz: không có rubric / strictness / maxScore (điểm do server tính)
+        //  → bỏ kiểm tra "tổng weight = 100%" (chỉ áp cho tự luận)
+        let rubric = [];
+        if (kind === 'essay') {
+            rubric = parseRubric(req.body);
+            const check = validateRubric(rubric);
+            if (!check.ok) {
+                return res.redirect(backUrl + encodeURIComponent(check.error));
+            }
+        } else {
+            const ph = validatePlaceholders(content, kind);
+            if (!ph.ok) return res.redirect(backUrl + encodeURIComponent(ph.error));
         }
 
         const actor = req.user;
@@ -288,7 +332,11 @@ exports.createPrompt = async (req, res, next) => {
         // ★ Chỉ admin default được đặt prompt mặc định toàn hệ thống
         const setDefault = isDefaultAdmin(actor) && (isDefault === 'on' || isDefault === true);
         if (setDefault) {
-            await GradingPrompt.updateMany({ isDefault: true }, { $set: { isDefault: false } });
+            // ★ Mỗi `kind` có 1 mặc định riêng → chỉ bỏ cờ của prompt CÙNG kind
+            await GradingPrompt.updateMany(
+                { isDefault: true, ...kindFilter(kind) },
+                { $set: { isDefault: false } }
+            );
         }
 
         // ★ CHANGED: KHÔNG truyền content / rubric / variables vào Mongo nữa.
@@ -296,8 +344,9 @@ exports.createPrompt = async (req, res, next) => {
         const prompt = await GradingPrompt.create({
             name: name.trim(),
             description: (description || '').trim(),
-            strictness: strictness || 'normal',
-            maxScore: Number(maxScore) || 10,
+            kind,
+            strictness: kind === 'quiz' ? 'normal' : (strictness || 'normal'),
+            maxScore: kind === 'quiz' ? 10 : (Number(maxScore) || 10),
             scope: scope || 'global',
             subjectId: safeSubjectId,
             lessonIds,
@@ -320,13 +369,13 @@ exports.createPrompt = async (req, res, next) => {
         // ★ CHANGED: truyền content/rubric/variables trực tiếp vào hàm push.
         // ★ pushPromptToGithub trả Promise sẽ reject khi hết retry → phải .catch,
         //   nếu không Node ≥15 báo unhandledRejection và có thể làm sập server.
-        pushPromptToGithub(prompt, content.trim(), rubric, DEFAULT_VARIABLES)
+        pushPromptToGithub(prompt, content.trim(), rubric, variablesForKind(kind))
             .catch((e) => console.error('[prompt] createPrompt: đẩy GitHub thất bại (prompt đã có trong Mongo):', e.message));
 
-        return res.redirect('/admin/prompts?success=' + encodeURIComponent(`Đã tạo prompt "${prompt.name}".`));
+        return res.redirect(`/admin/prompts?kind=${kind}&success=` + encodeURIComponent(`Đã tạo prompt "${prompt.name}".`));
     } catch (err) {
         console.error('createPrompt error:', err);
-        return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể tạo: ' + err.message));
+        return res.redirect(`/admin/prompts?kind=${kindFromReq(req)}&error=` + encodeURIComponent('Không thể tạo: ' + err.message));
     }
 };
 
@@ -389,6 +438,7 @@ exports.showEditPrompt = async (req, res, next) => {
             title: 'Sửa Prompt',
             user: req.user,
             canSetDefault: isDefaultAdmin(actor),
+            kind: normalizeKind(prompt.kind),
             prompt,
             subjects,
             lessons,
@@ -418,6 +468,7 @@ exports.showCreatePrompt = async (req, res, next) => {
             title: 'Thêm Prompt',
             user: req.user,
             canSetDefault: isDefaultAdmin(actor),
+            kind: normalizeKind(req.query.kind),
             prompt: null,
             subjects,
             lessons,
@@ -458,10 +509,21 @@ exports.updatePrompt = async (req, res, next) => {
             isDefault, active
         } = req.body;
 
-        const rubric = parseRubric(req.body);
-        const check = validateRubric(rubric);
-        if (!check.ok) {
-            return res.redirect(`/admin/prompts/${id}/edit?error=` + encodeURIComponent(check.error));
+        // ★ kind của prompt đã tạo là CỐ ĐỊNH — bỏ qua mọi `kind` client gửi lên
+        const kind = normalizeKind(prompt.kind);
+
+        let rubric = [];
+        if (kind === 'essay') {
+            rubric = parseRubric(req.body);
+            const check = validateRubric(rubric);
+            if (!check.ok) {
+                return res.redirect(`/admin/prompts/${id}/edit?error=` + encodeURIComponent(check.error));
+            }
+        } else {
+            const ph = validatePlaceholders(content, kind);
+            if (!ph.ok) {
+                return res.redirect(`/admin/prompts/${id}/edit?error=` + encodeURIComponent(ph.error));
+            }
         }
 
         // ★ CHANGED: so content mới với content CŨ trên GitHub (không phải
@@ -495,8 +557,10 @@ exports.updatePrompt = async (req, res, next) => {
         if (typeof description === 'string') prompt.description = description.trim();
         // ★ ĐÃ BỎ: prompt.content = content.trim()
         // ★ ĐÃ BỎ: prompt.rubric = rubric
-        prompt.strictness = strictness || prompt.strictness;
-        prompt.maxScore = Number(maxScore) || prompt.maxScore;
+        if (kind === 'essay') {
+            prompt.strictness = strictness || prompt.strictness;
+            prompt.maxScore = Number(maxScore) || prompt.maxScore;
+        }
         prompt.scope = scope || prompt.scope;
         prompt.subjectId = safeSubjectId;
         prompt.lessonIds = newLessonIds;
@@ -507,7 +571,7 @@ exports.updatePrompt = async (req, res, next) => {
             : prompt.isDefault;
         if (setDefault && !prompt.isDefault) {
             await GradingPrompt.updateMany(
-                { _id: { $ne: prompt._id }, isDefault: true },
+                { _id: { $ne: prompt._id }, isDefault: true, ...kindFilter(kind) },
                 { $set: { isDefault: false } }
             );
         }
@@ -548,7 +612,7 @@ exports.updatePrompt = async (req, res, next) => {
         // ★ CHANGED: đẩy nội dung mới nhất lên GitHub — đây là NƠI DUY NHẤT
         //   lưu content/rubric/variables. variables giữ lại từ bản cũ trên
         //   GitHub (nếu có), fallback về default.
-        const variables = previous?.variables?.length ? previous.variables : DEFAULT_VARIABLES;
+        const variables = previous?.variables?.length ? previous.variables : variablesForKind(kind);
 
         // ★ FIX: await thật sự việc ghi GitHub trước khi báo "thành công" —
         //   trước đây redirect chạy ngay dù GitHub có thể chưa ghi xong hoặc
@@ -589,18 +653,23 @@ exports.setDefault = async (req, res, next) => {
         }
 
         // Kiểm tra tồn tại TRƯỚC khi gỡ default cũ (tránh id sai → mất luôn prompt mặc định)
-        const target = await GradingPrompt.findById(id).select('_id').lean();
+        const target = await GradingPrompt.findById(id).select('_id kind').lean();
         if (!target) {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không tìm thấy prompt.'));
         }
 
-        await GradingPrompt.updateMany({}, { $set: { isDefault: false } });
+        // ★ Mặc định là MỖI kind một prompt: chỉ bỏ cờ của prompt cùng kind
+        //   (trước đây updateMany({}) sẽ gỡ luôn mặc định của loại kia).
+        await GradingPrompt.updateMany(
+            { isDefault: true, ...kindFilter(target.kind) },
+            { $set: { isDefault: false } }
+        );
         await GradingPrompt.updateOne(
             { _id: id },
             { $set: { isDefault: true, updatedBy: getUserId(req) } }
         );
 
-        return res.redirect('/admin/prompts?success=' + encodeURIComponent('Đã đặt làm prompt mặc định.'));
+        return res.redirect(`/admin/prompts?kind=${normalizeKind(target.kind)}&success=` + encodeURIComponent('Đã đặt làm prompt mặc định.'));
     } catch (err) {
         console.error('setDefault error:', err);
         return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể đặt default.'));

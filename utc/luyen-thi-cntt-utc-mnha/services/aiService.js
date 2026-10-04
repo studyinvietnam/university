@@ -1095,7 +1095,80 @@ async function testGeminiConnection(
     };
 }
 
+// ============================================================
+// ★ GỌI AI DÙNG CHUNG CHO PHÂN TÍCH (trắc nghiệm) — Gemini + vilao.ai
+// ------------------------------------------------------------
+// - Chỉ THÊM hàm, không đụng checkWritingByGemini / gradeSubmission.
+// - Parse an toàn (bóc code fence), parse lỗi → gọi lại đúng 1 lần.
+// - Vẫn parse lỗi → status 'parse_failed' + rawText (không ném lỗi, để
+//   nơi gọi lưu rawText cho sinh viên xem).
+// - Lỗi timeout / quota / 401 / hết số dư → NÉM LỖI (nơi gọi không ghi gì).
+// - Chọn key: preferredKeyId (nếu có) → cùng provider; không có → xoay Gemini.
+// Trả về: { status, result, rawText, modelUsed, provider, keyUsed,
+//           aiProvider, aiKeyName, aiLabel, latencyMs }
+// ============================================================
+
+async function runAnalysisPrompt(renderedPrompt, options = {}) {
+    const {
+        model = null,
+        timeoutMs = 45000,
+        preferredKeyId = null
+    } = options;
+
+    if (!renderedPrompt || typeof renderedPrompt !== "string") {
+        throw new Error("Prompt rỗng.");
+    }
+    if (renderedPrompt.length > MAX_PROMPT_CHARS) {
+        throw new Error(`Prompt quá dài (>${MAX_PROMPT_CHARS} ký tự).`);
+    }
+
+    const t0 = Date.now();
+    let last = null;
+
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        last = await retryOnOverload(
+            () => callWithKeyRotation(renderedPrompt, model, timeoutMs, preferredKeyId),
+            `analysis:${model || "default"}`
+        );
+
+        let parsed = null;
+        try {
+            parsed = parseGeminiJson(last.text);
+        } catch (_) {
+            parsed = null;
+        }
+
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            return buildAnalysisResult("ok", parsed, null, last, t0);
+        }
+
+        console.warn(`⚠️ [aiService] runAnalysisPrompt parse lỗi (lần ${attempt}/2)`);
+    }
+
+    return buildAnalysisResult("parse_failed", null, String(last?.text || ""), last, t0);
+}
+
+function buildAnalysisResult(status, result, rawText, callResult, t0) {
+    const aiProvider = callResult?.provider || "gemini";
+    const aiKeyName = callResult?.keyUsed?.name || null;
+    return {
+        status,
+        result,
+        rawText,
+        modelUsed: callResult?.modelUsed || null,
+        provider: aiProvider,
+        keyUsed: callResult?.keyUsed || null,
+        aiProvider,
+        aiKeyName,
+        aiLabel: formatAiLabel(aiProvider, aiKeyName),
+        latencyMs: Date.now() - t0
+    };
+}
+
 module.exports = {
+    // ★ Phân tích trắc nghiệm (thêm mới)
+    runAnalysisPrompt,
+
     // Tên mới (CNTT)
     checkSubmissionByGemini,
     createCodeGradingPrompt,

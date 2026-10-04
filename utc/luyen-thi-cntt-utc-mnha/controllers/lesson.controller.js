@@ -10,6 +10,7 @@ const GradingPrompt = require("../models/GradingPrompt");
 const githubService = require("../services/githubService");
 const syncQueueService = require("../services/syncQueueService");
 const { resolvePrompt, findUnknownPlaceholders } = require("../services/promptService");
+const { sanitizeExplanationHtml } = require("../services/sanitizeService");
 const { getContentScope } = require("../services/userKeyService");
 const { formatAiLabel } = require("../utils/aiLabel");
 const { paginate } = require("./pagination.controller");
@@ -388,6 +389,109 @@ exports.showLesson = async (req, res, next) => {
 
 exports.getStudentLesson = exports.showLesson;
 
+// ============================================================
+// ★ TRẮC NGHIỆM — chuyển đề sang dạng AN TOÀN gửi xuống trình duyệt
+// ------------------------------------------------------------
+// COPY theo ALLOWLIST: chỉ các field cần để hiển thị. KHÔNG bao giờ gồm
+// correct / answers / explanationHtml (đáp án + giải thích chỉ trả sau khi nộp).
+// Dùng allowlist (không dùng "xoá field nhạy cảm") để field mới thêm vào đề
+// sau này không vô tình bị lộ.
+// ============================================================
+function toStudentView(quiz) {
+    const parts = (quiz && quiz.parts) || {};
+    const out = { maxScore: Number(quiz?.maxScore) || 10, parts: {} };
+
+    const baseQ = (q) => ({
+        id: String(q.id),
+        text: String(q.text ?? ""),
+        image: q.image ? String(q.image) : null,
+    });
+
+    if (parts.mcq && Array.isArray(parts.mcq.questions) && parts.mcq.questions.length) {
+        out.parts.mcq = {
+            questions: parts.mcq.questions.map((q) => ({
+                ...baseQ(q),
+                multi: Boolean(q.multi),
+                options: (q.options || []).map((o) => ({
+                    key: String(o.key),
+                    text: String(o.text ?? ""),
+                })),
+            })),
+        };
+    }
+
+    if (parts.tf && Array.isArray(parts.tf.questions) && parts.tf.questions.length) {
+        out.parts.tf = { questions: parts.tf.questions.map(baseQ) };
+    }
+
+    if (parts.fill && Array.isArray(parts.fill.questions) && parts.fill.questions.length) {
+        out.parts.fill = {
+            note: parts.fill.note ? String(parts.fill.note) : "",
+            questions: parts.fill.questions.map(baseQ),
+        };
+    }
+
+    return out;
+}
+
+async function renderQuizLessonPage(req, res, lesson, subject) {
+    const user = req.user;
+
+    const subjectSlug = subject?.slug || `subject-${lesson.subjectId}`;
+    const lessonSlug = lesson.slug || `lesson-${lesson._id}`;
+    const filePath = lesson.githubFile || `subjects/${subjectSlug}/lessons/${lessonSlug}.json`;
+
+    let json = null;
+    try {
+        json = await readLessonFromGithub(filePath);
+    } catch (err) {
+        console.warn("[lesson] Không đọc được đề trắc nghiệm từ GitHub:", err.message);
+    }
+
+    if (!json || json.type !== "quiz" || !json.quiz) {
+        return res.status(503).render("error", {
+            title: "Chưa mở được bài",
+            message: "Không đọc được đề trắc nghiệm. Vui lòng thử lại sau.",
+            user,
+            statusCode: 503,
+            stack: null,
+        });
+    }
+
+    const quizView = toStudentView(json.quiz);
+    if (!Object.keys(quizView.parts).length) {
+        return res.status(503).render("error", {
+            title: "Chưa mở được bài",
+            message: "Đề trắc nghiệm chưa có câu hỏi nào.",
+            user,
+            statusCode: 503,
+            stack: null,
+        });
+    }
+
+    const lastSubmission = await Submission.findOne({
+        userId: user._id,
+        lessonId: lesson._id,
+        type: "quiz",
+    }).sort({ submittedAt: -1 }).select("_id score maxScore correctCount totalCount submittedAt syncStatus").lean();
+
+    res.render("student/quiz-lesson", {
+        title: json.title || lesson.title,
+        user,
+        subject,
+        lesson: {
+            _id: lesson._id,
+            title: json.title || lesson.title,
+            contentHtml: sanitizeExplanationHtml(json.contentHtml || lesson.contentHtml || ""),
+            duration: Number(lesson.duration) || 20,
+            type: "quiz",
+        },
+        quiz: quizView,
+        lastSubmission,
+        isAdminView: user.role === "admin",
+    });
+}
+
 async function renderLessonPage(req, res, lesson) {
     const user = req.user;
     if (!user) return res.redirect("/auth/login");
@@ -396,8 +500,13 @@ async function renderLessonPage(req, res, lesson) {
         ? await Subject.findById(lesson.subjectId).lean()
         : null;
 
+    // ★ TRẮC NGHIỆM: view/luồng riêng. Bài cũ không có `type` → essay (giữ nguyên bên dưới).
+    if ((lesson.type || "essay") === "quiz") {
+        return renderQuizLessonPage(req, res, lesson, subject);
+    }
+
     // ★ NEW: biết chính xác lesson này đang dùng prompt nào (và tại sao)
-    const resolvedPrompt = await resolvePrompt(lesson, subject);
+    const resolvedPrompt = await resolvePrompt(lesson, subject, "essay");
     const promptUnknownPlaceholders = findUnknownPlaceholders(resolvedPrompt?.content);
 
     const subjectSlug = subject?.slug || `subject-${lesson.subjectId}`;
@@ -948,4 +1057,4 @@ exports.hardDeleteLesson = async (req, res, next) => {
         }
         return res.json({ ok: true });
     } catch (err) { next(err); }
-};
+};exports._toStudentView = toStudentView;
