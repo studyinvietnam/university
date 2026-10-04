@@ -3247,6 +3247,1353 @@
     </div>
 </div>
 
+
+<!-- SLIDE 61: Title Slide - Chương 4 Lý thuyết đồ thị -->
+<div class="slide-container" style="height: 750px; padding: 0; overflow: hidden; border-radius: 8px; background: #e2e8f0;">
+    <div style="display: flex; flex-direction: column; height: 100%;">
+        
+        <!-- Phần trên: Nền sáng với nội dung chính -->
+        <div style="flex: 1; display: flex; padding: 50px 60px; gap: 40px;">
+            
+            <!-- Cột trái: Tiêu đề -->
+            <div style="flex: 1.2; display: flex; flex-direction: column; justify-content: center;">
+                
+                <!-- Tag môn học -->
+                <div style="font-size: 12px; font-weight: 700; color: #94a3b8; letter-spacing: 1.5px; margin-bottom: 20px;">
+                    TOÁN RỜI RẠC · IT1.105.3
+                </div>
+                
+                <!-- Chương -->
+                <div style="font-size: 26px; font-weight: 800; color: #1e293b; margin-bottom: 10px; letter-spacing: 0.5px;">
+                    CHƯƠNG 4
+                </div>
+                
+                <!-- Tiêu đề chính -->
+                <h1 style="font-size: 44px; font-weight: 900; color: #1e293b; margin: 0 0 20px 0; line-height: 1.15; letter-spacing: 0.5px; text-transform: uppercase;">
+                    LÝ THUYẾT ĐỒ THỊ
+                </h1>
+                
+                <!-- Subtitle -->
+                <div style="font-size: 17px; color: #475569; line-height: 1.6; font-style: italic; margin-bottom: 25px;">
+                    Mô hình hóa mạng, kết nối và đường đi<br>
+                    — từ khái niệm đến 5 thuật toán kinh điển
+                </div>
+                
+                <!-- Đường kẻ ngang -->
+                <div style="width: 100%; height: 1px; background: #cbd5e1; margin-bottom: 15px;"></div>
+                
+                <!-- Nguồn tham khảo -->
+                <div style="font-size: 12px; color: #94a3b8; line-height: 1.6;">
+                    Nguồn: Rosen, Discrete Mathematics and Its Applications, 7th Ed. —<br>
+                    §10.1–11.5
+                </div>
+                
+            </div>
+            
+            <!-- Cột phải: Ảnh đồ thị minh họa -->
+            <div style="flex: 1; display: flex; justify-content: center; align-items: center;">
+                <div style="border: 1.5px solid #64748b; border-radius: 4px; padding: 8px; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                    <img src="image-slide/Gemini_Generated_Image_kqmq2rkqmq2rkqmq.png" 
+                         alt="Minh họa đồ thị" 
+                         style="max-width: 100%; height: auto; max-height: 280px; object-fit: contain; display: block;">
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+<!-- SLIDE 62: Đồ thị là gì? -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.1 KHÁI NIỆM</div>
+        <h1 class="slide-title" style="margin-bottom: 30px;">Đồ thị là gì?</h1>
+
+        <!-- Nội dung chính: 2 cột -->
+        <div style="display: flex; gap: 40px; align-items: flex-start; margin-top: 10px;">
+            
+            <!-- Cột trái: Định nghĩa và ví dụ đồ thị -->
+            <div style="flex: 1.2;">
+                <!-- Công thức chính -->
+                <div style="font-size: 28px; font-weight: 700; color: #1e293b; margin-bottom: 8px; font-family:'Cambria Math', 'Times New Roman', serif;">
+                    G = (V, E)
+                </div>
+                <div style="font-size: 15px; color: #475569; margin-bottom: 35px;">
+                    V: tập đỉnh (vertices) &nbsp;·&nbsp; E: tập cạnh (edges)
+                </div>
+
+                <!-- Hai sơ đồ đồ thị -->
+                <div style="display: flex; justify-content: space-around; gap: 20px;">
+                    
+                    <!-- Đồ thị vô hướng -->
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="font-size: 14px; font-weight: 700; color: #1e293b; letter-spacing: 0.5px; margin-bottom: 15px; text-transform: uppercase;">
+                            Vô hướng
+                        </div>
+                        <!-- SVG Undirected -->
+                        <svg width="120" height="90" viewBox="0 0 120 90" style="overflow: visible; margin-bottom: 15px;">
+                            <!-- Đường nối -->
+                            <line x1="25" y1="70" x2="95" y2="20" stroke="#94a3b8" stroke-width="2" />
+                            <!-- Đỉnh u -->
+                            <circle cx="25" cy="70" r="14" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                            <text x="25" y="75" font-size="14" text-anchor="middle" fill="#1e293b" font-weight="bold">u</text>
+                            <!-- Đỉnh v -->
+                            <circle cx="95" cy="20" r="14" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                            <text x="95" y="25" font-size="14" text-anchor="middle" fill="#1e293b" font-weight="bold">v</text>
+                        </svg>
+                        <div style="font-size: 13px; color: #475569; text-align: center; line-height: 1.5; padding: 0 10px;">
+                            Cạnh {u, v} là cặp KHÔNG<br>có thứ tự
+                        </div>
+                    </div>
+
+                    <!-- Đồ thị có hướng -->
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="font-size: 14px; font-weight: 700; color: #1e293b; letter-spacing: 0.5px; margin-bottom: 15px; text-transform: uppercase;">
+                            Có hướng
+                        </div>
+                        <!-- SVG Directed -->
+                        <svg width="120" height="90" viewBox="0 0 120 90" style="overflow: visible; margin-bottom: 15px;">
+                            <defs>
+                                <marker id="arrowHead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                                    <path d="M0,0 L8,4 L0,8 Z" fill="#64748b" />
+                                </marker>
+                            </defs>
+                            <!-- Đường nối có mũi tên -->
+                            <line x1="35" y1="65" x2="85" y2="25" stroke="#64748b" stroke-width="2" marker-end="url(#arrowHead)" />
+                            <!-- Đỉnh u -->
+                            <circle cx="25" cy="70" r="14" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                            <text x="25" y="75" font-size="14" text-anchor="middle" fill="#1e293b" font-weight="bold">u</text>
+                            <!-- Đỉnh v -->
+                            <circle cx="95" cy="20" r="14" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                            <text x="95" y="25" font-size="14" text-anchor="middle" fill="#1e293b" font-weight="bold">v</text>
+                        </svg>
+                        <div style="font-size: 13px; color: #475569; text-align: center; line-height: 1.5; padding: 0 10px;">
+                            Cạnh (u, v) là cặp CÓ thứ<br>tự — đi từ u đến v
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Cột phải: Khi nào dùng loại nào? -->
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; height: 100%;">
+                <div class="highlight-card" style="background: #ffffff; padding: 24px 28px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                    <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 20px; letter-spacing: 0.5px; text-transform: uppercase;">
+                        Khi nào dùng loại nào?
+                    </div>
+                    
+                    <ul style="margin: 0; padding-left: 20px; font-size: 14.5px; color: #334155; line-height: 1.8;">
+                        <li style="margin-bottom: 15px;">
+                            Quan hệ ĐỐI XỨNG (VD: "là bạn của nhau") \(\rightarrow\) dùng đồ thị vô hướng
+                        </li>
+                        <li style="margin-bottom: 15px;">
+                            Quan hệ KHÔNG đối xứng (VD: "theo dõi", "nợ tiền") \(\rightarrow\) dùng đồ thị có hướng
+                        </li>
+                        <li>
+                            Chọn sai loại đồ thị sẽ làm MẤT thông tin quan trọng về chiều quan hệ
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>62</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 63: Đồ thị trong thực tế CNTT -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.1 VÍ DỤ</div>
+        <h1 class="slide-title" style="margin-bottom: 30px;">Đồ thị trong thực tế CNTT</h1>
+
+        <!-- Bảng ví dụ -->
+        <div style="margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+            <table style="width: 100%; border-collapse: collapse; font-size: 15px; text-align: center;">
+                <thead>
+                    <tr style="background: #94a3b8; color: #ffffff;">
+                        <th style="padding: 14px 16px; font-weight: 700; width: 28%;">Bài toán</th>
+                        <th style="padding: 14px 16px; font-weight: 700; width: 22%;">Đỉnh</th>
+                        <th style="padding: 14px 16px; font-weight: 700; width: 25%;">Cạnh</th>
+                        <th style="padding: 14px 16px; font-weight: 700; width: 25%;">Loại</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                        <td style="padding: 14px 16px; color: #334155;">Mạng xã hội (Facebook)</td>
+                        <td style="padding: 14px 16px; color: #334155;">Người dùng</td>
+                        <td style="padding: 14px 16px; color: #334155;">Kết bạn</td>
+                        <td style="padding: 14px 16px; color: #334155;">Vô hướng</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                        <td style="padding: 14px 16px; color: #334155;">Mạng xã hội (Twitter/X)</td>
+                        <td style="padding: 14px 16px; color: #334155;">Người dùng</td>
+                        <td style="padding: 14px 16px; color: #334155;">Theo dõi</td>
+                        <td style="padding: 14px 16px; color: #334155;">Có hướng</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                        <td style="padding: 14px 16px; color: #334155;">Mạng máy tính</td>
+                        <td style="padding: 14px 16px; color: #334155;">Máy chủ / router</td>
+                        <td style="padding: 14px 16px; color: #334155;">Đường truyền</td>
+                        <td style="padding: 14px 16px; color: #334155;">Vô hướng</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                        <td style="padding: 14px 16px; color: #334155;">Giao thông một chiều</td>
+                        <td style="padding: 14px 16px; color: #334155;">Nút giao</td>
+                        <td style="padding: 14px 16px; color: #334155;">Đoạn đường</td>
+                        <td style="padding: 14px 16px; color: #334155;">Có hướng</td>
+                    </tr>
+                    <tr style="background: #ffffff;">
+                        <td style="padding: 14px 16px; color: #334155;">Luồng dữ liệu chương trình</td>
+                        <td style="padding: 14px 16px; color: #334155;">Hàm / khối lệnh</td>
+                        <td style="padding: 14px 16px; color: #334155;">Lời gọi hàm</td>
+                        <td style="padding: 14px 16px; color: #334155;">Có hướng</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>63</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 64: Phân loại đồ thị -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.2 CÁC LOẠI ĐỒ THỊ CƠ BẢN</div>
+        <h1 class="slide-title" style="margin-bottom: 25px;">Phân loại đồ thị</h1>
+
+        <!-- Nội dung chính: 2 cột -->
+        <div style="display: flex; gap: 30px; align-items: flex-start; margin-top: 10px;">
+            
+            <!-- Cột trái: Bảng phân loại -->
+            <div style="flex: 1.4;">
+                <div style="border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: center;">
+                        <thead>
+                            <tr style="background: #94a3b8; color: #ffffff;">
+                                <th style="padding: 12px 8px; font-weight: 700; text-align: left; padding-left: 16px;">Loại đồ thị</th>
+                                <th style="padding: 12px 8px; font-weight: 700;">Khuyên?</th>
+                                <th style="padding: 12px 8px; font-weight: 700;">Cạnh song song?</th>
+                                <th style="padding: 12px 8px; font-weight: 700;">Có hướng?</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                                <td style="padding: 12px 8px; text-align: left; padding-left: 16px; color: #334155;">Đơn đồ thị (simple graph)</td>
+                                <td style="padding: 12px 8px; color: #334155;">Không</td>
+                                <td style="padding: 12px 8px; color: #334155;">Không</td>
+                                <td style="padding: 12px 8px; color: #334155;">Không</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                                <td style="padding: 12px 8px; text-align: left; padding-left: 16px; color: #334155;">Đa đồ thị (multigraph)</td>
+                                <td style="padding: 12px 8px; color: #334155;">Không</td>
+                                <td style="padding: 12px 8px; color: #334155;">Có</td>
+                                <td style="padding: 12px 8px; color: #334155;">Không</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                                <td style="padding: 12px 8px; text-align: left; padding-left: 16px; color: #334155;">Giả đồ thị (pseudograph)</td>
+                                <td style="padding: 12px 8px; color: #334155;">Có</td>
+                                <td style="padding: 12px 8px; color: #334155;">Có</td>
+                                <td style="padding: 12px 8px; color: #334155;">Không</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                                <td style="padding: 12px 8px; text-align: left; padding-left: 16px; color: #334155;">Đồ thị có hướng</td>
+                                <td style="padding: 12px 8px; color: #334155;">Có thể có</td>
+                                <td style="padding: 12px 8px; color: #334155;">Không</td>
+                                <td style="padding: 12px 8px; color: #334155;">Có</td>
+                            </tr>
+                            <tr style="background: #ffffff;">
+                                <td style="padding: 12px 8px; text-align: left; padding-left: 16px; color: #334155;">Đa đồ thị có hướng</td>
+                                <td style="padding: 12px 8px; color: #334155;">Có thể có</td>
+                                <td style="padding: 12px 8px; color: #334155;">Có</td>
+                                <td style="padding: 12px 8px; color: #334155;">Có</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Cột phải: Ví dụ thực tế -->
+            <div style="flex: 1;">
+                <div class="highlight-card" style="background: #ffffff; padding: 20px 24px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                    <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 20px; letter-spacing: 0.5px; text-transform: uppercase;">
+                        Ví dụ thực tế
+                    </div>
+                    
+                    <ul style="margin: 0; padding-left: 20px; font-size: 14.5px; color: #334155; line-height: 1.8;">
+                        <li style="margin-bottom: 15px;">
+                            Sơ đồ mạng LAN (đơn đồ thị): tối đa 1 đường kết nối trực tiếp giữa 2 máy
+                        </li>
+                        <li style="margin-bottom: 15px;">
+                            Đường bay giữa 2 thành phố có nhiều hãng khai thác \(\rightarrow\) đa đồ thị (nhiều cạnh song song)
+                        </li>
+                        <li>
+                            Hàm gọi đệ quy chính nó \(\rightarrow\) cần khuyên (loop) \(\rightarrow\) giả đồ thị
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>64</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 65: Bậc đỉnh & Định lý bắt tay -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.3 THUẬT NGỮ VỀ ĐỒ THỊ</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;">Bậc đỉnh &amp; Định lý bắt tay</h1>
+
+        <!-- Nội dung chính: 2 cột -->
+        <div style="display: flex; gap: 25px; align-items: flex-start; margin-top: 10px;">
+            
+            <!-- Cột trái: Ảnh đồ thị minh họa -->
+            <div style="flex: 1; display: flex; justify-content: center; align-items: flex-start;">
+                <div style="border: 1.5px solid #1e293b; border-radius: 4px; padding: 8px; background: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.06); width: 100%; box-sizing: border-box;">
+                    <img src="image-slide/Gemini_Generated_Image_46x9rr46x9rr46x9.png" 
+                         alt="Minh họa đồ thị và bậc của đỉnh" 
+                         style="max-width: 100%; height: auto; max-height: 380px; object-fit: contain; display: block; margin: 0 auto;">
+                </div>
+            </div>
+
+            <!-- Cột phải: Định lý và ứng dụng -->
+            <div style="flex: 1.1; display: flex; flex-direction: column; gap: 15px;">
+                
+                <!-- Hộp định lý bắt tay -->
+                <div class="highlight-card" style="background: #94a3b8; padding: 18px 22px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 8px; letter-spacing: 0.5px;">
+                        ĐỊNH LÝ BẮT TAY
+                    </div>
+                    <div style="font-family:'Cambria Math', 'Times New Roman', serif; font-size: 24px; font-weight: 700; color: #ffffff; margin-bottom: 8px;">
+                        2|E| = Σ deg(v)
+                    </div>
+                    <div style="font-size: 13px; color: #f1f5f9; font-style: italic;">
+                        Hệ quả: số đỉnh có bậc lẻ luôn là số CHẴN
+                    </div>
+                </div>
+
+                <!-- Kiểm tra với ví dụ -->
+                <div class="highlight-card" style="background: #ffffff; padding: 16px 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                    <div style="font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 10px; letter-spacing: 0.5px;">
+                        KIỂM TRA VỚI VÍ DỤ BÊN TRÁI
+                    </div>
+                    <div style="font-size: 14px; color: #334155; line-height: 1.7;">
+                        Tổng bậc = 2+2+3+1 = 8 = 2×|E| = 2×4<br>
+                        Số đỉnh bậc lẻ: C(3), D(1) → 2 đỉnh (số chẵn)
+                    </div>
+                </div>
+
+                <!-- Ứng dụng CNTT -->
+                <div class="highlight-card" style="background: #f8fafc; padding: 16px 20px; border-radius: 8px; border: 1px solid #e2e8f0; border-left: 4px solid #64748b;">
+                    <div style="font-size: 13.5px; color: #475569; line-height: 1.7; font-style: italic;">
+                        <b style="color: #1e293b;">Ứng dụng CNTT:</b> bậc đỉnh trong mạng xã hội = số bạn bè; bậc đỉnh cao bất thường trong mạng máy tính có thể là dấu hiệu điểm nghẽn / tấn công DDoS.
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>65</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 66: Các đồ thị đặc biệt -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.4 ĐỒ THỊ ĐẶC BIỆT</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;">Các đồ thị đặc biệt</h1>
+
+        <!-- Nội dung chính: 4 cột đồ thị -->
+        <div style="display: flex; gap: 15px; align-items: flex-start; justify-content: space-between; margin-top: 30px;">
+            
+            <!-- K4 (Thay bằng ảnh) -->
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                <div style="border: 1.5px solid #1e293b; border-radius: 4px; padding: 4px; background: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.06); display: flex; justify-content: center; align-items: center; height: 110px; width: 100%; box-sizing: border-box;">
+                    <img src="image-slide/Gemini_Generated_Image_j1njtlj1njtlj1nj.png" 
+                         alt="Đồ thị K4" 
+                         style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;">
+                </div>
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 8px;">\(K_4\)</div>
+                <div style="font-size: 13px; color: #475569; text-align: center; margin-top: 4px; line-height: 1.5;">
+                    Đầy đủ - \(n(n-1)/2\) cạnh
+                </div>
+            </div>
+
+            <!-- C5 -->
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                <svg width="120" height="110" viewBox="0 0 120 110" style="overflow: visible;">
+                    <!-- Edges (Pentagon) -->
+                    <polygon points="60,15 105,50 85,100 35,100 15,50" fill="none" stroke="#94a3b8" stroke-width="2" />
+                    
+                    <!-- Vertices -->
+                    <circle cx="60" cy="15" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <circle cx="105" cy="50" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <circle cx="85" cy="100" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <circle cx="35" cy="100" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <circle cx="15" cy="50" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                </svg>
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 8px;">\(C_5\)</div>
+                <div style="font-size: 13px; color: #475569; text-align: center; margin-top: 4px; line-height: 1.5;">
+                    Vòng - \(n\) cạnh
+                </div>
+            </div>
+
+            <!-- W5 -->
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                <svg width="120" height="110" viewBox="0 0 120 110" style="overflow: visible;">
+                    <!-- Edges (Pentagon) -->
+                    <polygon points="60,15 105,50 85,100 35,100 15,50" fill="none" stroke="#94a3b8" stroke-width="2" />
+                    
+                    <!-- Edges (Spokes) -->
+                    <line x1="60" y1="55" x2="60" y2="15" stroke="#94a3b8" stroke-width="2" />
+                    <line x1="60" y1="55" x2="105" y2="50" stroke="#94a3b8" stroke-width="2" />
+                    <line x1="60" y1="55" x2="85" y2="100" stroke="#94a3b8" stroke-width="2" />
+                    <line x1="60" y1="55" x2="35" y2="100" stroke="#94a3b8" stroke-width="2" />
+                    <line x1="60" y1="55" x2="15" y2="50" stroke="#94a3b8" stroke-width="2" />
+
+                    <!-- Vertices -->
+                    <circle cx="60" cy="15" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <circle cx="105" cy="50" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <circle cx="85" cy="100" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <circle cx="35" cy="100" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <circle cx="15" cy="50" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <!-- Center Vertex -->
+                    <circle cx="60" cy="55" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                </svg>
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 8px;">\(W_5\)</div>
+                <div style="font-size: 13px; color: #475569; text-align: center; margin-top: 4px; line-height: 1.5;">
+                    Bánh xe - \(2n\) cạnh
+                </div>
+            </div>
+
+            <!-- K2,3 -->
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                <svg width="120" height="110" viewBox="0 0 120 110" style="overflow: visible;">
+                    <!-- Edges (Bipartite connections) -->
+                    <line x1="30" y1="25" x2="90" y2="15" stroke="#94a3b8" stroke-width="2" />
+                    <line x1="30" y1="25" x2="90" y2="55" stroke="#94a3b8" stroke-width="2" />
+                    <line x1="30" y1="25" x2="90" y2="95" stroke="#94a3b8" stroke-width="2" />
+                    
+                    <line x1="30" y1="85" x2="90" y2="15" stroke="#94a3b8" stroke-width="2" />
+                    <line x1="30" y1="85" x2="90" y2="55" stroke="#94a3b8" stroke-width="2" />
+                    <line x1="30" y1="85" x2="90" y2="95" stroke="#94a3b8" stroke-width="2" />
+
+                    <!-- Vertices Left -->
+                    <circle cx="30" cy="25" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <circle cx="30" cy="85" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    
+                    <!-- Vertices Right -->
+                    <circle cx="90" cy="15" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <circle cx="90" cy="55" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <circle cx="90" cy="95" r="8" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                </svg>
+                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 8px;">\(K_{2,3}\)</div>
+                <div style="font-size: 13px; color: #475569; text-align: center; margin-top: 4px; line-height: 1.5;">
+                    Hai phía đầy đủ<br>\(m \times n\) cạnh
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Ghi chú -->
+        <div class="highlight-card" style="background: #ffffff; padding: 14px 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 40px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <div style="font-size: 14px; color: #334155; line-height: 1.6;">
+                Lưu ý: \(W_n\) có \(n+1\) đỉnh (\(n\) đỉnh vòng + 1 đỉnh tâm) — dễ nhầm với \(C_n\) (chỉ có \(n\) đỉnh, không có tâm).
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>66</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 67: Ứng dụng đồ thị hai phía -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.5 VÍ DỤ — BÀI TOÁN GHÉP CẶP (MATCHING)</div>
+        <h1 class="slide-title" style="margin-bottom: 15px;">Ứng dụng đồ thị hai phía</h1>
+        
+        <!-- Mô tả -->
+        <div style="font-size: 15px; color: #334155; line-height: 1.6; margin-bottom: 20px; padding-left: 5px;">
+            Phân công nhân viên phù hợp với công việc: cạnh nối khi nhân viên đủ ĐIỀU KIỆN làm công việc đó.
+        </div>
+
+        <!-- Khung chứa đồ thị -->
+        <div class="highlight-card" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; justify-content: center; align-items: center; height: 480px; box-sizing: border-box;">
+            <svg width="100%" height="100%" viewBox="0 0 800 400" style="overflow: visible;">
+                <!-- Định nghĩa vùng chứa để dễ quản lý -->
+                <defs>
+                    <style>
+                        .node-circle { fill: #cbd5e1; stroke: #64748b; stroke-width: 1.5; }
+                        .node-text { font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 14px; font-weight: 700; fill: #1e293b; text-anchor: middle; dominant-baseline: middle; }
+                        .edge-line { stroke: #94a3b8; stroke-width: 1.5; }
+                    </style>
+                </defs>
+
+                <!-- Các cạnh (Edges) -->
+                <!-- Nối từ NV1 (150, 100) -->
+                <line x1="150" y1="100" x2="650" y2="60" class="edge-line" />
+                <line x1="150" y1="100" x2="650" y2="260" class="edge-line" />
+                <line x1="150" y1="100" x2="650" y2="360" class="edge-line" />
+
+                <!-- Nối từ NV2 (150, 200) -->
+                <line x1="150" y1="200" x2="650" y2="60" class="edge-line" />
+                <line x1="150" y1="200" x2="650" y2="160" class="edge-line" />
+                <line x1="150" y1="200" x2="650" y2="260" class="edge-line" />
+                <line x1="150" y1="200" x2="650" y2="360" class="edge-line" />
+
+                <!-- Nối từ NV3 (150, 300) -->
+                <line x1="150" y1="300" x2="650" y2="160" class="edge-line" />
+                <line x1="150" y1="300" x2="650" y2="360" class="edge-line" />
+
+                <!-- Các đỉnh bên trái (Nhân viên) -->
+                <!-- NV1 -->
+                <circle cx="150" cy="100" r="28" class="node-circle" />
+                <text x="150" y="100" class="node-text">NV1</text>
+                
+                <!-- NV2 -->
+                <circle cx="150" cy="200" r="28" class="node-circle" />
+                <text x="150" y="200" class="node-text">NV2</text>
+
+                <!-- NV3 -->
+                <circle cx="150" cy="300" r="28" class="node-circle" />
+                <text x="150" y="300" class="node-text">NV3</text>
+
+                <!-- Các đỉnh bên phải (Công việc) - Đã căn đều khoảng cách (60, 160, 260, 360) -->
+                <!-- CV1 -->
+                <circle cx="650" cy="60" r="28" class="node-circle" />
+                <text x="650" y="60" class="node-text">CV1</text>
+                
+                <!-- CV2 -->
+                <circle cx="650" cy="160" r="28" class="node-circle" />
+                <text x="650" y="160" class="node-text">CV2</text>
+
+                <!-- CV3 -->
+                <circle cx="650" cy="260" r="28" class="node-circle" />
+                <text x="650" y="260" class="node-text">CV3</text>
+
+                <!-- CV4 -->
+                <circle cx="650" cy="360" r="28" class="node-circle" />
+                <text x="650" y="360" class="node-text">CV4</text>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>67</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 68: 4.5 Biểu diễn & duyệt đồ thị -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; padding-left: 40px;">
+        
+        <!-- Số 4.5 -->
+        <div style="font-size: 48px; font-weight: 800; color: #94a3b8; margin-bottom: 10px; line-height: 1;">
+            4.5
+        </div>
+        
+        <!-- Tiêu đề chính -->
+        <h1 style="font-size: 38px; font-weight: 800; color: #1e293b; margin: 0 0 15px 0; letter-spacing: -0.5px;">
+            Biểu diễn &amp; duyệt đồ thị
+        </h1>
+        
+        <!-- Subtitle -->
+        <div style="font-size: 16px; color: #64748b; font-style: italic; line-height: 1.6;">
+            ★ Mục nền tảng — sẽ được tái sử dụng ở 4.6 và cả Chương 5
+        </div>
+        
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2);">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>68</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 69: Ma trận kề vs Danh sách kề -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.5 BIỂU DIỄN ĐỒ THỊ</div>
+        <h1 class="slide-title" style="margin-bottom: 30px;">Ma trận kề vs Danh sách kề</h1>
+
+        <!-- Bảng so sánh -->
+        <div style="margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+            <table style="width: 100%; border-collapse: collapse; font-size: 15px; text-align: center;">
+                <thead>
+                    <tr style="background: #94a3b8; color: #ffffff;">
+                        <th style="padding: 14px 18px; font-weight: 700; width: 28%; text-align: left;">Tiêu chí</th>
+                        <th style="padding: 14px 18px; font-weight: 700; width: 36%;">Ma trận kề</th>
+                        <th style="padding: 14px 18px; font-weight: 700; width: 36%;">Danh sách kề</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                        <td style="padding: 16px 18px; text-align: left; color: #334155; font-weight: 600;">Bộ nhớ</td>
+                        <td style="padding: 16px 18px; color: #334155; line-height: 1.5;">
+                            \(O(n^2)\)<br>
+                            <span style="font-size: 13.5px; font-style: italic;">tốn kém với đồ thị thưa</span>
+                        </td>
+                        <td style="padding: 16px 18px; color: #334155; line-height: 1.5;">
+                            \(O(n + m)\) — hiệu quả hơn
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                        <td style="padding: 16px 18px; text-align: left; color: #334155; font-weight: 600;">Kiểm tra 2 đỉnh kề nhau</td>
+                        <td style="padding: 16px 18px; color: #334155; font-family:'Cambria Math', serif;">\(O(1)\)</td>
+                        <td style="padding: 16px 18px; color: #334155; font-family:'Cambria Math', serif;">\(O(\deg(v))\)</td>
+                    </tr>
+                    <tr style="background: #ffffff;">
+                        <td style="padding: 16px 18px; text-align: left; color: #334155; font-weight: 600;">Duyệt các đỉnh kề của \(v\)</td>
+                        <td style="padding: 16px 18px; color: #334155; font-family:'Cambria Math', serif;">\(O(n)\)</td>
+                        <td style="padding: 16px 18px; color: #334155; font-family:'Cambria Math', serif;">
+                            \(O(\deg(v))\) — nhanh hơn
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Khung ghi chú -->
+        <div class="highlight-card" style="background: #ffffff; padding: 18px 24px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 35px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <div style="font-size: 14.5px; color: #475569; line-height: 1.7;">
+                Đa số mạng thực tế (mạng xã hội, mạng máy tính) là ĐỒ THỊ THƯA (số cạnh \(\ll n^2\)) \(\rightarrow\) danh sách kề thường hiệu quả hơn trong cài đặt thực tế, dù ma trận kề trực quan hơn khi học và chứng minh lý thuyết.
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>69</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 70: Ví dụ: xây dựng ma trận kề -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.5 BIỂU DIỄN ĐỒ THỊ</div>
+        <h1 class="slide-title" style="margin-bottom: 25px;">Ví dụ: xây dựng ma trận kề</h1>
+
+        <!-- Nội dung chính: 2 cột -->
+        <div style="display: flex; gap: 30px; align-items: flex-start; margin-top: 10px;">
+            
+            <!-- Cột trái: Đồ thị minh họa -->
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 10px;">
+                <svg width="100%" height="300" viewBox="0 0 300 250" style="overflow: visible; max-width: 350px;">
+                    <!-- Các cạnh (Edges) -->
+                    <!-- 1 - 2 -->
+                    <line x1="60" y1="60" x2="240" y2="60" stroke="#94a3b8" stroke-width="2" />
+                    <!-- 1 - 3 -->
+                    <line x1="60" y1="60" x2="60" y2="180" stroke="#94a3b8" stroke-width="2" />
+                    <!-- 2 - 4 -->
+                    <line x1="240" y1="60" x2="240" y2="180" stroke="#94a3b8" stroke-width="2" />
+                    <!-- 3 - 4 -->
+                    <line x1="60" y1="180" x2="240" y2="180" stroke="#94a3b8" stroke-width="2" />
+
+                    <!-- Các đỉnh (Vertices) -->
+                    <!-- Đỉnh 1 -->
+                    <circle cx="60" cy="60" r="18" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <text x="60" y="65" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">1</text>
+                    
+                    <!-- Đỉnh 2 -->
+                    <circle cx="240" cy="60" r="18" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <text x="240" y="65" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">2</text>
+                    
+                    <!-- Đỉnh 3 -->
+                    <circle cx="60" cy="180" r="18" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <text x="60" y="185" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">3</text>
+                    
+                    <!-- Đỉnh 4 -->
+                    <circle cx="240" cy="180" r="18" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" />
+                    <text x="240" y="185" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">4</text>
+                </svg>
+                
+                <!-- Thông tin tập đỉnh và cạnh -->
+                <div style="margin-top: 20px; font-size: 15px; color: #334155; text-align: center; font-family:'Cambria Math', 'Times New Roman', serif;">
+                    V={1,2,3,4} ; E={12, 13, 24, 34}
+                </div>
+            </div>
+
+            <!-- Cột phải: Ma trận kề và thông tin -->
+            <div style="flex: 1.1; display: flex; flex-direction: column; gap: 20px; padding-top: 10px;">
+                
+                <!-- Ma trận kề -->
+                <div class="highlight-card" style="background: #ffffff; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; justify-content: center;">
+                    <table style="border-collapse: collapse; font-size: 15px; text-align: center; width: 100%; max-width: 280px; font-family:'Cambria Math', 'Times New Roman', serif;">
+                        <thead>
+                            <tr style="background: #f1f5f9;">
+                                <th style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #1e293b; width: 20%;"></th>
+                                <th style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #1e293b; width: 20%;">1</th>
+                                <th style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #1e293b; width: 20%;">2</th>
+                                <th style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #1e293b; width: 20%;">3</th>
+                                <th style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #1e293b; width: 20%;">4</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; font-weight: 700; color: #1e293b; background: #f8fafc;">1</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">0</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">1</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">1</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">0</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; font-weight: 700; color: #1e293b; background: #f8fafc;">2</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">1</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">0</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">0</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">1</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; font-weight: 700; color: #1e293b; background: #f8fafc;">3</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">1</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">0</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">0</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">1</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; font-weight: 700; color: #1e293b; background: #f8fafc;">4</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">0</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">1</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">1</td>
+                                <td style="padding: 10px 14px; border: 1px solid #cbd5e1; color: #334155;">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Danh sách kề -->
+                <div style="font-size: 14.5px; color: #334155; font-family:'Cambria Math', 'Times New Roman', serif; padding-left: 10px;">
+                    Danh sách kề: 1:{2,3} - 2:{1,4} - 3:{1,4} - 4:{2,3}
+                </div>
+
+                <!-- Ghi chú -->
+                <div class="highlight-card" style="background: #f8fafc; padding: 16px 20px; border-radius: 8px; border: 1px solid #e2e8f0; border-left: 4px solid #64748b; margin-top: 10px;">
+                    <div style="font-size: 14px; color: #475569; line-height: 1.6; font-style: italic;">
+                        Ma trận kề của đồ thị VÔ HƯỚNG luôn ĐỐI XỨNG qua đường chéo chính.
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>70</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 71: Thuật toán DFS (Depth-First Search) -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.6 DEPTH-FIRST SEARCH — DUYỆT THEO CHIỀU SÂU</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;">Thuật toán DFS (Depth-First Search)</h1>
+
+        <!-- Nội dung chính: 2 cột -->
+        <div style="display: flex; gap: 30px; align-items: flex-start; margin-top: 15px;">
+            
+            <!-- Cột trái: Mã giả và các đặc điểm -->
+            <div style="flex: 1.1;">
+                <!-- Khung mã giả -->
+                <div style="background: #94a3b8; border-radius: 8px; padding: 20px 24px; font-family: 'Courier New', Courier, monospace; font-size: 14px; line-height: 1.7; color: #ffffff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px;">
+                    <div style="margin-bottom: 5px;">DFS(G, v):</div>
+                    <div style="padding-left: 20px; margin-bottom: 5px;">đánh dấu v là đã thăm</div>
+                    <div style="padding-left: 20px; margin-bottom: 5px;">xử lý v</div>
+                    <div style="padding-left: 20px; margin-bottom: 5px;">for mỗi đỉnh u kề với v:</div>
+                    <div style="padding-left: 40px; margin-bottom: 5px;">if u chưa thăm:</div>
+                    <div style="padding-left: 60px;">DFS(G, u) // đi sâu trước, quay lui sau</div>
+                </div>
+
+                <!-- Danh sách đặc điểm -->
+                <ul style="margin: 0; padding-left: 20px; font-size: 15px; color: #334155; line-height: 1.8;">
+                    <li style="margin-bottom: 12px;">Cài đặt bằng đệ quy hoặc ngăn xếp (stack)</li>
+                    <li style="margin-bottom: 12px;">Đi càng sâu càng tốt theo 1 nhánh, chỉ quay lui khi hết đỉnh kề chưa thăm</li>
+                    <li>Ứng dụng: web crawler, giải mê cung, kiểm tra chu trình</li>
+                </ul>
+            </div>
+
+            <!-- Cột phải: Ảnh minh họa Stack (Thay thế ô kẻ đen) -->
+            <div style="flex: 0.9; display: flex; justify-content: center; align-items: flex-start; padding-top: 5px;">
+                <div style="border: 1.5px solid #1e293b; border-radius: 4px; padding: 8px; background: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.06); width: 100%; box-sizing: border-box; display: flex; justify-content: center;">
+                    <img src="image-slide/Gemini_Generated_Image_icnrwicnrwicnrwi.png" 
+                         alt="Minh họa cấu trúc Stack LIFO" 
+                         style="max-width: 100%; height: auto; max-height: 380px; object-fit: contain; display: block;">
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>71</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 72: Đồ thị mẫu cho demo DFS / BFS -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.6 DEMO — XUẤT PHÁT TỪ ĐỈNH A</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;">Đồ thị mẫu cho demo DFS / BFS</h1>
+
+        <!-- Khung chứa đồ thị -->
+        <div class="highlight-card" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; justify-content: center; align-items: center; height: 450px; box-sizing: border-box; margin-bottom: 20px;">
+            <svg width="100%" height="100%" viewBox="0 0 800 380" style="overflow: visible;">
+                <!-- Các cạnh (Edges) -->
+                <g stroke="#94a3b8" stroke-width="2" fill="none">
+                    <!-- A - B -->
+                    <line x1="400" y1="70" x2="250" y2="170" />
+                    <!-- A - C -->
+                    <line x1="400" y1="70" x2="550" y2="170" />
+                    <!-- B - D -->
+                    <line x1="250" y1="170" x2="250" y2="310" />
+                    <!-- B - E -->
+                    <line x1="250" y1="170" x2="400" y2="310" />
+                    <!-- C - F -->
+                    <line x1="550" y1="170" x2="550" y2="310" />
+                    <!-- E - F -->
+                    <line x1="400" y1="310" x2="550" y2="310" />
+                </g>
+
+                <!-- Các đỉnh (Vertices) -->
+                <g>
+                    <!-- Đỉnh A -->
+                    <circle cx="400" cy="70" r="30" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="400" y="78" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">A</text>
+                    
+                    <!-- Đỉnh B -->
+                    <circle cx="250" cy="170" r="30" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="250" y="178" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">B</text>
+                    
+                    <!-- Đỉnh C -->
+                    <circle cx="550" cy="170" r="30" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="550" y="178" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">C</text>
+                    
+                    <!-- Đỉnh D -->
+                    <circle cx="250" cy="310" r="30" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="250" y="318" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">D</text>
+                    
+                    <!-- Đỉnh E -->
+                    <circle cx="400" cy="310" r="30" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="400" y="318" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">E</text>
+                    
+                    <!-- Đỉnh F -->
+                    <circle cx="550" cy="310" r="30" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="550" y="318" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">F</text>
+                </g>
+            </svg>
+        </div>
+
+        <!-- Ghi chú danh sách kề -->
+        <div class="highlight-card" style="background: #f1f5f9; padding: 14px 20px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            <div style="font-size: 14.5px; color: #334155; line-height: 1.6;">
+                Danh sách kề: A:{B,C} - B:{A,D,E} - C:{A,F} - D:{B} - E:{B,F} - F:{C,E} — đồ thị này dùng cho cả 2 demo tiếp theo.
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>72</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 73: DFS — chạy từng bước -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.6 DEMO - THỨ TỰ A, B, D, E, F, C</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;">DFS — chạy từng bước</h1>
+
+        <!-- Nội dung chính: 2 cột -->
+        <div style="display: flex; gap: 25px; align-items: flex-start; margin-top: 10px;">
+            
+            <!-- Cột trái: Đồ thị minh họa -->
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 10px;">
+                <svg width="100%" height="320" viewBox="0 0 450 380" style="overflow: visible; max-width: 400px;">
+                    <!-- Các cạnh (Edges) -->
+                    <g stroke="#94a3b8" stroke-width="2" fill="none">
+                        <!-- A - B -->
+                        <line x1="225" y1="60" x2="120" y2="160" />
+                        <!-- A - C -->
+                        <line x1="225" y1="60" x2="330" y2="160" />
+                        <!-- B - D -->
+                        <line x1="120" y1="160" x2="120" y2="300" />
+                        <!-- B - E -->
+                        <line x1="120" y1="160" x2="225" y2="300" />
+                        <!-- C - F -->
+                        <line x1="330" y1="160" x2="330" y2="300" />
+                        <!-- E - F -->
+                        <line x1="225" y1="300" x2="330" y2="300" />
+                    </g>
+
+                    <!-- Các đỉnh (Vertices) -->
+                    <g>
+                        <!-- Đỉnh A -->
+                        <circle cx="225" cy="60" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="225" y="68" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">A</text>
+                        
+                        <!-- Đỉnh B -->
+                        <circle cx="120" cy="160" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="120" y="168" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">B</text>
+                        
+                        <!-- Đỉnh C -->
+                        <circle cx="330" cy="160" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="330" y="168" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">C</text>
+                        
+                        <!-- Đỉnh D -->
+                        <circle cx="120" cy="300" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="120" y="308" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">D</text>
+                        
+                        <!-- Đỉnh E -->
+                        <circle cx="225" cy="300" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="225" y="308" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">E</text>
+                        
+                        <!-- Đỉnh F -->
+                        <circle cx="330" cy="300" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="330" y="308" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">F</text>
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Cột phải: Bảng theo dõi các bước -->
+            <div style="flex: 1.2; display: flex; justify-content: center; padding-top: 10px;">
+                <div style="border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.02); width: 100%;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;">
+                        <thead>
+                            <tr style="background: #94a3b8; color: #ffffff;">
+                                <th style="padding: 12px 10px; font-weight: 700; text-align: center; width: 12%;">Bước</th>
+                                <th style="padding: 12px 10px; font-weight: 700; width: 33%;">Đỉnh xét</th>
+                                <th style="padding: 12px 10px; font-weight: 700; width: 28%;">Stack</th>
+                                <th style="padding: 12px 10px; font-weight: 700; width: 27%;">Thứ tự thăm</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">1</td>
+                                <td style="padding: 12px 10px; color: #334155;">A</td>
+                                <td style="padding: 12px 10px; color: #334155;">[A]</td>
+                                <td style="padding: 12px 10px; color: #334155;">A</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">2</td>
+                                <td style="padding: 12px 10px; color: #334155;">B (kề A)</td>
+                                <td style="padding: 12px 10px; color: #334155;">[A,B]</td>
+                                <td style="padding: 12px 10px; color: #334155;">A,B</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">3</td>
+                                <td style="padding: 12px 10px; color: #334155;">D (kề B)</td>
+                                <td style="padding: 12px 10px; color: #334155;">[A,B,D]</td>
+                                <td style="padding: 12px 10px; color: #334155;">A,B,D</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">4</td>
+                                <td style="padding: 12px 10px; color: #334155;">quay lui &rarr; E (kề B)</td>
+                                <td style="padding: 12px 10px; color: #334155;">[A,B,E]</td>
+                                <td style="padding: 12px 10px; color: #334155;">A,B,D,E</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">5</td>
+                                <td style="padding: 12px 10px; color: #334155;">F (kề E)</td>
+                                <td style="padding: 12px 10px; color: #334155;">[A,B,E,F]</td>
+                                <td style="padding: 12px 10px; color: #334155;">A,B,D,E,F</td>
+                            </tr>
+                            <tr style="background: #f8fafc;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">6</td>
+                                <td style="padding: 12px 10px; color: #334155;">C (kề F)</td>
+                                <td style="padding: 12px 10px; color: #334155;">[A,B,E,F,C]</td>
+                                <td style="padding: 12px 10px; color: #334155;">A,B,D,E,F,C</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>73</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 74: BFS — chạy từng bước -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.6 DEMO - THỨ TỰ A, B, C, D, E, F</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;">BFS — chạy từng bước</h1>
+
+        <!-- Nội dung chính: 2 cột -->
+        <div style="display: flex; gap: 25px; align-items: flex-start; margin-top: 10px;">
+            
+            <!-- Cột trái: Đồ thị minh họa -->
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 10px;">
+                <svg width="100%" height="320" viewBox="0 0 450 380" style="overflow: visible; max-width: 400px;">
+                    <!-- Các cạnh (Edges) -->
+                    <g stroke="#94a3b8" stroke-width="2" fill="none">
+                        <!-- A - B -->
+                        <line x1="225" y1="60" x2="120" y2="160" />
+                        <!-- A - C -->
+                        <line x1="225" y1="60" x2="330" y2="160" />
+                        <!-- B - D -->
+                        <line x1="120" y1="160" x2="120" y2="300" />
+                        <!-- B - E -->
+                        <line x1="120" y1="160" x2="225" y2="300" />
+                        <!-- C - F -->
+                        <line x1="330" y1="160" x2="330" y2="300" />
+                        <!-- E - F -->
+                        <line x1="225" y1="300" x2="330" y2="300" />
+                    </g>
+
+                    <!-- Các đỉnh (Vertices) -->
+                    <g>
+                        <!-- Đỉnh A -->
+                        <circle cx="225" cy="60" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="225" y="68" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">A</text>
+                        
+                        <!-- Đỉnh B -->
+                        <circle cx="120" cy="160" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="120" y="168" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">B</text>
+                        
+                        <!-- Đỉnh C -->
+                        <circle cx="330" cy="160" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="330" y="168" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">C</text>
+                        
+                        <!-- Đỉnh D -->
+                        <circle cx="120" cy="300" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="120" y="308" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">D</text>
+                        
+                        <!-- Đỉnh E -->
+                        <circle cx="225" cy="300" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="225" y="308" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">E</text>
+                        
+                        <!-- Đỉnh F -->
+                        <circle cx="330" cy="300" r="28" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="330" y="308" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">F</text>
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Cột phải: Bảng theo dõi các bước -->
+            <div style="flex: 1.2; display: flex; justify-content: center; padding-top: 10px;">
+                <div style="border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.02); width: 100%;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;">
+                        <thead>
+                            <tr style="background: #94a3b8; color: #ffffff;">
+                                <th style="padding: 12px 10px; font-weight: 700; text-align: center; width: 15%;">Bước</th>
+                                <th style="padding: 12px 10px; font-weight: 700; text-align: center; width: 30%;">Xử lý</th>
+                                <th style="padding: 12px 10px; font-weight: 700; text-align: center; width: 55%;">Queue sau xử lý</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">1</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">A</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">[B, C]</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">2</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">B</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">[C, D, E]</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">3</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">C</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">[D, E, F]</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">4</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">D</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">[E, F]</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">5</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">E</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">[F]</td>
+                            </tr>
+                            <tr style="background: #f8fafc;">
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">6</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">F</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #334155;">[]</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>74</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 75: Liên thông & thành phần liên thông -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.6 KHÁI NIỆM</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;">Liên thông &amp; thành phần liên thông</h1>
+
+        <!-- Nội dung chính: 2 đồ thị -->
+        <div style="display: flex; gap: 40px; justify-content: center; align-items: center; margin-top: 20px; margin-bottom: 30px;">
+            
+            <!-- Đồ thị liên thông -->
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="font-size: 14px; font-weight: 700; color: #64748b; letter-spacing: 0.5px; margin-bottom: 10px; text-transform: uppercase;">
+                    LIÊN THÔNG
+                </div>
+                <svg width="260" height="220" viewBox="0 0 380 300" style="overflow: visible;">
+                    <!-- Các cạnh (Edges) -->
+                    <g stroke="#94a3b8" stroke-width="2" fill="none">
+                        <!-- 1 - 2 -->
+                        <line x1="70" y1="150" x2="190" y2="70" />
+                        <!-- 1 - 3 -->
+                        <line x1="70" y1="150" x2="190" y2="230" />
+                        <!-- 2 - 4 -->
+                        <line x1="190" y1="70" x2="310" y2="150" />
+                        <!-- 3 - 4 -->
+                        <line x1="190" y1="230" x2="310" y2="150" />
+                    </g>
+
+                    <!-- Các đỉnh (Vertices) -->
+                    <g>
+                        <!-- Đỉnh 1 -->
+                        <circle cx="70" cy="150" r="20" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="70" y="156" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">1</text>
+                        
+                        <!-- Đỉnh 2 -->
+                        <circle cx="190" cy="70" r="20" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="190" y="76" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">2</text>
+                        
+                        <!-- Đỉnh 3 -->
+                        <circle cx="190" cy="230" r="20" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="190" y="236" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">3</text>
+                        
+                        <!-- Đỉnh 4 -->
+                        <circle cx="310" cy="150" r="20" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="310" y="156" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">4</text>
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Đồ thị không liên thông -->
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="font-size: 14px; font-weight: 700; color: #64748b; letter-spacing: 0.5px; margin-bottom: 10px; text-transform: uppercase;">
+                    KHÔNG LIÊN THÔNG
+                </div>
+                <svg width="360" height="220" viewBox="0 0 600 300" style="overflow: visible;">
+                    <!-- Các cạnh (Edges) -->
+                    <g stroke="#94a3b8" stroke-width="2" fill="none">
+                        <!-- Component 1: 1 - 2 -->
+                        <line x1="150" y1="150" x2="270" y2="70" />
+                        <!-- Component 2: 3 - 4 -->
+                        <line x1="430" y1="150" x2="550" y2="150" />
+                    </g>
+
+                    <!-- Các đỉnh (Vertices) -->
+                    <g>
+                        <!-- Đỉnh 1 -->
+                        <circle cx="150" cy="150" r="20" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="150" y="156" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">1</text>
+                        
+                        <!-- Đỉnh 2 -->
+                        <circle cx="270" cy="70" r="20" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="270" y="76" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">2</text>
+                        
+                        <!-- Đỉnh 3 -->
+                        <circle cx="430" cy="150" r="20" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="430" y="156" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">3</text>
+                        
+                        <!-- Đỉnh 4 -->
+                        <circle cx="550" cy="150" r="20" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                        <text x="550" y="156" font-size="16" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">4</text>
+                    </g>
+                </svg>
+            </div>
+
+        </div>
+
+        <!-- Khung ghi chú -->
+        <div class="highlight-card" style="background: #f1f5f9; padding: 18px 24px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            <ul style="margin: 0; padding-left: 20px; font-size: 14.5px; color: #334155; line-height: 1.8;">
+                <li style="margin-bottom: 10px;">
+                    Thành phần liên thông: đồ thị con liên thông CỰC ĐẠI (không thể thêm gì mà vẫn liên thông)
+                </li>
+                <li style="margin-bottom: 10px;">
+                    Đồ thị có hướng: liên thông MẠNH (đường đi 2 chiều giữa các cặp đỉnh) vs liên thông YẾU (bỏ chiều thì liên thông)
+                </li>
+                <li>
+                    Cách xác định: chạy DFS/BFS lặp lại — mỗi lần chạy từ 1 đỉnh chưa thăm tìm ra đúng 1 thành phần
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>75</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 76: Demo: tìm thành phần liên thông -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">4.6 VÍ DỤ - V={1..6}, E={12, 23, 45}, đỉnh 6 cô lập</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;">Demo: tìm thành phần liên thông</h1>
+
+        <!-- Đồ thị minh họa -->
+        <div class="highlight-card" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; justify-content: center; align-items: center; height: 340px; box-sizing: border-box; margin-bottom: 25px;">
+            <svg width="100%" height="100%" viewBox="0 0 800 300" style="overflow: visible;">
+                <!-- Các cạnh (Edges) -->
+                <g stroke="#94a3b8" stroke-width="2" fill="none">
+                    <!-- Thành phần 1: 1 - 2 - 3 -->
+                    <line x1="120" y1="150" x2="250" y2="70" />
+                    <line x1="250" y1="70" x2="250" y2="230" />
+                    
+                    <!-- Thành phần 2: 4 - 5 -->
+                    <line x1="450" y1="120" x2="550" y2="200" />
+                </g>
+
+                <!-- Các đỉnh (Vertices) -->
+                <g>
+                    <!-- Thành phần 1 -->
+                    <!-- Đỉnh 1 -->
+                    <circle cx="120" cy="150" r="26" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="120" y="157" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">1</text>
+                    
+                    <!-- Đỉnh 2 -->
+                    <circle cx="250" cy="70" r="26" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="250" y="77" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">2</text>
+                    
+                    <!-- Đỉnh 3 -->
+                    <circle cx="250" cy="230" r="26" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="250" y="237" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">3</text>
+
+                    <!-- Thành phần 2 -->
+                    <!-- Đỉnh 4 -->
+                    <circle cx="450" cy="120" r="26" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="450" y="127" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">4</text>
+
+                    <!-- Đỉnh 5 -->
+                    <circle cx="550" cy="200" r="26" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="550" y="207" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">5</text>
+
+                    <!-- Thành phần 3 -->
+                    <!-- Đỉnh 6 -->
+                    <circle cx="700" cy="150" r="26" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+                    <text x="700" y="157" font-size="18" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">6</text>
+                </g>
+            </svg>
+        </div>
+
+        <!-- Bảng kết quả -->
+        <div style="border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+            <table style="width: 100%; border-collapse: collapse; font-size: 15px; text-align: center;">
+                <thead>
+                    <tr style="background: #94a3b8; color: #ffffff;">
+                        <th style="padding: 12px 16px; font-weight: 700; width: 20%;">Thành phần</th>
+                        <th style="padding: 12px 16px; font-weight: 700; width: 25%;">Tập đỉnh</th>
+                        <th style="padding: 12px 16px; font-weight: 700; width: 55%;">Cách tìm</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                        <td style="padding: 12px 16px; color: #334155;">1</td>
+                        <td style="padding: 12px 16px; color: #334155; font-weight: 600;">{1, 2, 3}</td>
+                        <td style="padding: 12px 16px; color: #334155;">DFS từ đỉnh 1</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+                        <td style="padding: 12px 16px; color: #334155;">2</td>
+                        <td style="padding: 12px 16px; color: #334155; font-weight: 600;">{4, 5}</td>
+                        <td style="padding: 12px 16px; color: #334155;">DFS từ đỉnh 4 (chưa thăm)</td>
+                    </tr>
+                    <tr style="background: #ffffff;">
+                        <td style="padding: 12px 16px; color: #334155;">3</td>
+                        <td style="padding: 12px 16px; color: #334155; font-weight: 600;">{6}</td>
+                        <td style="padding: 12px 16px; color: #334155;">Đỉnh cô lập tự thành 1 thành phần</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Chương 4 - Lý thuyết đồ thị</span>
+        <span>76</span>
+    </div>
+</div>
+
+
 </body>
 <!-- MATHJAX: đặt trước </body> nếu file chưa có --> 
  <script> 
