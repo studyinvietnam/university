@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const Subject = require('../models/Subject');
 const Lesson = require('../models/Lesson');
 const { paginate } = require('./pagination.controller');
+// ★ USER KEY: toàn bộ phạm vi xem/sửa môn học lấy từ đây
+const { getContentScope } = require('../services/userKeyService');
 
 // ============================================================
 // HELPERS
@@ -20,6 +22,7 @@ function slugify(str) {
         .slice(0, 100);
 }
 
+// Slug phải duy nhất TOÀN HỆ THỐNG (vì URL /subjects/:slug không có tiền tố tổ chức)
 async function generateUniqueSlug(name, excludeId = null) {
     let base = slugify(name) || 'mon-hoc';
     let slug = base;
@@ -42,26 +45,12 @@ function getUserId(req) {
     return req.session?.user?._id || req.user?._id || null;
 }
 
-// ★ THÊM (theo lesson.controller.js): cho phép tìm subject theo ObjectId
-// HOẶC theo slug, thay vì chỉ theo _id như hiện tại — để URL có thể dùng
-// slug đẹp (/subjects/toan-hoc) song song với id cũ (/subjects/64f...).
 function isObjectId(str) {
     return mongoose.Types.ObjectId.isValid(str) && String(str).length === 24;
 }
 
-function findSubjectByParam(param, extraFilter = {}) {
-    const baseFilter = isObjectId(param) ? { _id: param } : { slug: param };
-    return Subject.findOne({
-        ...baseFilter,
-        ...extraFilter,
-    })
-        .populate('createdBy', 'name')
-        .lean();
-}
-
-// Lấy subject theo id/slug KHÔNG lọc trạng thái — dùng để phân biệt
-// "không tồn tại" (404 thật) với "đã bị xoá mềm" (hiện trang đã xoá),
-// giống findLessonByParamAny bên lesson.controller.js.
+// Lấy subject theo id/slug KHÔNG lọc trạng thái — để phân biệt 404 thật
+// với "đã bị xoá mềm". Việc kiểm tra phạm vi tổ chức làm ở caller (scope.canAccess).
 function findSubjectByParamAny(param) {
     const baseFilter = isObjectId(param) ? { _id: param } : { slug: param };
     return Subject.findOne(baseFilter)
@@ -69,27 +58,84 @@ function findSubjectByParamAny(param) {
         .lean();
 }
 
-// ★ THÊM: đọc flash message an toàn (connect-flash trả về mảng) — dùng
-// làm phương án dự phòng bên cạnh query string success/error hiện có.
 function readFlash(req, key) {
     if (typeof req.flash !== 'function') return null;
     const arr = req.flash(key);
     return Array.isArray(arr) && arr.length ? arr[0] : null;
 }
 
+// Đếm bài học (1 query cho cả trang thay vì N query)
+async function attachLessonCounts(subjects) {
+    const ids = subjects.map((s) => s._id);
+    if (!ids.length) return subjects;
+
+    const rows = await Lesson.aggregate([
+        { $match: { subjectId: { $in: ids }, isDeleted: false } },
+        { $group: { _id: '$subjectId', count: { $sum: 1 } } },
+    ]);
+    const map = Object.fromEntries(rows.map((r) => [String(r._id), r.count]));
+
+    subjects.forEach((s) => {
+        s.lessonCount = map[String(s._id)] || 0;
+    });
+    return subjects;
+}
+
+// ★ USER KEY: mọi truy cập vượt phạm vi → 404 (giống "không tồn tại"),
+//   không lộ việc môn đó có thật ở tổ chức khác.
+function renderNotFound(req, res, message = 'Không tìm thấy môn học.') {
+    return res.status(404).render('error', {
+        title: 'Không tìm thấy',
+        message,
+        user: req.user,
+        statusCode: 404,
+        stack: null,
+    });
+}
+
+// ★ USER KEY: handler admin chỉ chạy khi actor (đọc từ DB) thật sự là admin.
+//   Trả scope, hoặc null (đã redirect) nếu không đủ quyền.
+async function requireAdminScope(req, res, backUrl = '/admin/subjects') {
+    const scope = await getContentScope(req);
+    if (scope.isDefaultAdmin || scope.isOrgAdmin) return scope;
+
+    res.redirect(
+        backUrl + '?error=' + encodeURIComponent('Bạn không có quyền thực hiện thao tác này.')
+    );
+    return null;
+}
+
+// Tải 1 môn (chưa bị xoá vĩnh viễn) mà actor ĐƯỢC PHÉP quản lý, hoặc null
+async function findManageableSubject(scope, id) {
+    if (!isObjectId(id)) return null;
+    const subject = await Subject.findOne({
+        _id: id,
+        deletedForever: { $ne: true },
+    });
+    if (!subject || !scope.canAccess(subject)) return null;
+    return subject;
+}
+
+const NOT_FOUND_MSG = 'Không tìm thấy môn học.';
+
 // ============================================================
-// STUDENT
+// STUDENT (và admin xem giao diện sinh viên)
 // ============================================================
 
 // GET /subjects
 exports.getSubjects = async (req, res, next) => {
     try {
+        // ★ USER KEY: admin default → {} ; admin user_key → userKey+createdBy của mình ;
+        //   student → userKey ∈ [null (nếu default), tổ chức gốc, tổ chức đã kết nối]
+        const scope = await getContentScope(req);
+
         const { items: subjects, pagination } = await paginate(
             Subject,
             {
                 isPublished: true,
                 deletedAt: null,
                 deletedForever: { $ne: true },
+                ...scope.filter,
             },
             req,
             {
@@ -99,16 +145,7 @@ exports.getSubjects = async (req, res, next) => {
             }
         );
 
-        // ★ FIX (đối chiếu lesson.controller.js): Lesson dùng field
-        //   `subjectId` (không phải `subject`) và cờ xoá mềm là `isDeleted`
-        //   (không có `deletedAt`/`deletedForever`/`isPublished` trên Lesson)
-        //   — filter cũ luôn không khớp document nào nên lessonCount sai (=0).
-        for (const subject of subjects) {
-            subject.lessonCount = await Lesson.countDocuments({
-                subjectId: subject._id,
-                isDeleted: false,
-            });
-        }
+        await attachLessonCounts(subjects);
 
         return res.render('student/subjects', {
             title: 'Môn học',
@@ -127,31 +164,28 @@ exports.getSubjects = async (req, res, next) => {
     }
 };
 
-// GET /subjects/:id
-// ★ THÊM: chấp nhận cả slug lẫn ObjectId (findSubjectByParam), giống
-//   findLessonByParam bên lesson.controller.js, thay vì chỉ tìm theo _id.
+// GET /subjects/:id  (id hoặc slug)
 exports.getSubject = async (req, res, next) => {
     try {
         const key = req.params.id || req.params.slug;
-
-        // ★ THÊM: tra "any" trước để phân biệt 404 thật với "đã bị xoá mềm"
-        //   — trước đây filter thẳng isPublished/deletedAt nên môn học đã xoá
-        //   luôn rơi vào 404 chung chung, dễ gây hiểu lầm là chưa từng tồn tại.
         const subjectAny = await findSubjectByParamAny(key);
 
         if (!subjectAny || subjectAny.deletedForever) {
-            return res.status(404).render('error', {
-                title: 'Không tìm thấy',
-                message: 'Không tìm thấy môn học.',
-                statusCode: 404,
-                stack: null,
-            });
+            return renderNotFound(req, res);
+        }
+
+        // ★ USER KEY: ngoài phạm vi → 404 NGAY, trước cả nhánh "đã xoá/không công khai"
+        //   (nếu để sau thì người ngoài tổ chức vẫn biết môn đó tồn tại qua mã 410)
+        const scope = await getContentScope(req);
+        if (!scope.canAccess(subjectAny)) {
+            return renderNotFound(req, res);
         }
 
         if (subjectAny.deletedAt || !subjectAny.isPublished) {
             return res.status(410).render('error', {
                 title: 'Môn học không khả dụng',
                 message: 'Môn học này hiện không được công khai hoặc đã bị xoá.',
+                user: req.user,
                 statusCode: 410,
                 stack: null,
             });
@@ -159,13 +193,12 @@ exports.getSubject = async (req, res, next) => {
 
         const subject = subjectAny;
 
-        // ★ FIX: Lesson dùng `subjectId` + `isDeleted` (xem lesson.controller.js),
-        //   không phải `subject` + `isPublished`/`deletedAt`/`deletedForever`.
         const { items: lessons, pagination } = await paginate(
             Lesson,
             {
                 subjectId: subject._id,
                 isDeleted: false,
+                ...scope.filter, // ★ USER KEY: phòng thủ thêm ở cấp bài học
             },
             req,
             {
@@ -199,17 +232,15 @@ exports.getSubject = async (req, res, next) => {
 // ============================================================
 exports.getAdminSubjects = async (req, res, next) => {
     try {
+        const scope = await requireAdminScope(req, res, '/');
+        if (!scope) return;
+
         const showDeleted = req.query.deleted === '1';
-        // ★ THÊM (theo lesson.controller.js): tìm kiếm theo tên/mã môn học,
-        //   giống ô search trong getAdminLessons.
         const search = (req.query.search || '').trim();
 
-        const filter = { deletedForever: { $ne: true } };
-        if (showDeleted) {
-            filter.deletedAt = { $ne: null };
-        } else {
-            filter.deletedAt = null;
-        }
+        // ★ USER KEY: admin user_key chỉ thấy môn do chính mình tạo trong tổ chức mình
+        const filter = { deletedForever: { $ne: true }, ...scope.filter };
+        filter.deletedAt = showDeleted ? { $ne: null } : null;
 
         if (search) {
             const safe = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -228,13 +259,7 @@ exports.getAdminSubjects = async (req, res, next) => {
             ],
         });
 
-        // ★ FIX: Lesson dùng `subjectId` + `isDeleted` (xem lesson.controller.js).
-        for (const subject of subjects) {
-            subject.lessonCount = await Lesson.countDocuments({
-                subjectId: subject._id,
-                isDeleted: false,
-            });
-        }
+        await attachLessonCounts(subjects);
 
         return res.render('admin/subjects', {
             title: 'Quản lý môn học',
@@ -263,6 +288,9 @@ exports.getAdminSubjects = async (req, res, next) => {
 // ============================================================
 exports.createSubject = async (req, res, next) => {
     try {
+        const scope = await requireAdminScope(req, res);
+        if (!scope) return;
+
         const { name, code, description, order, isPublished } = req.body;
 
         if (!name || !name.trim()) {
@@ -272,8 +300,15 @@ exports.createSubject = async (req, res, next) => {
             );
         }
 
+        // ★ USER KEY: userKey do SERVER gán theo actor, KHÔNG nhận từ body.
+        //   (Trước đây không gán → môn của admin user_key mặc định userKey=null
+        //    → bị coi là nội dung của tổ chức default → mọi student default đều thấy.)
+        const ownerKey = scope.actor.userKey || null;
+
+        // ★ USER KEY: trùng tên chỉ tính trong CÙNG tổ chức (không lộ tên môn của tổ chức khác)
         const existed = await Subject.findOne({
             name: name.trim(),
+            userKey: ownerKey,
             deletedForever: { $ne: true },
         });
 
@@ -293,12 +328,11 @@ exports.createSubject = async (req, res, next) => {
             slug,
             order: Number(order) || 0,
             isPublished: isPublished === 'on' || isPublished === true,
-            createdBy: getUserId(req),
-            updatedBy: getUserId(req),
+            userKey: ownerKey,                 // ★ USER KEY
+            createdBy: scope.actor._id,        // ★ USER KEY (dùng cho phân quyền admin user_key)
+            updatedBy: scope.actor._id,
         });
 
-        // ★ THÊM: bắn thêm flash message (nếu app có connect-flash) song song
-        //   với query string cũ, để tương lai view có thể chuyển sang đọc flash.
         req.flash?.('success', 'Đã tạo môn học thành công.');
 
         return res.redirect(
@@ -320,20 +354,20 @@ exports.createSubject = async (req, res, next) => {
 // ============================================================
 exports.showEditSubject = async (req, res, next) => {
     try {
-        const subject = await Subject.findOne({
-            _id: req.params.id,
-            deletedForever: { $ne: true },
-        })
+        const scope = await requireAdminScope(req, res);
+        if (!scope) return;
+
+        const found = await findManageableSubject(scope, req.params.id);
+        if (!found) {
+            return res.redirect(
+                '/admin/subjects?error=' + encodeURIComponent(NOT_FOUND_MSG)
+            );
+        }
+
+        const subject = await Subject.findById(found._id)
             .populate('createdBy', 'name email')
             .populate('updatedBy', 'name email')
             .lean();
-
-        if (!subject) {
-            return res.redirect(
-                '/admin/subjects?error=' +
-                    encodeURIComponent('Không tìm thấy môn học.')
-            );
-        }
 
         return res.render('admin/subject-edit', {
             title: 'Chỉnh sửa môn học',
@@ -357,25 +391,25 @@ exports.showEditSubject = async (req, res, next) => {
 // ============================================================
 exports.updateSubject = async (req, res, next) => {
     try {
+        const scope = await requireAdminScope(req, res);
+        if (!scope) return;
+
         const { id } = req.params;
+        // ★ USER KEY: cố ý KHÔNG đọc userKey / createdBy từ body
         const { name, code, description, order, isPublished } = req.body;
 
-        const subject = await Subject.findOne({
-            _id: id,
-            deletedForever: { $ne: true },
-        });
-
+        const subject = await findManageableSubject(scope, id);
         if (!subject) {
             return res.redirect(
-                '/admin/subjects?error=' +
-                    encodeURIComponent('Không tìm thấy môn học.')
+                '/admin/subjects?error=' + encodeURIComponent(NOT_FOUND_MSG)
             );
         }
 
         if (name && name.trim() !== subject.name) {
             const dup = await Subject.findOne({
-                _id: { $ne: id },
+                _id: { $ne: subject._id },
                 name: name.trim(),
+                userKey: subject.userKey || null, // ★ USER KEY: chỉ so trong cùng tổ chức
                 deletedForever: { $ne: true },
             });
 
@@ -387,7 +421,7 @@ exports.updateSubject = async (req, res, next) => {
             }
 
             subject.name = name.trim();
-            subject.slug = await generateUniqueSlug(name, id);
+            subject.slug = await generateUniqueSlug(name, subject._id);
         }
 
         if (code !== undefined) subject.code = (code || '').trim() || null;
@@ -423,15 +457,13 @@ exports.updateSubject = async (req, res, next) => {
 // ============================================================
 exports.deleteSubject = async (req, res, next) => {
     try {
-        const subject = await Subject.findOne({
-            _id: req.params.id,
-            deletedForever: { $ne: true },
-        });
+        const scope = await requireAdminScope(req, res);
+        if (!scope) return;
 
+        const subject = await findManageableSubject(scope, req.params.id);
         if (!subject) {
             return res.redirect(
-                '/admin/subjects?error=' +
-                    encodeURIComponent('Không tìm thấy môn học.')
+                '/admin/subjects?error=' + encodeURIComponent(NOT_FOUND_MSG)
             );
         }
 
@@ -461,15 +493,13 @@ exports.deleteSubject = async (req, res, next) => {
 // ============================================================
 exports.restoreSubject = async (req, res, next) => {
     try {
-        const subject = await Subject.findOne({
-            _id: req.params.id,
-            deletedForever: { $ne: true },
-        });
+        const scope = await requireAdminScope(req, res);
+        if (!scope) return;
 
+        const subject = await findManageableSubject(scope, req.params.id);
         if (!subject) {
             return res.redirect(
-                '/admin/subjects?error=' +
-                    encodeURIComponent('Không tìm thấy môn học.')
+                '/admin/subjects?error=' + encodeURIComponent(NOT_FOUND_MSG)
             );
         }
 
@@ -499,18 +529,17 @@ exports.restoreSubject = async (req, res, next) => {
 // ============================================================
 exports.hardDeleteSubject = async (req, res, next) => {
     try {
-        const subject = await Subject.findById(req.params.id);
+        const scope = await requireAdminScope(req, res);
+        if (!scope) return;
 
+        const subject = await findManageableSubject(scope, req.params.id);
         if (!subject) {
             return res.redirect(
-                '/admin/subjects?error=' +
-                    encodeURIComponent('Không tìm thấy môn học.')
+                '/admin/subjects?error=' + encodeURIComponent(NOT_FOUND_MSG)
             );
         }
 
-        // ★ THÊM (theo hardDeleteLesson bên lesson.controller.js): chỉ cho
-        //   xoá vĩnh viễn môn ĐANG ở thùng rác — buộc đi qua bước xoá mềm
-        //   trước, tránh bấm nhầm xoá thẳng một môn đang hoạt động.
+        // Chỉ cho xoá vĩnh viễn môn ĐANG ở thùng rác
         if (!subject.deletedAt) {
             return res.redirect(
                 '/admin/subjects?error=' +
@@ -520,7 +549,6 @@ exports.hardDeleteSubject = async (req, res, next) => {
             );
         }
 
-        // ★ FIX: Lesson dùng `subjectId` + `isDeleted` (xem lesson.controller.js).
         const lessonCount = await Lesson.countDocuments({
             subjectId: subject._id,
             isDeleted: false,

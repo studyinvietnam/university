@@ -4,44 +4,63 @@ const Lesson = require('../models/Lesson');
 const Submission = require('../models/Submission');
 
 const { paginate } = require('./pagination.controller');
+// ★ USER KEY
+const { getContentScope } = require('../services/userKeyService');
 
 // ============================================================
 // LIST PRACTICE — cả admin + student đều vào
 // GET /practice
+//
+// Phạm vi nội dung (getContentScope, đọc user MỚI từ DB):
+//   - Admin default  : thấy tất cả
+//   - Admin user_key : chỉ môn/bài của tổ chức mình do chính mình tạo
+//   - Student        : userKey ∈ [tổ chức gốc, ...đã kết nối] (đang active);
+//                      student default (userKey null) chỉ thấy nội dung userKey null
+//                      (= do admin default tạo)
 // ============================================================
 exports.listPractice = async (req, res, next) => {
     try {
         const user = req.user;
-        const subjectFilter = req.query.subject || null;
+        const isAdmin = user?.role === 'admin';
+        const subjectFilter = String(req.query.subject || '').trim() || null;
 
+        const scope = await getContentScope(req);
+
+        // --- Môn học hiển thị được ---
         const subjectQuery = {
             deletedAt: null,
-            deletedForever: { $ne: true }
+            deletedForever: { $ne: true },
+            ...scope.filter // ★ USER KEY
         };
+        if (!isAdmin) subjectQuery.isPublished = true;
+
+        const subjects = await Subject.find(subjectQuery)
+            .sort({ order: 1, name: 1 })
+            .lean();
+
+        // --- Bài học: PHẢI thuộc một môn đã qua bộ lọc phạm vi ở trên ---
+        // (trước đây lọc thẳng theo query ?subject=<id> do client gửi → đổi id là xem được
+        //  bài của tổ chức khác)
+        let allowedSubjectIds = subjects.map((s) => s._id);
+        if (subjectFilter) {
+            const match = subjects.find(
+                (s) => String(s._id) === subjectFilter || s.slug === subjectFilter
+            );
+            allowedSubjectIds = match ? [match._id] : []; // môn ngoài phạm vi → không có bài nào
+        }
 
         const lessonQuery = {
-            deletedAt: null,
-            deletedForever: { $ne: true }
+            isDeleted: false, // cờ xoá mềm thật sự của Lesson (xem models/Lesson.js)
+            subjectId: { $in: allowedSubjectIds },
+            ...scope.filter // ★ USER KEY: phòng thủ thêm ở cấp bài học
         };
+        if (!isAdmin) lessonQuery.isPublished = true;
 
-        // Student chỉ thấy bài đã publish; admin thấy hết
-        if (user?.role !== 'admin') {
-            subjectQuery.isPublished = true;
-            lessonQuery.isPublished = true;
-        }
-
-        if (subjectFilter) {
-            lessonQuery.subjectId = subjectFilter;
-        }
-
-        // Danh sách môn (ô lọc) lấy đủ; danh sách bài chia trang 9 bài/trang
-        const [subjects, { items: lessons, pagination }] = await Promise.all([
-            Subject.find(subjectQuery).sort({ order: 1, name: 1 }).lean(),
-            paginate(Lesson, lessonQuery, req, {
-                limit: 9,
-                sort: { order: 1, createdAt: -1 }
-            })
-        ]);
+        // Danh sách bài chia trang 9 bài/trang
+        const { items: lessons, pagination } = await paginate(Lesson, lessonQuery, req, {
+            limit: 9,
+            sort: { order: 1, createdAt: -1 }
+        });
 
         // Gắn subject cho từng lesson
         const subjectMap = Object.fromEntries(

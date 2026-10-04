@@ -8,6 +8,8 @@ const disputeController = require("../controllers/dispute.controller");
 const promptController = require("../controllers/prompt.controller");
 const aiKeyController = require("../controllers/aikey.controller");
 const userKeyController = require("../controllers/userkey.controller");
+const layoutController = require("../controllers/layout.controller");
+const layoutService = require("../services/layoutService");
 
 const userKeyService = require("../services/userKeyService");
 const { attachUser, isDefaultAdmin } = require("../middleware/auth");
@@ -387,7 +389,7 @@ router.post("/users/:id/update", async (req, res) => {
         const actor = req.user;
         const isDef = isDefaultAdmin(actor);
         // 👇 MỚI: nhận thêm connectedUserKeys (mảng ObjectId)
-        const { name, role, status, userKey, connectedUserKeys } = req.body;
+        const { name, role, status, userKey, connectedUserKeys, canEditLayout } = req.body;
 
         if (!isValidId(req.params.id)) {
             return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
@@ -467,7 +469,30 @@ router.post("/users/:id/update", async (req, res) => {
             }
         }
 
+        // ------------------------------------------------------------
+        // 👇 MỚI: quyền sửa layout
+        //   - CHỈ admin default được cấp/thu hồi (gửi lên từ admin user_key bị bỏ qua)
+        //   - Chỉ có nghĩa với role=admin + userKey != null; ngược lại LUÔN ép về false
+        //     (đổi admin thành student/client hoặc đưa về tổ chức default = tự thu hồi)
+        // ------------------------------------------------------------
+        const prevCanEditLayout = targetUser.canEditLayout === true;
+        if (isDef && canEditLayout !== undefined) {
+            targetUser.canEditLayout = canEditLayout === true || canEditLayout === "true";
+        }
+        if (targetUser.role !== "admin" || !targetUser.userKey) {
+            targetUser.canEditLayout = false;
+        }
+        const nextCanEditLayout = targetUser.canEditLayout === true;
+
         await targetUser.save();
+
+        if (nextCanEditLayout !== prevCanEditLayout) {
+            await layoutService.audit(
+                req,
+                nextCanEditLayout ? "grant_layout_edit" : "revoke_layout_edit",
+                { targetUser: targetUser._id, userKey: targetUser.userKey }
+            );
+        }
 
         return res.json({ success: true });
     } catch (error) {
@@ -475,6 +500,9 @@ router.post("/users/:id/update", async (req, res) => {
         return res.status(500).json({ success: false, message: "Lỗi máy chủ khi cập nhật người dùng." });
     }
 });
+
+// Cấp / thu hồi quyền sửa layout (chỉ admin default; đích phải là admin thuộc một user_key)
+router.post("/users/:id/layout-permission", requireDefaultAdmin, layoutController.setLayoutPermission);
 
 router.post("/users/:id/delete", requireDefaultAdmin, async (req, res) => {
     try {

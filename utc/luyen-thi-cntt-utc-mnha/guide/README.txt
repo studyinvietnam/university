@@ -91,7 +91,10 @@ Node.js Server (Express + Pug)
 
 ### MongoDB (metadata)
 ```js
-User     { _id, email, passwordHash, name, role, verified, userKey, connectedUserKeys, createdAt }
+User     { _id, email, passwordHash, name, role, verified, userKey, connectedUserKeys, createdAt,
+           canEditLayout }   // canEditLayout MỚI: chỉ có nghĩa với admin user_key (xem mục "Tuỳ Chỉnh Layout")
+UserKey  { _id, name, code, active, createdBy,
+           layout: { logoFile, logoVersion, brandSub, footerText } }   // layout MỚI, mọi field null = giao diện mặc định
 Role     { _id, name, permissions, deletedAt, deletedForever }
 Subject  { _id, name, slug, githubFolder, promptId (optional), deletedAt, deletedForever }
 Lesson   { _id, subjectId, title, slug, githubFile, promptId (optional), deletedAt, deletedForever }
@@ -600,6 +603,133 @@ Subject.find({
 
 ---
 
+## 🎨 Tuỳ Chỉnh Layout & Quản Lý Kết Nối Theo User Key (MỚI — CHƯA TRIỂN KHAI)
+
+> Chỉ áp dụng cho người thuộc / kết nối với một `user_key`. **Tổ chức default giữ nguyên 100%** (logo, chữ "UTC", chân trang như cũ). Mọi field layout để `null` = hiển thị y như cũ.
+
+### Ai được làm gì
+
+| Việc | Admin default | Admin user_key **chưa** được cấp quyền | Admin user_key **được cấp** `canEditLayout` |
+|---|---|---|---|
+| Cấp / thu hồi quyền sửa layout (ở `admin/users`) | Có | Không | Không (không tự cấp cho mình hay người khác) |
+| Sửa layout (`/admin/layout`) | Không cần (layout default cố định) → **403** | **403** | Có — sửa layout của `user_key` mình |
+| Quản lý tài khoản kết nối (`/admin/users/connect`) | Không → **403** | Có (mọi admin user_key) | Có |
+
+- Quyền luôn **đọc lại từ DB** theo `req.user._id` (không tin session): admin vừa bị thu hồi quyền thì lần gọi kế tiếp bị chặn ngay.
+- Chặn ở **tầng route** bằng middleware, không chỉ ẩn menu.
+
+### Dữ liệu (chỉ thêm, giá trị cũ không đổi)
+
+```js
+User {
+  ...
+  canEditLayout: { type: Boolean, default: false }   // chỉ admin default mới đổi được; chỉ có nghĩa với role=admin + userKey != null
+}
+
+UserKey {
+  ...
+  layout: {
+    logoFile:   { type: String, default: null },     // đường dẫn file logo trên GitHub, vd layouts/<userKeyId>/logo.png
+    logoVersion:{ type: Number, default: null },     // Date.now() lúc upload → chống cache trình duyệt (?v=)
+    brandSub:   { type: String, default: null },     // chữ nhỏ dưới tên (mặc định "UTC")
+    footerText: { type: String, default: null }      // nội dung nối sau "© 2026 Luyện thi CNTT UTC - "
+  }
+}
+```
+
+Layout là của **tổ chức** (lưu ở `UserKey`), còn quyền sửa là của **từng tài khoản admin** (lưu ở `User`). Nhiều admin cùng một `user_key` thì ai được cấp quyền đều sửa chung một layout.
+
+### 3 điểm trên giao diện được tuỳ chỉnh
+
+| Điểm | Mặc định (khi `null`) | Khi admin user_key đặt |
+|---|---|---|
+| **Logo** `<img class="w-10 h-10 rounded-xl object-contain" ...>` | `/images/logo.png`, alt "Luyện thi CNTT UTC" | Ảnh admin upload. **File lưu trên GitHub** (`layouts/<userKeyId>/logo.<ext>`), MongoDB chỉ giữ đường dẫn; trang lấy ảnh qua `GET /layout/logo/:userKeyId` (server đọc GitHub rồi trả về, vì repo có thể private) |
+| **Chữ dưới logo** `<div class="text-xs text-gray-500">UTC</div>` | `UTC` | Nội dung admin nhập, **luôn hiển thị IN HOA** (server `toUpperCase()` + class `uppercase`) |
+| **Chân trang** `© 2026 Luyện thi CNTT UTC` | `© 2026 Luyện thi CNTT UTC` (không thêm gì) | `© 2026 Luyện thi CNTT UTC - {nội dung admin nhập}` |
+
+Quy tắc kiểm tra (server, `layoutService.js`):
+- `brandSub`: trim, tối đa 20 ký tự; rỗng → `null` (về "UTC").
+- `footerText`: trim, tối đa 100 ký tự; rỗng → `null` (chân trang mặc định, **không** có dấu " - ").
+- Logo: chỉ nhận **PNG / JPEG / WebP**, tối đa **512KB**, kiểm tra **magic bytes** (không tin `Content-Type` hay đuôi file). **Không nhận SVG** (SVG chứa được script → XSS).
+- Hiển thị bằng Pug `=` / `#{}` (tự escape), **không dùng `!=`**.
+- Upload logo: ghi GitHub trước (kèm SHA nếu đã có file, xử lý 409 như mục đồng bộ); **chỉ khi GitHub OK mới cập nhật `logoFile`/`logoVersion` trong MongoDB**. GitHub lỗi → báo lỗi, giữ logo cũ.
+- Nút "Về mặc định": đặt 3 field (và `logoFile`) về `null`; không cần xoá file trên GitHub.
+- `/layout/logo/:userKeyId`: yêu cầu đăng nhập; không có `logoFile` hoặc lỗi GitHub → trả `/images/logo.png`. Nên cache bộ nhớ ngắn + `Cache-Control` để không gọi GitHub (rate limit) mỗi lần tải trang.
+
+### Ai thấy layout nào (`services/layoutService.js` + `middleware/attachLayout.js`)
+
+Middleware gắn `res.locals.brand = { logoUrl, logoAlt, subText, footerText }` cho mọi view, tính theo thứ tự:
+
+1. Admin default → luôn layout mặc định.
+2. User có `userKey` (admin user_key, student, client chờ duyệt) → layout của `userKey` đó (nếu `UserKey.active`).
+3. User có `userKey = null` nhưng đã kết nối `user_key` khác (`connectedUserKeys`) → layout của `user_key` **đầu tiên theo thứ tự kết nối** có cấu hình layout (không có cái nào → mặc định).
+4. Còn lại, và các trang chưa đăng nhập (đăng nhập / đăng ký / quên mật khẩu) → layout mặc định.
+
+> Quy tắc 3 là lựa chọn thiết kế: student default kết nối `user_key` X cũng thấy layout của X. Nếu muốn student default luôn giữ layout default, bỏ quy tắc 3.
+
+`views/layout.pug` dùng `brand` (có fallback cho trang lỗi không đi qua middleware):
+
+```pug
+- const b = (typeof brand !== 'undefined' && brand) || { logoUrl: '/images/logo.png', logoAlt: 'Luyện thi CNTT UTC', subText: 'UTC', footerText: null }
+//- Header
+img(class="w-10 h-10 rounded-xl object-contain", src=b.logoUrl, alt=b.logoAlt)
+div(class="text-xs text-gray-500 uppercase")= b.subText
+//- Footer
+div(class="max-w-7xl mx-auto px-4 py-6 text-sm text-gray-500 text-center")
+    | © 2026 Luyện thi CNTT UTC
+    if b.footerText
+        |  - #{b.footerText}
+```
+
+### Cấp quyền ở `admin/users` (chỉ admin default)
+
+- Trang `admin/users` thêm cột **"Sửa layout"**: với dòng `role = admin` **và** `userKey != null` có công tắc bật/tắt; các dòng khác không hiện công tắc.
+- Route: `POST /admin/users/:id/layout-permission` (body `canEditLayout=true|false`), gắn `requireDefaultAdmin`. Server kiểm tra đích đúng là admin có `userKey`, nếu không → 400.
+- Ghi `AuditLog`: `grant_layout_edit` / `revoke_layout_edit` (kèm `userKey` của tổ chức đích).
+- Admin user_key được cấp quyền sẽ thấy thêm menu **"Giao diện"** → `/admin/layout` (`views/admin/brand.pug`: upload logo + 2 ô chữ + nút "Về mặc định"). Không có quyền → menu ẩn **và** route trả 403.
+- Route layout: `GET /admin/layout`, `POST /admin/layout` (multipart: `logo`, `brandSub`, `footerText`), `POST /admin/layout/reset` — gắn `requireLayoutEditor`.
+- Mỗi lần lưu / reset ghi `AuditLog`: `update_layout` / `reset_layout`.
+
+### Quản lý tài khoản kết nối — `/admin/users/connect` (chỉ admin user_key)
+
+"Tài khoản kết nối" = các `student` có `connectedUserKeys` chứa `userKey` của admin đang đăng nhập (gồm cả người tự kết nối bằng `code` lẫn người được admin thêm ở đây — cùng một dữ liệu).
+
+- `GET /admin/users/connect` — danh sách (tên, email, tổ chức gốc) + ô nhập email để thêm + nút Xoá từng dòng. File: `views/admin/users/connect.pug`.
+- `POST /admin/users/connect` (body `email`) — thêm kết nối:
+  - email chuẩn hoá (trim + chữ thường), sai định dạng → lỗi.
+  - **Không có tài khoản với email này trong database → báo lỗi** "Không tìm thấy tài khoản với email này." (không tự tạo tài khoản).
+  - Tài khoản phải là `student` (client chưa duyệt / admin → lỗi "Chỉ thêm được tài khoản student.").
+  - Tài khoản đã thuộc chính `user_key` của admin (`userKey` trùng) → lỗi "Tài khoản đã thuộc tổ chức của bạn."; đã kết nối rồi → lỗi "Tài khoản đã được kết nối."
+  - `UserKey` của admin đang tắt (`active: false`) → lỗi.
+  - Thành công: `$addToSet: { connectedUserKeys: admin.userKey }`.
+- `POST /admin/users/connect/:userId/delete` — xoá kết nối: `$pull` đúng `userKey` của admin khỏi `connectedUserKeys`. **Không xoá tài khoản, không đổi `userKey` gốc**, không đụng kết nối tới tổ chức khác. Tài khoản không thật sự đang kết nối → 404.
+- Gắn `requireUserKeyAdmin` (admin có `userKey`; admin default → 403). Mọi truy vấn đều lọc theo `userKey` của chính admin đang đăng nhập (không nhận `userKey` từ client).
+- ⚠️ Khai báo route `/admin/users/connect` **trước** các route `/admin/users/:id...` để `:id` không nuốt chữ "connect".
+- Ghi `AuditLog`: `connect_user` / `disconnect_user`.
+- Lưu ý: báo lỗi "không có email" làm lộ email nào đã đăng ký → nên giới hạn tần suất thử (cùng cơ chế chống dò mã `code` ở đăng ký/kết nối). Student bị thêm có thể tự ngắt kết nối ở trang của mình bất cứ lúc nào.
+
+### File cần sửa / tạo
+
+**Tạo mới:**
+- `routes/layoutSettings.js`, `routes/userConnect.js`
+- `controllers/layout.controller.js`, `controllers/userConnect.controller.js`
+- `services/layoutService.js`
+- `middleware/attachLayout.js`
+- `views/admin/brand.pug`, `views/admin/users/connect.pug`
+
+**Sửa:**
+- `models/User.js` — thêm `canEditLayout`.
+- `models/UserKey.js` — thêm `layout`.
+- `middleware/userKeyGuard.js` — thêm `requireUserKeyAdmin`, `requireLayoutEditor` (đọc quyền từ DB).
+- `services/githubService.js` — thêm hàm ghi/đọc file nhị phân (ảnh logo); hiện chỉ có JSON.
+- Controller trang `admin/users` (duyệt user / đổi quyền) + `views/admin/users.pug` — cột "Sửa layout" và route `layout-permission`.
+- `server.js` — đăng ký 2 route mới, gắn `attachLayout` **sau** middleware nạp user, cài `multer`.
+- `views/layout.pug` — 3 đoạn: logo, chữ dưới logo, chân trang. Nếu admin / student / auth dùng layout riêng cũng có các đoạn đó thì sửa cả các file ấy.
+- Menu admin (sidebar/dashboard) — thêm mục "Giao diện" (khi `canEditLayout`) và "Tài khoản kết nối" (admin user_key). Dùng cùng chỗ `attachAdminFlags` đã ẩn menu API Key.
+- `package.json` — thêm `multer`.
+
+---
+
 ## 📝 Giảng Viên Nhận Xét Bài Làm (ĐÃ TRIỂN KHAI)
 
 > **Nguyên tắc:** không có bước "giảng viên duyệt" và không có khái niệm "đồng tình với AI". AI chấm xong → điểm + feedback hiện ngay cho sinh viên. Nhận xét của giảng viên chỉ là **phần thêm, tuỳ chọn**: muốn thì viết, không thì thôi. Bài nộp không bao giờ phải chờ giảng viên.
@@ -787,6 +917,7 @@ Frontend hiển thị lịch sử + badge 🔔 tăng
 | AI | Google Gemini API (@google/genai) — mặc định |
 | AI (tuỳ chọn) | vilao.ai API (tương thích OpenAI, gọi bằng `fetch`) |
 | Storage | GitHub REST API (Octokit) |
+| Upload logo | `multer` (memoryStorage, giới hạn 512KB) — chỉ dùng cho trang Giao diện của admin user_key |
 | Crypto | Node.js `crypto` (AES-256-GCM) |
 | Queue (đồng bộ GitHub) | BullMQ + Redis (hoặc in-memory nếu quy mô nhỏ) |
 | Notification | Polling (30–60s), dừng khi tab ẩn |
@@ -828,7 +959,9 @@ project/
 │   ├── notification.js
 │   ├── prompt.js
 │   ├── dispute.js             ← MỚI (khiếu nại điểm)
-│   └── userkey.js             ← MỚI Ý TƯỞNG (CRUD user_key, student kết nối)
+│   ├── userkey.js             ← MỚI Ý TƯỞNG (CRUD user_key, student kết nối)
+│   ├── layoutSettings.js      ← MỚI (admin user_key sửa layout + route phục vụ logo)
+│   └── userConnect.js         ← MỚI (admin user_key quản lý tài khoản kết nối: /admin/users/connect)
 ├── controllers/                ← MỚI (tách logic khỏi routes)
 │   ├── auth.controller.js
 │   ├── subject.controller.js
@@ -838,7 +971,9 @@ project/
 │   ├── prompt.controller.js
 │   ├── notification.controller.js
 │   ├── dispute.controller.js
-│   └── userkey.controller.js  ← MỚI Ý TƯỞNG
+│   ├── userkey.controller.js  ← MỚI Ý TƯỞNG
+│   ├── layout.controller.js   ← MỚI (xem/lưu/reset layout, upload logo, trả logo từ GitHub)
+│   └── userConnect.controller.js ← MỚI (danh sách / thêm theo email / xoá kết nối)
 ├── services/
 │   ├── githubService.js
 │   ├── aiService.js           ← timeout, chọn model, chấm 1 bài & so sánh nhiều model, parse an toàn
@@ -848,13 +983,16 @@ project/
 │   ├── promptService.js       ← render biến (kể cả {lời_giải_mẫu}), chọn prompt ưu tiên, versioning
 │   ├── sanitizeService.js     ← MỚI (chống prompt injection)
 │   ├── syncQueueService.js    ← MỚI (queue đồng bộ GitHub, retry)
-│   └── userKeyService.js      ← MỚI (phạm vi dữ liệu theo user_key, quy tắc duyệt user)
+│   ├── userKeyService.js      ← MỚI (phạm vi dữ liệu theo user_key, quy tắc duyệt user)
+│   └── layoutService.js       ← MỚI (tính layout hiển thị cho 1 user, validate field layout, lưu/đọc logo)
 ├── config/
 │   └── aiModels.js            ← MỚI (danh sách SUPPORTED_MODELS + DEFAULT_MODEL)
 ├── middleware/
 │   ├── auth.js
 │   ├── role.js                ← chặn client ở tầng API
-│   ├── userKeyGuard.js        ← MỚI (requireDefaultAdmin: chặn route AI Key/User Key với admin user_key)
+│   ├── userKeyGuard.js        ← MỚI (requireDefaultAdmin: chặn route AI Key/User Key với admin user_key;
+│   │                              + requireUserKeyAdmin, requireLayoutEditor cho tính năng layout/kết nối)
+│   ├── attachLayout.js        ← MỚI (gắn res.locals.brand cho mọi view)
 │   └── attachUnreadCount.js
 ├── views/
 │   ├── layout.pug
@@ -869,6 +1007,9 @@ project/
 │   │   ├── prompts.pug
 │   │   ├── auditlog.pug       ← MỚI
 │   │   ├── userkeys.pug       ← MỚI Ý TƯỞNG (quản lý user_key, admin default)
+│   │   ├── brand.pug          ← MỚI (admin user_key sửa logo / chữ dưới logo / chữ chân trang)
+│   │   ├── users/
+│   │   │   └── connect.pug    ← MỚI (admin user_key: danh sách tài khoản kết nối, thêm theo email, xoá)
 │   │   └── submission_review.pug ← MỚI (giảng viên nhận xét 1 bài nộp, tuỳ chọn)
 │   └── student/
 │       ├── subjects.pug
@@ -959,6 +1100,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - [ ] Đối chiếu `saveTeacherComment` với `Notification` / `AuditLog` / `Submission.js` thật (xem mục "Giảng Viên Nhận Xét")
 - [x] Đa tổ chức `user_key` — phần nền: `UserKey`, `User.userKey/connectedUserKeys`, đăng ký kèm mã tổ chức, lọc Subject/Lesson trong `lesson.controller.js`, `requireDefaultAdmin`
 - [ ] vilao.ai (Gemini vẫn mặc định, không đổi): `AIKey.provider`, `Submission.aiProvider/aiKeyName`, nhánh gọi vilao.ai trong `aiService.js`, chọn provider ở form thêm key, nhãn "Gemini: {tên}" / "vilao.ai: {tên}" ở trang làm bài + sau khi chấm (xem mục "Hỗ Trợ Thêm vilao.ai")
+- [ ] Tuỳ chỉnh layout theo `user_key` (logo / chữ dưới logo / chân trang) + cấp quyền `canEditLayout` ở `admin/users` + trang `admin/users/connect` (xem mục "Tuỳ Chỉnh Layout & Quản Lý Kết Nối")
 - [ ] Đa tổ chức `user_key` — phần còn lại: field `userKey` ở Subject/Lesson, `subject.controller`, duyệt user, `submission.controller`, `userkey.controller`, view (xem "Trạng thái triển khai")
 
 ---

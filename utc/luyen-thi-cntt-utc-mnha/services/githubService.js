@@ -181,6 +181,67 @@ async function updateJsonFile(path, updater, commitMessage = 'Update JSON') {
 }
 
 /**
+ * Ghi file NHỊ PHÂN (ảnh logo...) lên GitHub — tạo mới hoặc cập nhật.
+ * @param {string} path
+ * @param {Buffer} buffer
+ */
+async function writeBinaryFile(path, buffer, commitMessage = 'Update file') {
+    assertConfigured();
+
+    if (!Buffer.isBuffer(buffer)) {
+        throw new Error('writeBinaryFile: dữ liệu phải là Buffer');
+    }
+
+    return withRetry(async () => {
+        const sha = await getFileSha(path);
+
+        const res = await octokit.repos.createOrUpdateFileContents({
+            owner,
+            repo,
+            branch,
+            path,
+            message: commitMessage,
+            content: buffer.toString('base64'),
+            sha: sha || undefined,
+            committer: {
+                name: 'Luyen Thi CNTT Bot',
+                email: 'bot@luyen-thi-cntt.local'
+            }
+        });
+
+        return {
+            path,
+            sha: res.data.content.sha,
+            commitSha: res.data.commit.sha
+        };
+    }, `writeBinary:${path}`);
+}
+
+/**
+ * Đọc file NHỊ PHÂN từ GitHub → Buffer (null nếu không tồn tại).
+ * Contents API chỉ trả nội dung cho file ≤ 1MB; logo giới hạn 512KB nên đủ.
+ */
+async function readBinaryFile(path) {
+    assertConfigured();
+
+    try {
+        const res = await octokit.repos.getContent({
+            owner, repo, path, ref: branch
+        });
+        if (Array.isArray(res.data)) {
+            throw new Error(`Path không phải file: ${path}`);
+        }
+        if (!res.data.content) {
+            throw new Error(`File quá lớn để đọc qua Contents API: ${path}`);
+        }
+        return Buffer.from(res.data.content, 'base64');
+    } catch (e) {
+        if (e.status === 404) return null;
+        throw e;
+    }
+}
+
+/**
  * Xoá file trên GitHub.
  */
 async function deleteFile(path, commitMessage = 'Delete file') {
@@ -238,6 +299,8 @@ module.exports = {
     writeJsonFile,
     readJsonFile,
     updateJsonFile,
+    writeBinaryFile,
+    readBinaryFile,
     deleteFile,
     fileExists,
     getFileSha,

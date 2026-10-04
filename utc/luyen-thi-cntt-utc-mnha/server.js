@@ -11,6 +11,7 @@ const MongoStore = require("connect-mongo").default;
 const cors = require("cors");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const attachLayout = require("./middleware/attachLayout");
 
 const app = express();
 
@@ -221,6 +222,9 @@ app.use(async (req, res, next) => {
                 .lean();
 
             if (fresh) {
+                // ★ Giữ bản user mới nhất cho attachLayout (đỡ query lần 2)
+                req.freshUser = fresh;
+
                 req.session.user = {
                     id: fresh._id.toString(),
                     _id: fresh._id.toString(),
@@ -262,6 +266,10 @@ app.use((req, res, next) => {
         next(error);
     }
 });
+
+// ★ Layout theo user_key: res.locals.brand + isDefaultAdmin/isOrgAdmin/canEditLayout.
+//   PHẢI đứng sau middleware nạp user ở trên (cần req.freshUser).
+app.use(attachLayout);
 
 // ============================================================
 // HOME
@@ -339,6 +347,8 @@ let notificationRoutes;
 let promptRoutes;
 let aiRoutes;
 let adminRoutes;
+let layoutSettingsRoutes;
+let userConnectRoutes;
 
 try {
     authRoutes = require("./routes/auth");
@@ -351,6 +361,8 @@ try {
     promptRoutes = require("./routes/prompt");
     aiRoutes = require("./routes/ai");
     adminRoutes = require("./routes/admin");
+    layoutSettingsRoutes = require("./routes/layoutSettings");
+    userConnectRoutes = require("./routes/userConnect");
 } catch (error) {
     logError("ROUTE MODULE LOAD ERROR", error);
     process.exit(1);
@@ -377,6 +389,12 @@ app.use("/prompts", promptRoutes);
 // ★ AI ROUTES — mount cả 2 path
 app.use("/ai", aiRoutes);
 app.use("/api/ai", aiRoutes);
+
+// ★ Layout theo user_key. PHẢI mount TRƯỚC adminRoutes, nếu không
+//   "/admin/users/:id..." trong adminRoutes sẽ nuốt chữ "connect".
+app.use("/layout", layoutSettingsRoutes.logoRouter);        // GET /layout/logo/:userKeyId
+app.use("/admin/layout", layoutSettingsRoutes);             // GET/POST /admin/layout, POST /admin/layout/reset
+app.use("/admin/users/connect", userConnectRoutes);         // tài khoản kết nối (admin user_key)
 
 app.use("/admin", adminRoutes);
 

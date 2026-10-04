@@ -105,6 +105,17 @@ const userSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             default: null
+        },
+
+        // ====================================================
+        // QUYỀN SỬA LAYOUT (giao diện của tổ chức)
+        //   - Chỉ admin default mới đổi được (route layout-permission).
+        //   - Chỉ có nghĩa với role=admin + userKey != null.
+        //   - KHÔNG nhận từ body đăng ký / form hồ sơ.
+        // ====================================================
+        canEditLayout: {
+            type: Boolean,
+            default: false
         }
     },
     {

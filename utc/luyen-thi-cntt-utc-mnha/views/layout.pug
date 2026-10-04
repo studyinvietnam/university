@@ -1,3 +1,4 @@
+- var b = (typeof brand !== 'undefined' && brand) || { logoUrl: '/images/logo.png', logoAlt: 'Luyện thi CNTT UTC', subText: 'UTC', footerText: null }
 doctype html
 html(lang="vi")
     head
@@ -27,17 +28,17 @@ html(lang="vi")
             div(class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8")
                 div(class="h-16 flex items-center justify-between")
 
-                    //- ★ LOGO — thay bằng ảnh public/images/logo.png
+                    //- ★ LOGO — mặc định public/images/logo.png; tổ chức (user_key) có thể đặt logo riêng qua `brand`
                     a(class="flex items-center gap-3", href="/")
                         img(
-                            src="/images/logo.png"
-                            alt="Luyện thi CNTT UTC"
+                            src=b.logoUrl
+                            alt=b.logoAlt
                             class="w-10 h-10 rounded-xl object-contain"
                         )
 
                         div(class="hidden sm:block")
                             div(class="font-bold text-gray-900") Luyện thi CNTT của MNHA
-                            div(class="text-xs text-gray-500") UTC
+                            div(class="text-xs text-gray-500 uppercase")= b.subText
 
                     //- DESKTOP NAVIGATION
                     nav(class="hidden md:flex items-center gap-1")
@@ -148,6 +149,22 @@ html(lang="vi")
                                             i(data-lucide="users", class="w-4 h-4")
                                             | Người dùng
 
+                                        if isOrgAdmin
+                                            a(
+                                                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
+                                                href="/admin/users/connect"
+                                            )
+                                                i(data-lucide="link-2", class="w-4 h-4")
+                                                | Tài khoản kết nối
+
+                                        if canEditLayout
+                                            a(
+                                                class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
+                                                href="/admin/layout"
+                                            )
+                                                i(data-lucide="palette", class="w-4 h-4")
+                                                | Giao diện
+
                                         if isDefaultAdmin
                                             a(
                                                 class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
@@ -194,7 +211,7 @@ html(lang="vi")
                                             = user.name || user.email
 
                                         p(class="text-xs text-gray-500")
-                                            | #{user.role === 'admin' ? (isUserKeyAdmin ? 'Quản trị viên tổ chức' : 'Quản trị viên') : (user.role === 'student' ? 'Sinh viên' : 'Chờ duyệt')}
+                                            | #{user.role === 'admin' ? (isOrgAdmin ? 'Quản trị viên tổ chức' : 'Quản trị viên') : (user.role === 'student' ? 'Sinh viên' : 'Chờ duyệt')}
 
                                     i(data-lucide="chevron-down", class="w-4 h-4 text-gray-400")
 
@@ -390,6 +407,22 @@ html(lang="vi")
                                 i(data-lucide="users", class="w-5 h-5")
                                 | Người dùng
 
+                            if isOrgAdmin
+                                a(
+                                    class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                                    href="/admin/users/connect"
+                                )
+                                    i(data-lucide="link-2", class="w-5 h-5")
+                                    | Tài khoản kết nối
+
+                            if canEditLayout
+                                a(
+                                    class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                                    href="/admin/layout"
+                                )
+                                    i(data-lucide="palette", class="w-5 h-5")
+                                    | Giao diện
+
                             if isDefaultAdmin
                                 a(
                                     class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50"
@@ -439,6 +472,8 @@ html(lang="vi")
         footer(class="bg-white border-t border-gray-200 mt-12")
             div(class="max-w-7xl mx-auto px-4 py-6 text-sm text-gray-500 text-center")
                 | © #{new Date().getFullYear()} Luyện thi CNTT UTC
+                if b.footerText
+                    |  - #{b.footerText}
 
         //- JAVASCRIPT
         script.

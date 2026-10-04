@@ -36,6 +36,16 @@ const userKeySchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             default: null
+        },
+
+        // Giao diện riêng của tổ chức. Mọi field null = hiển thị như cũ.
+        // Validate thật sự nằm ở services/layoutService.js (updateOne không
+        // chạy validator mặc định) — maxlength ở đây chỉ là lớp phụ.
+        layout: {
+            logoFile:    { type: String, default: null },               // layouts/<userKeyId>/logo.<ext> trên GitHub
+            logoVersion: { type: Number, default: null },               // Date.now() lúc upload → ?v= chống cache
+            brandSub:    { type: String, default: null, trim: true, maxlength: 20 },
+            footerText:  { type: String, default: null, trim: true, maxlength: 100 }
         }
     },
     {

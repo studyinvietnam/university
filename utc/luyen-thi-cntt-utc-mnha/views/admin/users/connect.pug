@@ -1,0 +1,67 @@
+extends ../../layout
+
+block content
+    div(class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8")
+
+        h1(class="text-2xl font-bold text-gray-900") Tài khoản kết nối
+        p(class="text-gray-500 mt-1 mb-6")
+            | Các sinh viên đã kết nối với tổ chức 
+            strong= orgName
+            | . Thêm bằng email, hoặc sinh viên tự kết nối bằng mã tổ chức.
+
+        if flash
+            div(
+                class="flash-message mb-5 px-4 py-3 rounded-lg text-sm " + (flash.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200')
+            )= flash.message
+
+        if !orgActive
+            div(class="mb-5 px-4 py-3 rounded-lg text-sm bg-amber-50 text-amber-800 border border-amber-200")
+                | Tổ chức của bạn đang bị tắt nên không thể thêm kết nối mới.
+
+        //- THÊM KẾT NỐI
+        form(
+            method="POST"
+            action="/admin/users/connect"
+            class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row gap-3 mb-6"
+        )
+            input(
+                type="email"
+                name="email"
+                required
+                placeholder="Email tài khoản student"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            )
+            button(
+                type="submit"
+                class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
+            ) Thêm kết nối
+
+        //- DANH SÁCH
+        div(class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden")
+            if students && students.length
+                div(class="overflow-x-auto")
+                    table(class="w-full text-sm")
+                        thead(class="bg-gray-50")
+                            tr
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600") Tên
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600") Email
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600") Tổ chức gốc
+                                th(class="px-5 py-3 text-right font-semibold text-gray-600") 
+                        tbody(class="divide-y divide-gray-100")
+                            each s in students
+                                tr(class="hover:bg-gray-50")
+                                    td(class="px-5 py-3 font-medium text-gray-900")= s.name
+                                    td(class="px-5 py-3 text-gray-600")= s.email
+                                    td(class="px-5 py-3 text-gray-600")= (s.userKey && s.userKey.name) || 'Mặc định'
+                                    td(class="px-5 py-3 text-right")
+                                        form(
+                                            method="POST"
+                                            action="/admin/users/connect/" + s._id + "/delete"
+                                            onsubmit="return confirm('Xoá kết nối với tài khoản này? Tài khoản không bị xoá.');"
+                                        )
+                                            button(
+                                                type="submit"
+                                                class="text-sm font-medium text-red-600 hover:text-red-700"
+                                            ) Xoá
+            else
+                div(class="py-12 text-center text-gray-500") Chưa có tài khoản nào kết nối.

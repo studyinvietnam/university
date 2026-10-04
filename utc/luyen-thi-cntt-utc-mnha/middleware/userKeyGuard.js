@@ -1,5 +1,6 @@
 // middleware/userKeyGuard.js
 const { getActor, isDefaultAdmin, isOrgAdmin } = require('../services/userKeyService');
+const User = require('../models/User');
 
 function wantsJson(req) {
     return (
@@ -55,4 +56,83 @@ async function attachAdminFlags(req, res, next) {
     }
 }
 
-module.exports = { requireDefaultAdmin, attachAdminFlags };
+// ------------------------------------------------------------
+// Từ chối request: JSON cho API/AJAX, trang lỗi cho trình duyệt.
+// Chưa đăng nhập → 401 (HTML thì chuyển về trang đăng nhập).
+// ------------------------------------------------------------
+function deny(req, res, status, message) {
+    if (status === 401 && !wantsJson(req)) {
+        return res.redirect('/auth/login');
+    }
+    if (wantsJson(req)) {
+        return res.status(status).json({ error: message });
+    }
+    return res.status(status).render('error', {
+        title: 'Không có quyền',
+        message,
+        user: req.user,
+        statusCode: status,
+        stack: null
+    });
+}
+
+/**
+ * Đọc LẠI admin từ DB theo req.user._id (không tin session).
+ * Trả null nếu chưa đăng nhập / không còn tồn tại.
+ */
+async function loadFreshUser(req) {
+    const id = req.user && (req.user._id || req.user.id);
+    if (!id) return null;
+    const fresh = await User.findById(id).select('role status userKey canEditLayout').lean();
+    // Route mới mount trước adminRoutes nên không đi qua adminOnly → tự chặn tài khoản bị khoá
+    if (fresh && ['disabled', 'rejected'].includes(fresh.status)) return null;
+    return fresh;
+}
+
+/**
+ * Chỉ admin THUỘC MỘT user_key (role=admin, userKey != null). Admin default → 403.
+ * Dùng cho /admin/users/connect. Gắn req.actor = { _id, role, userKey, canEditLayout }.
+ * Mọi truy vấn phía sau phải lọc theo req.actor.userKey — KHÔNG nhận userKey từ client.
+ */
+async function requireUserKeyAdmin(req, res, next) {
+    try {
+        const fresh = await loadFreshUser(req);
+        if (!fresh) return deny(req, res, 401, 'Bạn cần đăng nhập.');
+
+        if (fresh.role !== 'admin' || !fresh.userKey) {
+            return deny(req, res, 403, 'Chức năng này chỉ dành cho quản trị viên của tổ chức (user_key).');
+        }
+
+        req.actor = fresh;
+        return next();
+    } catch (err) {
+        return next(err);
+    }
+}
+
+/**
+ * Admin user_key ĐƯỢC CẤP canEditLayout. Quyền đọc lại từ DB ở MỖI request:
+ * vừa bị thu hồi thì lần gọi kế tiếp bị chặn ngay. Gắn req.actor như trên.
+ */
+async function requireLayoutEditor(req, res, next) {
+    try {
+        const fresh = await loadFreshUser(req);
+        if (!fresh) return deny(req, res, 401, 'Bạn cần đăng nhập.');
+
+        if (fresh.role !== 'admin' || !fresh.userKey || fresh.canEditLayout !== true) {
+            return deny(req, res, 403, 'Bạn chưa được cấp quyền sửa giao diện của tổ chức.');
+        }
+
+        req.actor = fresh;
+        return next();
+    } catch (err) {
+        return next(err);
+    }
+}
+
+module.exports = {
+    requireDefaultAdmin,
+    requireUserKeyAdmin,
+    requireLayoutEditor,
+    attachAdminFlags
+};

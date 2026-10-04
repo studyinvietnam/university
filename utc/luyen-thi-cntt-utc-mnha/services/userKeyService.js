@@ -81,9 +81,10 @@ function missingUserKeyPath(...models) {
  * Quy tắc (theo README):
  *   - Admin default : thấy tất cả.
  *   - Admin user_key: chỉ userKey của mình VÀ createdBy = mình.
- *   - Student       : userKey ∈ [userKey gốc, ...connectedUserKeys],
- *                     chỉ tính các tổ chức đang active. Student
- *                     default (userKey null) chỉ thấy nội dung userKey null.
+ *   - Student       : userKey ∈ [userKey gốc, ...connectedUserKeys] (chỉ tổ chức
+ *                     đang active) VÀ createdBy là admin của đúng tổ chức đó.
+ *                     Student default (userKey null) chỉ thấy nội dung userKey null
+ *                     do ADMIN DEFAULT tạo.
  *   - Khách chưa đăng nhập: chỉ thấy nội dung tổ chức default.
  *
  * Lưu ý: `{ userKey: { $in: [null] } }` khớp cả document CHƯA CÓ
@@ -146,17 +147,74 @@ async function getContentScope(req) {
     const activeSet = new Set(activeIds.map(String));
     const allowNull = !actor || !actor.userKey;
 
+    // ------------------------------------------------------------
+    // ★ XÁC ĐỊNH ADMIN CỦA TỪNG TỔ CHỨC
+    //   Nội dung của tổ chức X chỉ hợp lệ khi userKey = X VÀ createdBy là
+    //   một admin thuộc X (role 'admin', userKey = X).
+    //   Tổ chức default: createdBy là admin default (role 'admin', userKey null).
+    //   → Môn/bài do admin user_key tạo mà lỡ bị lưu userKey = null (dữ liệu cũ)
+    //     sẽ KHÔNG lọt vào student default nữa, vì người tạo không phải admin default.
+    // ------------------------------------------------------------
+    const adminOr = [];
+    if (allowNull) adminOr.push({ userKey: null }); // khớp cả user thiếu field
+    if (activeIds.length) adminOr.push({ userKey: { $in: activeIds } });
+
+    const admins = adminOr.length
+        ? await User.find({
+              role: 'admin',
+              deletedForever: { $ne: true },
+              $or: adminOr
+          })
+              .select('_id userKey')
+              .lean()
+        : [];
+
+    const DEFAULT_ORG = 'default';
+    const adminIdsByOrg = new Map(); // orgKey -> ObjectId[]
+    for (const a of admins) {
+        const org = toId(a.userKey) || DEFAULT_ORG;
+        if (!adminIdsByOrg.has(org)) adminIdsByOrg.set(org, []);
+        adminIdsByOrg.get(org).push(a._id);
+    }
+    const adminSetByOrg = new Map(
+        [...adminIdsByOrg].map(([org, ids]) => [org, new Set(ids.map(String))])
+    );
+
+    const orgClauses = [];
+    if (allowNull) {
+        // null trong $in khớp cả createdBy null/thiếu (nội dung rất cũ của admin default)
+        orgClauses.push({
+            userKey: null,
+            createdBy: { $in: [null, ...(adminIdsByOrg.get(DEFAULT_ORG) || [])] }
+        });
+    }
+    for (const id of activeIds) {
+        orgClauses.push({
+            userKey: id,
+            createdBy: { $in: adminIdsByOrg.get(String(id)) || [] }
+        });
+    }
+
     return {
         actor,
         isDefaultAdmin: false,
         isOrgAdmin: false,
-        filter: {
-            userKey: { $in: allowNull ? [null, ...activeIds] : activeIds }
-        },
+        // $and bọc ngoài để không đè lên $or mà controller có thể tự thêm (vd ô tìm kiếm)
+        filter: orgClauses.length ? { $and: [{ $or: orgClauses }] } : { _id: null },
         canAccess: (doc) => {
             if (!doc) return false;
             const k = toId(doc.userKey);
-            return k === null ? allowNull : activeSet.has(k);
+            const creator = toId(doc.createdBy);
+
+            if (k === null) {
+                return (
+                    allowNull &&
+                    (creator === null ||
+                        (adminSetByOrg.get(DEFAULT_ORG)?.has(creator) ?? false))
+                );
+            }
+            if (!activeSet.has(k)) return false;
+            return !!creator && (adminSetByOrg.get(k)?.has(creator) ?? false);
         }
     };
 }

@@ -145,6 +145,8 @@ block content
                             th(class="px-5 py-3 text-left font-semibold text-gray-600") Vai trò
                             th(class="px-5 py-3 text-left font-semibold text-gray-600") Trạng thái
                             th(class="px-5 py-3 text-left font-semibold text-gray-600") Tổ chức
+                            if canManageUserKey
+                                th(class="px-5 py-3 text-left font-semibold text-gray-600") Sửa layout
                             th(class="px-5 py-3 text-left font-semibold text-gray-600") Ngày tạo
                             th(class="px-5 py-3 text-right font-semibold text-gray-600") Hành động
 
@@ -209,6 +211,21 @@ block content
                                                                 i(data-lucide="link-2", class="w-2.5 h-2.5")
                                                                 = ck.name
 
+                                    //- 👇 MỚI: quyền sửa layout — chỉ admin default thấy; chỉ admin thuộc user_key mới có công tắc
+                                    if canManageUserKey
+                                        td(class="px-5 py-4")
+                                            if u.role === 'admin' && u.userKey
+                                                button(
+                                                    type="button"
+                                                    class="toggle-layout-perm inline-flex px-2.5 py-1 rounded-full text-xs font-medium transition " + (u.canEditLayout ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')
+                                                    data-id=u._id
+                                                    data-name=(u.name || u.email)
+                                                    data-grant=(u.canEditLayout ? 'false' : 'true')
+                                                    title=(u.canEditLayout ? 'Bấm để thu hồi quyền sửa layout' : 'Bấm để cấp quyền sửa layout')
+                                                )= u.canEditLayout ? 'Đang bật' : 'Đang tắt'
+                                            else
+                                                span(class="text-gray-300") —
+
                                     td(class="px-5 py-4 text-gray-500 text-xs")
                                         = u.createdAt ? new Date(u.createdAt).toLocaleString('vi-VN') : '—'
 
@@ -231,7 +248,8 @@ block content
                                                     role: u.role,
                                                     status: u.status,
                                                     userKeyId: u.userKey ? String(u.userKey._id || u.userKey) : null,
-                                                    connectedUserKeys: connectedIds
+                                                    connectedUserKeys: connectedIds,
+                                                    canEditLayout: u.canEditLayout === true
                                                 })
                                             ) Sửa
 
@@ -243,7 +261,7 @@ block content
                                             ) Xoá
                         else
                             tr
-                                td(colspan="6", class="px-5 py-12 text-center")
+                                td(colspan=(canManageUserKey ? 7 : 6), class="px-5 py-12 text-center")
                                     i(data-lucide="users", class="w-10 h-10 mx-auto text-gray-300")
                                     p(class="text-gray-500 mt-3") Không có user nào.
 
@@ -376,6 +394,19 @@ block content
                             value="(Chỉ admin default quản lý được mục này)"
                         )
 
+                //- 👇 MỚI: quyền sửa layout — chỉ admin default thấy.
+                //-   Chỉ hiện khi Vai trò = Admin VÀ có tổ chức gốc (JS ẩn/hiện, server cũng ép lại)
+                if canManageUserKey
+                    div#editLayoutPermWrap(class="hidden")
+                        label(class="flex items-start gap-2 cursor-pointer")
+                            input#editCanEditLayout(
+                                type="checkbox"
+                                class="mt-0.5 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                            )
+                            span
+                                span(class="block text-sm font-medium text-gray-700") Cho phép sửa layout
+                                span(class="block text-xs text-gray-400") Admin này được sửa logo, chữ dưới logo và chân trang của tổ chức mình.
+
                 div#editUserError(class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2")
 
                 div(class="flex items-center justify-end gap-3 pt-2")
@@ -403,6 +434,21 @@ block content
                 return document.querySelectorAll('.connected-key-checkbox');
             }
 
+            //- 👇 MỚI: ô "Cho phép sửa layout" chỉ hiện khi role=admin và có tổ chức gốc
+            function layoutPermVisible() {
+                var role = document.getElementById('editUserRole').value;
+                var keySel = document.getElementById('editUserKey');
+                return role === 'admin' && !!(keySel && keySel.value);
+            }
+
+            function syncLayoutPerm() {
+                var wrap = document.getElementById('editLayoutPermWrap');
+                if (!wrap) return;
+                var show = layoutPermVisible();
+                wrap.classList.toggle('hidden', !show);
+                if (!show) document.getElementById('editCanEditLayout').checked = false;
+            }
+
             function openModal(user) {
                 document.getElementById('editUserId').value = user._id;
                 document.getElementById('editUserEmail').value = user.email;
@@ -422,6 +468,10 @@ block content
                     getConnectedCheckboxes().forEach(function (cb) {
                         cb.checked = connected.indexOf(String(cb.value)) !== -1;
                     });
+
+                    var perm = document.getElementById('editCanEditLayout');
+                    if (perm) perm.checked = user.canEditLayout === true;
+                    syncLayoutPerm();
                 }
 
                 errBox.classList.add('hidden');
@@ -443,6 +493,11 @@ block content
                     }
                 });
             });
+
+            if (CAN_MANAGE_USER_KEY) {
+                document.getElementById('editUserRole').addEventListener('change', syncLayoutPerm);
+                document.getElementById('editUserKey').addEventListener('change', syncLayoutPerm);
+            }
 
             document.getElementById('closeEditModal').addEventListener('click', closeModal);
             document.getElementById('cancelEditModal').addEventListener('click', closeModal);
@@ -504,6 +559,37 @@ block content
                 });
             });
 
+            // 👇 MỚI: cấp / thu hồi quyền sửa layout (chỉ admin default có nút này)
+            document.querySelectorAll('.toggle-layout-perm').forEach(function (btn) {
+                btn.addEventListener('click', async function () {
+                    var id = btn.getAttribute('data-id');
+                    var name = btn.getAttribute('data-name');
+                    var grant = btn.getAttribute('data-grant') === 'true';
+                    var msg = grant
+                        ? 'Cấp quyền sửa layout cho "' + name + '"?'
+                        : 'Thu hồi quyền sửa layout của "' + name + '"?';
+                    if (!confirm(msg)) return;
+                    btn.disabled = true;
+                    try {
+                        var res = await fetch('/admin/users/' + id + '/layout-permission', {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ canEditLayout: grant ? 'true' : 'false' })
+                        });
+                        var data = await res.json();
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert(data.message || 'Lỗi cập nhật quyền');
+                            btn.disabled = false;
+                        }
+                    } catch (e) {
+                        alert('Lỗi mạng');
+                        btn.disabled = false;
+                    }
+                });
+            });
+
             // Submit form update
             form.addEventListener('submit', async function (e) {
                 e.preventDefault();
@@ -525,6 +611,10 @@ block content
                         if (cb.checked) checked.push(cb.value);
                     });
                     body.connectedUserKeys = checked;
+
+                    //- 👇 MỚI: chỉ gửi true khi ô đang hiện và được tick
+                    body.canEditLayout = layoutPermVisible() &&
+                        document.getElementById('editCanEditLayout').checked;
                 }
 
                 errBox.classList.add('hidden');
