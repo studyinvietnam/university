@@ -1327,6 +1327,298 @@
     </div>
 
 
+    <!-- SLIDE 15: Khái niệm thừa kế -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;">Khái niệm thừa kế</h1>
+
+        <!-- Nội dung chính -->
+        <div style="font-size: 16px; color: #1e293b; line-height: 1.8; padding-left: 10px;">
+            
+            <ul style="margin: 0; padding-left: 20px; list-style-type: disc;">
+                <li style="margin-bottom: 10px;">
+                    Trong lập trình cấu trúc ta có cơ chế sử dụng lại?
+                </li>
+                <li style="margin-bottom: 15px;">
+                    Khả năng sử dụng lại trong OOP tốt hơn ở chỗ nào?
+                </li>
+                <li style="margin-bottom: 10px;">
+                    Thừa kế nhằm xây dựng một lớp mới bằng từ các lớp đã có
+                    <ul style="margin-top: 8px; padding-left: 20px; list-style-type: circle;">
+                        <li style="margin-bottom: 8px;">
+                            Một lớp có thể được thừa kế từ một hoặc nhiều lớp khác và là cơ sở của một hoặc nhiều lớp khác
+                        </li>
+                        <li style="margin-bottom: 8px;">
+                            Lớp ban đầu gọi là lớp cơ sở (base class) hoặc lớp cha
+                        </li>
+                        <li>
+                            Lớp kế thừa gọi là lớp dẫn xuất (derived class) hoặc lớp con
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    Sử dụng lại những gì đã có từ lớp cơ sở?
+                    <ul style="margin-top: 8px; padding-left: 20px; list-style-type: circle;">
+                        <li style="margin-bottom: 8px;">Các thành phần dữ liệu</li>
+                        <li>Các phương thức</li>
+                    </ul>
+                </li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Lập trình hướng đối tượng</span>
+        <span>15</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 16: Ví dụ (thừa kế) -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;">Ví dụ (thừa kế)</h1>
+
+        <!-- Nội dung chính: Sơ đồ thừa kế -->
+        <div class="highlight-card" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; justify-content: center; align-items: center; height: 450px; box-sizing: border-box; margin-top: 10px;">
+            <svg width="100%" height="100%" viewBox="0 0 800 400" style="overflow: visible;">
+                <!-- Định nghĩa mũi tên -->
+                <defs>
+                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 Z" fill="#64748b" />
+                    </marker>
+                </defs>
+
+                <!-- Các đường nối (Inheritance Lines) -->
+                <g stroke="#64748b" stroke-width="1.5" fill="none">
+                    <!-- Shape <- TwoDimensionalShape -->
+                    <line x1="200" y1="140" x2="400" y2="60" marker-end="url(#arrow)" />
+                    <!-- Shape <- ThreeDimensionalShape -->
+                    <line x1="600" y1="140" x2="400" y2="60" marker-end="url(#arrow)" />
+
+                    <!-- TwoDimensionalShape <- Circle -->
+                    <line x1="90" y1="270" x2="200" y2="180" marker-end="url(#arrow)" />
+                    <!-- TwoDimensionalShape <- Square -->
+                    <line x1="200" y1="270" x2="200" y2="180" marker-end="url(#arrow)" />
+                    <!-- TwoDimensionalShape <- Triangle -->
+                    <line x1="310" y1="270" x2="200" y2="180" marker-end="url(#arrow)" />
+
+                    <!-- ThreeDimensionalShape <- Sphere -->
+                    <line x1="520" y1="270" x2="600" y2="180" marker-end="url(#arrow)" />
+                    <!-- ThreeDimensionalShape <- Cube -->
+                    <line x1="620" y1="270" x2="600" y2="180" marker-end="url(#arrow)" />
+                    <!-- ThreeDimensionalShape <- Tetrahedron -->
+                    <line x1="730" y1="270" x2="600" y2="180" marker-end="url(#arrow)" />
+                </g>
+
+                <!-- Các hộp (Boxes) -->
+                <g>
+                    <!-- Shape -->
+                    <rect x="350" y="20" width="100" height="40" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
+                    <text x="400" y="45" font-size="15" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">Shape</text>
+
+                    <!-- TwoDimensionalShape -->
+                    <rect x="80" y="140" width="240" height="40" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
+                    <text x="200" y="165" font-size="15" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">TwoDimensionalShape</text>
+
+                    <!-- ThreeDimensionalShape -->
+                    <rect x="480" y="140" width="240" height="40" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
+                    <text x="600" y="165" font-size="15" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">ThreeDimensionalShape</text>
+
+                    <!-- Circle -->
+                    <rect x="50" y="270" width="80" height="40" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
+                    <text x="90" y="295" font-size="15" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">Circle</text>
+
+                    <!-- Square -->
+                    <rect x="160" y="270" width="80" height="40" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
+                    <text x="200" y="295" font-size="15" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">Square</text>
+
+                    <!-- Triangle -->
+                    <rect x="270" y="270" width="80" height="40" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
+                    <text x="310" y="295" font-size="15" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">Triangle</text>
+
+                    <!-- Sphere -->
+                    <rect x="480" y="270" width="80" height="40" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
+                    <text x="520" y="295" font-size="15" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">Sphere</text>
+
+                    <!-- Cube -->
+                    <rect x="580" y="270" width="80" height="40" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
+                    <text x="620" y="295" font-size="15" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">Cube</text>
+
+                    <!-- Tetrahedron -->
+                    <rect x="680" y="270" width="100" height="40" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5" />
+                    <text x="730" y="295" font-size="15" font-weight="700" fill="#1e293b" text-anchor="middle" font-family="Arial, sans-serif">Tetrahedron</text>
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Lập trình hướng đối tượng</span>
+        <span>16</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 17: Tác dụng của thừa kế -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG</div>
+        <h1 class="slide-title" style="margin-bottom: 20px;">Tác dụng của thừa kế</h1>
+
+        <!-- Hình ảnh minh họa (Thay thế sơ đồ cũ) -->
+        <div class="highlight-card" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; justify-content: center; align-items: center; height: 520px; box-sizing: border-box; margin-top: 10px;">
+            <img src="image-slide/Gemini_Generated_Image_xomp83xomp83xomp.png" 
+                 alt="Sơ đồ tác dụng của thừa kế" 
+                 style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;">
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Lập trình hướng đối tượng</span>
+        <span>17</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 18: Xây dựng lớp dẫn xuất -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG</div>
+        <h1 class="slide-title" style="margin-bottom: 25px;">Xây dựng lớp dẫn xuất</h1>
+
+        <!-- Nội dung chính -->
+        <div style="font-size: 16px; color: #1e293b; line-height: 1.8; padding-left: 10px;">
+            <ul style="margin: 0; padding-left: 20px; list-style-type: disc;">
+                <li style="margin-bottom: 15px;">
+                    Xây dựng lớp D kế thừa từ các lớp A và B
+                </li>
+            </ul>
+        </div>
+
+        <!-- Khung code C++ -->
+        <div class="highlight-card" style="background: #334155; color: #f8fafc; padding: 24px 28px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; font-size: 15px; line-height: 1.7; width: 80%; margin: 30px auto 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+<pre style="margin: 0;">
+<span style="color:#be185d;">class</span> <span style="color:#38bdf8;">D</span> : <span style="color:#be185d;">public</span> <span style="color:#38bdf8;">A</span>, <span style="color:#be185d;">public</span> <span style="color:#38bdf8;">B</span>
+{
+    <span style="color:#64748b;">// Khai báo thuộc tính</span>
+<span style="color:#be185d;">public</span>:
+    <span style="color:#64748b;">// Khai báo phương thức</span>
+};</pre>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Lập trình hướng đối tượng</span>
+        <span>18</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 19: Các kiểu thừa kế -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG</div>
+        <h1 class="slide-title" style="margin-bottom: 25px;">Các kiểu thừa kế</h1>
+
+        <!-- Nội dung chính -->
+        <div style="font-size: 16px; color: #1e293b; line-height: 1.8; padding-left: 10px;">
+            <ul style="margin: 0; padding-left: 20px; list-style-type: disc;">
+                
+                <!-- Mục 1 -->
+                <li style="margin-bottom: 15px;">
+                    <b>Phạm vi truy nhập</b>
+                    <ul style="margin-top: 8px; padding-left: 20px; list-style-type: circle; color: #334155;">
+                        <li style="margin-bottom: 4px;">private</li>
+                        <li style="margin-bottom: 4px;">public</li>
+                        <li>protected</li>
+                    </ul>
+                </li>
+
+                <!-- Mục 2 -->
+                <li style="margin-bottom: 15px;">
+                    <b>Lớp D kế thừa lớp B thì đối tượng lớp D bao gồm</b>
+                    <ul style="margin-top: 8px; padding-left: 20px; list-style-type: circle; color: #334155;">
+                        <li style="margin-bottom: 4px;">Các thành phần (dữ liệu, phương thức) được kế thừa từ lớp B</li>
+                        <li>Các thành phần của riêng của lớp D</li>
+                    </ul>
+                </li>
+
+                <!-- Mục 3 -->
+                <li>
+                    <b>Có thể truy cập vào các thành phần riêng của lớp B từ lớp D?</b>
+                    <ul style="margin-top: 8px; padding-left: 20px; list-style-type: circle; color: #334155;">
+                        <li style="margin-bottom: 4px;">Trong D gồm cả các dữ liệu riêng của lớp B</li>
+                        <li>Dữ liệu riêng của lớp B chỉ có thể truy nhập được từ trong lớp D <u>thông qua các phương thức của B</u></li>
+                    </ul>
+                </li>
+
+            </ul>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Lập trình hướng đối tượng</span>
+        <span>19</span>
+    </div>
+</div>
+
+
+<!-- SLIDE 20: Bài tập thừa kế -->
+<div class="slide-container" style="height: 750px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <!-- Header -->
+        <div class="top-tag">BÀI TẬP THỰC HÀNH</div>
+        <h1 class="slide-title" style="margin-bottom: 25px;">Bài tập thừa kế</h1>
+
+        <!-- Nội dung chính -->
+        <div style="font-size: 17px; color: #1e293b; line-height: 2; padding-left: 15px;">
+            <ul style="margin: 0; padding-left: 20px; list-style-type: none;">
+                <li style="margin-bottom: 18px;">
+                    <span style="color: #0284c7; font-weight: bold; margin-right: 8px;">•</span>
+                    Xây dựng lớp <b>Người</b>, gồm các thuộc tính: họ tên và năm sinh
+                </li>
+                <li style="margin-bottom: 18px;">
+                    <span style="color: #0284c7; font-weight: bold; margin-right: 8px;">•</span>
+                    Xây dựng lớp <b>Sinh viên</b> kế thừa lớp <b>Người</b>, bổ sung thêm thuộc tính điểm
+                </li>
+                <li style="margin-bottom: 18px;">
+                    <span style="color: #0284c7; font-weight: bold; margin-right: 8px;">•</span>
+                    Xây dựng lớp <b>Nhân viên</b> kế thừa lớp <b>Người</b>, bổ sung thêm thuộc tính hệ số lương
+                </li>
+                <li style="margin-bottom: 18px;">
+                    <span style="color: #0284c7; font-weight: bold; margin-right: 8px;">•</span>
+                    Nhập vào danh sách sinh viên, cho biết các sinh viên qua môn (điểm >= 6)
+                </li>
+                <li>
+                    <span style="color: #0284c7; font-weight: bold; margin-right: 8px;">•</span>
+                    Nhập vào danh sách nhân viên, cho biết lương của các nhân viên. Lương = hệ số lương * 2570
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="slide-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.2); margin-top: 20px;">
+        <span>Lập trình hướng đối tượng</span>
+        <span>20</span>
+    </div>
+</div>
+
+
 
 </body>
 <!-- MATHJAX: đặt trước </body> nếu file chưa có --> 
