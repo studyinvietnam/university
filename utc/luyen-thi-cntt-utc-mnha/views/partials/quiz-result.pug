@@ -169,7 +169,7 @@ mixin renderQuizResult(doc, formatAiLabel, opts)
         if partKey === 'fill' && p.note
           .qr-sub(style="font-style:italic;margin-bottom:8px")= p.note
         - const clMap = {}
-        - (p.clusters || []).forEach(function (c) { clMap[c.id] = c })
+        - ;(p.clusters || []).forEach(function (c) { clMap[c.id] = c })
         each q, qi in p.questions
           //- Câu hỏi chùm: hiện nội dung chùm MỘT lần, ngay trước câu đầu của chùm.
           - const cl = q.clusterId ? clMap[q.clusterId] : null
