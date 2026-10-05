@@ -58,6 +58,7 @@
         submitTop: $("submitTop"), submitMain: $("submitMain"), saveBtn: $("saveBtn"), saveHint: $("saveHint"),
         statusText: $("statusText"), dot: $("connectionDot"),
         result: $("resultSection"), review: $("reviewList"),
+        listen: $("quizAudio"), listenMsg: $("listenMsg"),
         analyzeBtn: $("analyzeBtn"), analyzeMsg: $("analyzeMsg"), aiPick: $("aiPick"), analysisList: $("analysisList")
     };
 
@@ -70,8 +71,18 @@
     function isAnswered(q) {
         var a = state.answers[q.id];
         if (q.part === "mcq") return Array.isArray(a) && a.length > 0;
-        if (q.part === "tf") return typeof a === "boolean";
+        if (q.part === "tf") return (q.statements || []).some(function (st) { return typeof state.answers[st.id] === "boolean"; });
         return typeof a === "string" && a.trim() !== "";
+    }
+    var TF_LABELS = "abcdefghij";
+    function tfLabel(i) { return TF_LABELS.charAt(i) || String(i + 1); }
+    function tfScoringHint() {
+        var p = CFG.parts && CFG.parts.tf;
+        var ppq = p && p.pointsPerQuestion != null ? fmtPts(p.pointsPerQuestion) : null;
+        if (p && p.scoring === "thptqg") {
+            return "Cách tính điểm THPTQG: đúng 1 ý = 10%, 2 ý = 25%, 3 ý = 50%, đủ 4 ý = 100%" + (ppq ? " của " + ppq + "đ / câu" : "") + ".";
+        }
+        return "Cách tính điểm: chia đều cho các ý, mỗi ý đúng được một phần điểm" + (ppq ? " (tối đa " + ppq + "đ / câu)" : "") + ".";
     }
     function countAnswered() { return questions.filter(isAnswered).length; }
     function fmtTime(s) {
@@ -180,6 +191,29 @@
     }
 
     // ============================================================
+    // BÀI NGHE (<audio id="quizAudio">, chỉ có khi đề có audioUrl)
+    // Tách biệt với chuông hết giờ (#timeUpAudio) ở trên.
+    // ============================================================
+    function pauseListen() {
+        if (!el.listen) return;
+        try { el.listen.pause(); } catch (e) { /* noop */ }
+    }
+    if (el.listen) {
+        // Hết giờ (chuông đang reo, chưa nộp) → không cho bật bài nghe chồng lên chuông
+        el.listen.addEventListener("play", function () {
+            if (canPlayAlarm()) pauseListen();
+        });
+        el.listen.addEventListener("error", function () {
+            if (!el.listenMsg) return;
+            el.listenMsg.textContent = "⚠️ Không tải được file audio. Kiểm tra mạng rồi tải lại trang; nếu vẫn lỗi hãy báo giảng viên (link audio có thể sai hoặc repo đang để private).";
+            el.listenMsg.hidden = false;
+        });
+        el.listen.addEventListener("loadedmetadata", function () {
+            if (el.listenMsg) el.listenMsg.hidden = true;
+        });
+    }
+
+    // ============================================================
     // ĐỒNG HỒ
     // ============================================================
     function paintTimer() {
@@ -218,6 +252,7 @@
         el.dot.classList.add("offline");
         paintTimer();
         updateAudioBar();
+        pauseListen();              // hết giờ → dừng bài nghe, nhường chỗ cho chuông
         renderQuestion();           // khoá các ô chọn
         if (canPlayAlarm()) playAlarm();
         saveDraft(false);
@@ -244,14 +279,20 @@
                     '<span class="option-text">' + esc(o.text) + "</span></label>";
             }).join("") + "</div>";
         } else if (q.part === "tf") {
-            var cur = state.answers[q.id];
-            body = '<div class="options">' + [[true, "Đ", "Đúng"], [false, "S", "Sai"]].map(function (c) {
-                var on = cur === c[0];
-                return '<label class="option' + (on ? " selected" : "") + (dis ? " disabled" : "") + '">' +
-                    '<input type="radio" name="q-' + esc(q.id) + '" value="' + c[0] + '"' + (on ? " checked" : "") + (dis ? " disabled" : "") + ">" +
-                    '<span class="option-letter">' + c[1] + "</span>" +
-                    '<span class="option-text">' + c[2] + "</span></label>";
-            }).join("") + "</div>";
+            body = '<div class="multi-hint">' + esc(tfScoringHint()) + "</div>" +
+                '<div class="tf-statements">' + (q.statements || []).map(function (st, si) {
+                    var cur = state.answers[st.id];
+                    return '<div class="tf-statement" style="margin:10px 0;padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px">' +
+                        '<div class="tf-text" style="margin-bottom:8px"><b>' + tfLabel(si) + ")</b> " + esc(st.text) + "</div>" +
+                        '<div class="options" style="display:flex;gap:10px;flex-wrap:wrap">' +
+                        [[true, "Đ", "Đúng"], [false, "S", "Sai"]].map(function (c) {
+                            var on = cur === c[0];
+                            return '<label class="option' + (on ? " selected" : "") + (dis ? " disabled" : "") + '" style="flex:1 1 120px">' +
+                                '<input type="radio" data-st="' + esc(st.id) + '" name="st-' + esc(st.id) + '" value="' + c[0] + '"' + (on ? " checked" : "") + (dis ? " disabled" : "") + ">" +
+                                '<span class="option-letter">' + c[1] + "</span>" +
+                                '<span class="option-text">' + c[2] + "</span></label>";
+                        }).join("") + "</div></div>";
+                }).join("") + "</div>";
         } else {
             var v = typeof state.answers[q.id] === "string" ? state.answers[q.id] : "";
             body = '<input type="text" class="fill-input" id="fillInput" autocomplete="off" placeholder="Nhập đáp án của bạn…" value="' +
@@ -291,7 +332,9 @@
                         }
                         state.answers[q.id] = cur;
                     } else {
-                        state.answers[q.id] = inp.value === "true";
+                        var sid = inp.getAttribute("data-st");
+                        if (!sid) return;
+                        state.answers[sid] = inp.value === "true";
                     }
                     saveDraft(false);
                     renderQuestion();
@@ -350,7 +393,13 @@
     // ============================================================
     function buildAnswersPayload() {
         var out = {};
-        questions.forEach(function (q) { if (isAnswered(q)) out[q.id] = state.answers[q.id]; });
+        questions.forEach(function (q) {
+            if (q.part === "tf") {
+                (q.statements || []).forEach(function (st) {
+                    if (typeof state.answers[st.id] === "boolean") out[st.id] = state.answers[st.id];
+                });
+            } else if (isAnswered(q)) out[q.id] = state.answers[q.id];
+        });
         return out;
     }
 
@@ -372,6 +421,7 @@
 
         state.submitting = true;
         stopAlarm();                       // tắt chuông ngay khi bắt đầu nộp
+        pauseListen();
         updateAudioBar();
         setSubmitDisabled(true);
         el.submitTop.textContent = "ĐANG NỘP…";
@@ -422,6 +472,8 @@
         el.dot.classList.add("offline");
         paintTimer();
         updateAudioBar();
+        // Đã nộp bài → mở khoá tua để nghe lại khi xem đáp án
+        if (window.quizAudioLock && typeof window.quizAudioLock.unlock === "function") window.quizAudioLock.unlock();
     }
 
     // ============================================================
@@ -432,6 +484,7 @@
         var items = Array.isArray(r.items) ? r.items : [];
         var byId = {};
         items.forEach(function (it) { byId[it.id] = it; });
+        window.__quizItemsById = byId;
 
         var total = r.totalCount != null ? r.totalCount : questions.length;
         var correct = r.correctCount != null ? r.correctCount : items.filter(function (i) { return i.correct; }).length;
@@ -475,9 +528,12 @@
     }
 
     function reviewCard(q, i, it) {
+        var byIdAll = window.__quizItemsById || {};
         var mine = state.answers[q.id];
         var blank = !isAnswered(q);
-        var ok = !!it.correct;
+        var ok = q.part === "tf" && it.correct === undefined
+            ? (q.statements || []).every(function (st) { var x = byIdAll[st.id]; return x && x.correct; })
+            : !!it.correct;
         var status = ok ? "✓ ĐÚNG" : blank ? "— BỎ TRỐNG" : "✕ SAI";
         var ppq = CFG.parts && CFG.parts[q.part] ? CFG.parts[q.part].pointsPerQuestion : null;
         if (it.earned != null && ppq != null) status += " · " + fmtPts(it.earned) + "/" + fmtPts(ppq) + "đ";
@@ -493,12 +549,18 @@
                 return '<div class="review-option' + cls + '"><span class="option-letter">' + esc(o.key || LETTERS[oi]) + "</span><span>" + esc(o.text) + "</span>" + tag + "</div>";
             }).join("") + "</div>";
         } else if (q.part === "tf") {
-            var rightTf = it.correctAnswer === true || it.correctAnswer === "true";
-            inner = '<div class="review-options">' + [[true, "Đ", "Đúng"], [false, "S", "Sai"]].map(function (c) {
-                var isRight = c[0] === rightTf, isMine = mine === c[0];
-                var cls = isRight ? " correct-option" : (isMine ? " wrong-option" : "");
-                var tag = isRight ? '<strong class="answer-tag">ĐÁP ÁN ĐÚNG</strong>' : (isMine ? '<strong class="your-answer-tag">BẠN CHỌN</strong>' : "");
-                return '<div class="review-option' + cls + '"><span class="option-letter">' + c[1] + "</span><span>" + c[2] + "</span>" + tag + "</div>";
+            inner = '<div class="review-options">' + (q.statements || []).map(function (st, si) {
+                var sit = byIdAll[st.id] || {};
+                var rightTf = sit.correctAnswer === true || sit.correctAnswer === "true";
+                var hasKey = sit.correctAnswer !== undefined && sit.correctAnswer !== null;
+                var mineSt = state.answers[st.id];
+                var cls = !hasKey ? "" : (typeof mineSt !== "boolean" ? "" : (mineSt === rightTf ? " correct-option" : " wrong-option"));
+                var mineTxt = typeof mineSt === "boolean" ? (mineSt ? "Đúng" : "Sai") : "bỏ trống";
+                var rightTxt = hasKey ? (rightTf ? "Đúng" : "Sai") : "";
+                var sx = sit.explanationHtml ? '<div class="explanation"><strong>💡</strong><span>' + sit.explanationHtml + "</span></div>" : "";
+                return '<div class="review-option' + cls + '" style="flex-wrap:wrap"><span class="option-letter">' + tfLabel(si) + "</span><span>" + esc(st.text) + "</span>" +
+                    '<strong class="your-answer-tag">Bạn chọn: ' + mineTxt + "</strong>" +
+                    (rightTxt ? '<strong class="answer-tag">Đáp án: ' + rightTxt + "</strong>" : "") + sx + "</div>";
             }).join("") + "</div>";
         } else {
             var ans = Array.isArray(it.correctAnswer) ? it.correctAnswer.join("  |  ") : (it.correctAnswer == null ? "" : it.correctAnswer);
@@ -694,7 +756,7 @@
         if (e.key === "ArrowRight") go(1);
         if (e.key === "ArrowLeft") go(-1);
     });
-    window.addEventListener("beforeunload", stopAlarm);
+    window.addEventListener("beforeunload", function () { stopAlarm(); pauseListen(); });
 
     // Khôi phục nháp (kể cả giờ còn lại theo endAt, reload không reset đồng hồ)
     var draft = loadDraft();

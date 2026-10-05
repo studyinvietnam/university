@@ -7,6 +7,7 @@ extends ../layout
 //-    quiz            : kết quả của toStudentView() — KHÔNG có correct / answers / explanationHtml
 //-                      { maxScore, parts: { mcq:{pointsPerQuestion,questions}, tf:{...}, fill:{...,note} } }
 //-    isAdminView     : (tuỳ chọn) true → chỉ xem, không nộp
+//-    quiz.audioUrl   : (tuỳ chọn) link audio https — toStudentView() phải giữ field này (xem quizAudioService.js)
 //-    analysisAis     : (tuỳ chọn) [{ id, label }] các AI cho phép phân tích
 //-    maxAnalyses     : (tuỳ chọn) mặc định 5
 //- ================================================================
@@ -18,10 +19,11 @@ block content
     - var PART_KEYS = ['mcq', 'tf', 'fill'].filter(function (k) { return qparts[k] && qparts[k].questions && qparts[k].questions.length })
     - var totalQuestions = PART_KEYS.reduce(function (n, k) { return n + qparts[k].questions.length }, 0)
     - var duration = lesson.duration || 20
+    - var audioUrl = (typeof qz.audioUrl === 'string' && /^https:\/\//.test(qz.audioUrl)) ? qz.audioUrl : ''
     - var maxScore = qz.maxScore || 10
     - var studentName = (typeof user !== 'undefined' && user && user.name) ? user.name : 'THÍ SINH'
     - var subjectName = (typeof subject !== 'undefined' && subject && subject.name) ? subject.name : (lesson.subject && lesson.subject.name ? lesson.subject.name : '')
-    - var payload = { lessonId: String(lesson._id), title: lesson.title, duration: duration, maxScore: maxScore, readOnly: false, parts: qparts, analysisAis: analysisAis || [], maxAnalyses: maxAnalyses || 5, alarmSrc: '/musics/iphone-17-pro-max.mp3' }
+    - var payload = { lessonId: String(lesson._id), title: lesson.title, duration: duration, maxScore: maxScore, readOnly: false, parts: qparts, analysisAis: analysisAis || [], maxAnalyses: maxAnalyses || 5, audioUrl: audioUrl, alarmSrc: '/musics/iphone-17-pro-max.mp3' }
     - var safeJson = JSON.stringify(payload).replace(/</g, '\\u003c')
 
     link(rel="stylesheet", href="/css/quiz-exam.css")
@@ -56,6 +58,8 @@ block content
                         li Đồng hồ đếm ngược bắt đầu chạy ngay khi bấm.
                         li Hết giờ chuông sẽ reo, hãy nộp bài trước khi hết giờ.
                         li Không tải lại trang khi đang làm bài.
+                        if audioUrl
+                            li 🎧 Bài có phần nghe — audio sẽ tự phát ngay khi bạn bấm bắt đầu, hãy chuẩn bị tai nghe / loa trước.
                     button(type="button", id="qxStartBtn", class="qx-start-btn")= '▶ BẮT ĐẦU LÀM BÀI'
 
             //- ===== CHUÔNG BÁO HẾT GIỜ (giống lesson.pug) =====
@@ -86,6 +90,19 @@ block content
                     span(id="statusText", class="connection-text") Đang làm bài
                     button(type="button", class="submit-top", id="submitTop") NỘP BÀI
                     button(type="button", class="fullscreen-btn", id="fullscreenBtn", title="Toàn màn hình") ⛶
+
+            //- ===== BÀI NGHE (chỉ hiện khi đề có audioUrl; vẫn hiện sau khi nộp để nghe lại lúc xem đáp án) =====
+            if audioUrl
+                section(class="listen-bar", id="listenBar")
+                    div(class="listen-head")
+                        span(class="listen-icon") 🎧
+                        div
+                            strong Bài nghe
+                            small Audio tự phát khi bắt đầu — có thể tạm dừng, không tua được cho tới khi nộp bài.
+                    audio(id="quizAudio", controls, preload="metadata", controlsList="nodownload noplaybackrate", src=audioUrl)
+                        | Trình duyệt của bạn không hỗ trợ thẻ audio.
+                    div(id="listenMsg", class="listen-msg", hidden)
+                    script(src="/js/quizAudioLock.js")
 
             //- ===== TOOLBAR =====
             div(class="toolbar", id="toolbar")
@@ -218,6 +235,13 @@ block content
                 .qx-start-btn { width: 100%; padding: 14px 20px; border: 0; border-radius: 12px; background: #2563eb; color: #fff; font-size: 17px; font-weight: 700; cursor: pointer; }
                 .qx-start-btn:hover { background: #1d4ed8; }
                 .qx-start-btn:disabled { opacity: .7; cursor: wait; }
+                .listen-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin: 12px 0; }
+                .listen-head { display: flex; align-items: center; gap: 10px; min-width: 180px; }
+                .listen-head small { display: block; color: #64748b; font-size: 12px; }
+                .listen-icon { font-size: 24px; }
+                .listen-bar audio { flex: 1 1 280px; min-width: 0; max-width: 100%; }
+                .listen-msg { flex-basis: 100%; color: #b91c1c; font-size: 13px; }
+                .listen-msg[hidden] { display: none; }
             script.
                 (function () {
                   var btn = document.getElementById('qxStartBtn');
@@ -246,6 +270,26 @@ block content
                     var start = document.getElementById('qxStart');
                     page.classList.remove('qx-pending');
                     if (start) start.style.display = 'none';
+
+                    // Bài nghe: tự phát audio ngay khi bấm "Bắt đầu". Phải gọi play() NGAY TRONG
+                    // handler click này (cử chỉ người dùng) — gọi sau khi quizTake.js tải xong
+                    // thì Safari/iOS sẽ chặn. Nếu trình duyệt vẫn chặn, SV bấm ▶ ở thanh "Bài nghe".
+                    var listen = document.getElementById('quizAudio');
+                    if (listen) {
+                      try {
+                        var pr = listen.play();
+                        if (pr && typeof pr.catch === 'function') {
+                          pr.catch(function () {
+                            var msg = document.getElementById('listenMsg');
+                            if (msg && listen.error == null) {
+                              msg.textContent = 'Trình duyệt chặn tự phát — bấm ▶ ở thanh Bài nghe để nghe.';
+                              msg.hidden = false;
+                              listen.addEventListener('playing', function () { msg.hidden = true; }, { once: true });
+                            }
+                          });
+                        }
+                      } catch (e) { /* bỏ qua: SV bấm ▶ thủ công */ }
+                    }
 
                     var s = document.createElement('script');
                     s.src = '/js/quizTake.js';

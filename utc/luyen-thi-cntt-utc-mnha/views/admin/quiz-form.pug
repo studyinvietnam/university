@@ -13,7 +13,7 @@ block content
     - var q0 = (quiz && quiz.quiz) ? quiz.quiz : {}
     - var cfgq = (typeof quizConfig !== 'undefined' && quizConfig) ? quizConfig : {}
     - var chosenAi = (lesson && lesson.analysisAiKeyIds ? lesson.analysisAiKeyIds : []).map(String)
-    - var payload = { mode: isEdit ? 'edit' : 'create', lessonId: lesson ? String(lesson._id) : null, sha: (typeof sha !== 'undefined' && sha) ? sha : null, parts: q0.parts || {}, raw: rawTexts || { mcq: '', tf: '', fill: '' }, authoringPrompt: cfgq.QUIZ_AUTHORING_PROMPT || null, allowedImageHosts: cfgq.ALLOWED_IMAGE_HOSTS || ['raw.githubusercontent.com'], maxOptions: cfgq.MAX_OPTIONS_PER_QUESTION || 10, defaults: { ppq: cfgq.DEFAULT_POINTS_PER_QUESTION || 1, maxScore: cfgq.DEFAULT_MAX_SCORE || 10, duration: (lesson && lesson.duration) || cfgq.DEFAULT_DURATION || 20 }, durationLimits: { min: 1, max: 600 } }
+    - var payload = { mode: isEdit ? 'edit' : 'create', lessonId: lesson ? String(lesson._id) : null, sha: (typeof sha !== 'undefined' && sha) ? sha : null, parts: q0.parts || {}, raw: rawTexts || { mcq: '', tf: '', fill: '' }, authoringPrompt: cfgq.QUIZ_AUTHORING_PROMPT || null, allowedImageHosts: cfgq.ALLOWED_IMAGE_HOSTS || ['raw.githubusercontent.com'], audioUrl: q0.audioUrl || '', allowedAudioHosts: cfgq.ALLOWED_AUDIO_HOSTS || ['raw.githubusercontent.com', 'media.githubusercontent.com'], maxOptions: cfgq.MAX_OPTIONS_PER_QUESTION || 10, tfScoring: ((q0.parts && q0.parts.tf && q0.parts.tf.scoring) || cfgq.TF_DEFAULT_SCORING || 'equal'), tfMinStatements: (cfgq.LIMITS && cfgq.LIMITS.MIN_STATEMENTS_TF) || 1, tfMaxStatements: (cfgq.LIMITS && cfgq.LIMITS.MAX_STATEMENTS_TF) || 10, tfThptqgStatements: cfgq.TF_THPTQG_STATEMENTS || 4, defaults: { ppq: cfgq.DEFAULT_POINTS_PER_QUESTION || 1, maxScore: cfgq.DEFAULT_MAX_SCORE || 10, duration: (lesson && lesson.duration) || cfgq.DEFAULT_DURATION || 20 }, durationLimits: { min: 1, max: 600 } }
     - var safeJson = JSON.stringify(payload).replace(/</g, '\\u003c')
 
     link(rel="stylesheet", href="/css/quiz-form.css")
@@ -68,6 +68,21 @@ block content
                 label(for="fDesc") Mô tả / hướng dẫn chung (tuỳ chọn, HTML ngắn)
                 textarea(id="fDesc", rows="3", placeholder="Ví dụ: Thời gian 45 phút, không dùng tài liệu.")= (quiz && quiz.contentHtml) || ''
 
+            //- ===== AUDIO (tuỳ chọn) =====
+            div(class="qf-field qf-audio")
+                label(for="fAudio") 🎧 Audio cho bài (tuỳ chọn — bài nghe)
+                input(id="fAudio", type="text", autocomplete="off", spellcheck="false", value=q0.audioUrl || '', placeholder="https://raw.githubusercontent.com/<user>/<repo>/main/audio/bai-nghe-1.mp3")
+                small Để trống = bài không có audio. Chấp nhận .mp3 .wav .ogg .m4a .aac .opus.
+                div(id="audioWarn", class="qf-audio-warn", hidden)
+                audio(id="audioPrev", class="qf-audio-prev", controls, preload="metadata", hidden)
+                details(class="qf-audio-help")
+                    summary Cách đưa file audio lên GitHub &amp; lấy link
+                    ol
+                        li Vào repo GitHub (nên là repo <b>public</b>) → <b>Add file → Upload files</b> → chọn file audio (up qua web tối đa 25 MB/file) → <b>Commit</b>.
+                        li Mở file vừa up → bấm <b>View raw</b> / <b>Download raw file</b> → copy link trên thanh địa chỉ (dạng <code>https://raw.githubusercontent.com/…</code>).
+                        li Dán vào ô trên. Dán link dạng <code>github.com/…/blob/…</code> hoặc <code>github.com/…/raw/…</code> cũng được — hệ thống tự đổi sang link raw.
+                        li Nghe thử bằng player ngay bên dưới ô trước khi lưu. Repo <b>private</b> thì sinh viên không nghe được.
+
             if canPickAIKey
                 div(class="qf-field")
                     label Cho phép sinh viên chọn AI để phân tích
@@ -101,17 +116,27 @@ block content
                 button(type="button", id="btnExport", class="qf-btn") ⬆ Xuất câu hỏi → text
                 span(id="syncHint", class="qf-msg")
 
-            each part in [{ k: 'mcq', t: 'Phần 1 · Trắc nghiệm nhiều đáp án', hint: 'Mỗi câu: “- câu hỏi”, các dòng “+)đáp án”, rồi “=> A” (nhiều đáp án đúng: “=> A, C”).' }, { k: 'tf', t: 'Phần 2 · Đúng / Sai', hint: 'Mỗi câu: “- câu hỏi”, rồi “=> Đúng” hoặc “=> Sai”.' }, { k: 'fill', t: 'Phần 3 · Điền số liệu / đáp án', hint: 'Mỗi câu: “- câu hỏi”, rồi “=> đáp án” (nhiều cách viết ngăn bằng |).' }]
+            each part in [{ k: 'mcq', t: 'Phần 1 · Trắc nghiệm nhiều đáp án', hint: 'Mỗi câu: “- câu hỏi”, các dòng “+)đáp án”, rồi “=> A” (nhiều đáp án đúng: “=> A, C”).' }, { k: 'tf', t: 'Phần 2 · Đúng / Sai', hint: 'Mỗi câu: “- câu dẫn”, rồi nhiều ý: “+)ý a”, “=> Đúng/Sai”, (tuỳ chọn) “++) giải thích ý”; lặp lại cho ý b, c, d.' }, { k: 'fill', t: 'Phần 3 · Điền số liệu / đáp án', hint: 'Mỗi câu: “- câu hỏi”, rồi “=> đáp án” (nhiều cách viết ngăn bằng |).' }]
                 div(class="qf-part", id="part-" + part.k)
                     div(class="qf-parthead")
                         h3= part.t
                         span(class="qf-msg", id="sum-" + part.k)
                         span(class="qf-count", id="count-" + part.k) 0 câu
-                    p(class="qf-hint")= part.hint + ' Điểm / câu nhập được số thập phân (VD 0.1, 0.2, 0.25).'
+                    p(class="qf-hint")= part.hint + ' Điểm / câu nhập được số thập phân (VD 0.1, 0.2, 0.25). Phần Đúng/Sai: điểm / câu là điểm tối đa của cả câu (mọi ý).'
                     div(class="qf-partcfg")
                         label
                             | Điểm / câu
                             input(type="text", inputmode="decimal", autocomplete="off", id="ppq-" + part.k, value=(q0.parts && q0.parts[part.k] && q0.parts[part.k].pointsPerQuestion) || cfgq.DEFAULT_POINTS_PER_QUESTION || 1, placeholder="VD: 0.1 · 0.2 · 0.25 · 1")
+                        if part.k === 'tf'
+                            - var tfSc = (q0.parts && q0.parts.tf && q0.parts.tf.scoring) || cfgq.TF_DEFAULT_SCORING || 'equal'
+                            div(class="qf-wide qf-scoring")
+                                span(class="qf-scoring-title") Cách chia điểm phần Đúng/Sai
+                                label(class="qf-check")
+                                    input(type="radio", name="scoring_tf", value="equal", checked=(tfSc === 'equal'))
+                                    span Chia đều các ý
+                                label(class="qf-check")
+                                    input(type="radio", name="scoring_tf", value="thptqg", checked=(tfSc === 'thptqg'))
+                                    span THPTQG (đúng 1 ý = 0.1, 2 ý = 0.25, 3 ý = 0.5, 4 ý = 1 điểm)
                         if part.k === 'fill'
                             label
                                 | Sai số cho phép
@@ -127,5 +152,14 @@ block content
             span(id="saveSummary", class="qf-msg") Chưa có câu hỏi
             button(type="button", id="btnSave", class="qf-btn primary big")= isEdit ? '💾 Lưu thay đổi' : '💾 Tạo bài trắc nghiệm'
 
+    style.
+        .qf-scoring { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+        .qf-scoring-title { font-weight: 600; width: 100%; }
+        .qf-audio-warn { color: #b91c1c; font-size: 13px; margin-top: 6px; }
+        .qf-audio-prev { display: block; width: 100%; max-width: 520px; margin-top: 10px; }
+        .qf-audio-prev[hidden], .qf-audio-warn[hidden] { display: none; }
+        .qf-audio-help { margin-top: 8px; font-size: 13px; color: #475569; }
+        .qf-audio-help summary { cursor: pointer; color: #2563eb; }
+        .qf-audio-help ol { margin: 8px 0 0; padding-left: 20px; line-height: 1.7; }
     script(id="qfData", type="application/json")!= safeJson
     script(src="/js/quizEditor.js")

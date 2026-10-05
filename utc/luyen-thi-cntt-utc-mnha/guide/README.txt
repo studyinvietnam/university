@@ -826,12 +826,27 @@ Khi tạo bài ở `admin/lessons.pug`: 2 nút **"Tạo bài tự luận"** (for
 | Khoá | Phần | Cách làm bài của sinh viên | Cách chấm |
 |---|---|---|---|
 | `mcq` | Trắc nghiệm nhiều đáp án để chọn | Chọn 1 đáp án (radio); nếu câu có nhiều đáp án đúng → chọn nhiều (checkbox) | Đúng khi chọn **đủ và không thừa** (tất cả hoặc không) |
-| `tf` | Trắc nghiệm đúng / sai | Chọn Đúng hoặc Sai | So với đáp án |
+| `tf` | Trắc nghiệm đúng / sai — mỗi câu có **nhiều ý** (giả thuyết a, b, c, d…) | Với **từng ý** chọn Đúng hoặc Sai | Chấm từng ý so với đáp án, rồi tính điểm của câu theo **cách chia điểm** admin chọn (xem mục "Cách tính điểm phần Đúng/Sai") |
 | `fill` | Điền số liệu sau khi tính (hoặc điền đáp án) | Gõ vào ô; nếu admin có viết **ghi chú hướng dẫn điền** thì hiện ngay trên phần này, **không viết thì không hiện gì** | Chuẩn hoá rồi so (xem bên dưới) |
 
-Cấu hình mỗi phần (admin nhập ở form): `pointsPerQuestion` (mặc định 1), riêng `fill` thêm `tolerance` (sai số tuyệt đối khi đáp án là số, mặc định 0) và `note` (ghi chú hướng dẫn điền). Cấu hình chung: `maxScore` (mặc định 10).
+Cấu hình mỗi phần (admin nhập ở form): `pointsPerQuestion` (mặc định 1; riêng phần `tf` là điểm tối đa của **cả câu** gồm tất cả các ý), riêng `tf` thêm `scoring` (cách chia điểm: `'equal'` | `'thptqg'`, mặc định `'equal'`), riêng `fill` thêm `tolerance` (sai số tuyệt đối khi đáp án là số, mặc định 0) và `note` (ghi chú hướng dẫn điền). Cấu hình chung: `maxScore` (mặc định 10).
 
 **Điểm** = `earnedPoints / totalPoints × maxScore`, làm tròn 2 chữ số → cùng thang với tự luận nên thống kê điểm trung bình không lệch. Câu bỏ trống tính sai.
+
+**Cách tính điểm phần Đúng/Sai (`tf`) — admin chọn ở form, lưu ở `parts.tf.scoring`:**
+
+Mỗi câu `tf` có nhiều **ý** (giả thuyết) a, b, c, d…; sinh viên chọn Đúng/Sai cho từng ý, server chấm từng ý rồi đếm số ý đúng `k` trên tổng `n` ý của câu. `pointsPerQuestion` (`P`) là điểm tối đa của **cả câu**. Ý bỏ trống tính sai.
+
+| Giá trị `scoring` | Tên ở form | Điểm của câu |
+|---|---|---|
+| `equal` (mặc định) | 1. Chia đều các ý | `P × k / n` (ví dụ P = 1, n = 4 → mỗi ý đúng được 0,25) |
+| `thptqg` | 2. Theo THPTQG | `P × hệ số[k]`: đúng 0 ý = 0 · 1 ý = 0,1 · 2 ý = 0,25 · 3 ý = 0,5 · 4 ý = 1 |
+
+- Cách `thptqg` chỉ định nghĩa cho câu có **đúng 4 ý** → chọn cách này mà có câu khác 4 ý thì parser báo lỗi, không cho lưu. Cách `equal` cho phép 2–10 ý mỗi câu.
+- Ví dụ P = 1, đúng 3/4 ý: `equal` được 0,75 điểm; `thptqg` được 0,5 điểm.
+- Bảng hệ số đặt trong `config/quizConfig.js` (`TF_THPTQG_RATIOS = { 0: 0, 1: 0.1, 2: 0.25, 3: 0.5, 4: 1 }`), sửa ở một chỗ duy nhất. Điểm từng câu **không làm tròn**; chỉ làm tròn 2 chữ số ở điểm tổng cuối cùng.
+- Cách chia điểm nằm trong `quizSnapshot` của bài nộp → admin đổi cách chia sau này **không làm đổi điểm bài đã nộp**.
+- `correctCount` / `totalCount` tính theo **đơn vị chấm**: `mcq`, `fill` = câu; `tf` = ý (số ý đúng / tổng số ý).
 
 **Chuẩn hoá khi chấm `fill`:** trim, gộp khoảng trắng, không phân biệt hoa/thường. Nếu cả đáp án và bài làm đều là số (`^[-+]?\d+([.,]\d+)?$`, dấu `,` hiểu là dấu thập phân) → so số với `tolerance` (3,10 = 3.1). Không phải số → so chuỗi đã chuẩn hoá. Đáp án có nhiều cách viết ngăn bằng `|` → khớp một trong số đó là đúng. Đơn vị (m, cm…) không tự bỏ → muốn SV chỉ nhập số thì ghi vào **ghi chú hướng dẫn điền**.
 
@@ -853,14 +868,30 @@ https://raw.githubusercontent.com/.../anh.png     ← (tuỳ chọn) link ảnh;
 ...
 ```
 
-**Phần 2 — đúng/sai (`tf`):** giống trên nhưng **không có dòng `+)`**:
+**Phần 2 — đúng/sai (`tf`):** mỗi câu gồm **câu dẫn** (`- `) và **nhiều ý / giả thuyết** (`+)`, thường 4 ý). Mỗi ý có đáp án `=>` và giải thích `++)` **của riêng ý đó**, đặt ngay bên dưới ý:
 
 ```text
-- nội-dung-câu-hỏi-1
+- nội-dung-câu-hỏi-1 (câu dẫn / ngữ cảnh chung)
 <link ảnh nếu có>
++)giả-thuyết-1
 => Đúng
-++) giải thích (tuỳ chọn)
+++) giải thích vì sao ý 1 đúng (tuỳ chọn)
++)giả-thuyết-2
+=> Sai
+++) giải thích vì sao ý 2 sai (tuỳ chọn)
++)giả-thuyết-3
+=> Đúng
+++) giải thích ... (tuỳ chọn)
++)giả-thuyết-4
+=> Sai
+++) giải thích ... (tuỳ chọn)
++)...
+- nội-dung-câu-hỏi-2
+...
 ```
+
+- Hệ thống **tự gán nhãn a, b, c, d…** cho các ý theo thứ tự, không cần gõ. Số ý mỗi câu: 2–10 (cách chia điểm THPTQG bắt buộc đúng 4 ý).
+- Mỗi ý có **một** dòng `=>` (Đúng/Sai) ngay bên dưới; `++)` (nếu có) nằm sau `=>` của ý đó. Cách tính điểm xem mục "Cách tính điểm phần Đúng/Sai" ở trên.
 
 **Phần 3 — điền số liệu / đáp án (`fill`):** giống phần 2, `=>` là đáp án; **trước câu đầu tiên** có thể có ghi chú hướng dẫn điền (các dòng chưa có ký hiệu nào):
 
@@ -880,17 +911,17 @@ Ghi chú cũng có ô nhập riêng ở form; nếu có cả hai thì ô riêng 
 |---|---|
 | `- ` | bắt đầu câu hỏi mới |
 | dòng chỉ có 1 URL `https://…` | link ảnh — chỉ hợp lệ **ngay sau câu hỏi, trước `+)`/`=>`** |
-| `+)` | một đáp án (chỉ phần 1) — hệ thống **tự gán nhãn A, B, C…**, không cần gõ |
-| `=>` | đáp án đúng |
-| `++)` | giải thích (HTML) — nhận dạng **`++)` trước `+)`** để không nhầm |
+| `+)` | phần 1: một đáp án (**tự gán nhãn A, B, C…**); phần 2: một **ý / giả thuyết** (**tự gán nhãn a, b, c, d…**); không dùng ở phần 3 |
+| `=>` | đáp án đúng (phần 2: đáp án Đúng/Sai của ý `+)` ngay phía trên) |
+| `++)` | giải thích (HTML) — nhận dạng **`++)` trước `+)`** để không nhầm (phần 2: giải thích của ý ngay phía trên) |
 | dòng khác | nối vào mục đang mở (câu hỏi nhiều dòng, giải thích HTML nhiều dòng) |
 
 - Muốn dòng nội dung bắt đầu bằng `- `, `+)`, `=>` thì gõ thêm `\` phía trước (`\- 5 + 3 = ?`).
 - Bỏ dòng trống; tự bỏ dấu ngoặc kép / rào ``` bao quanh khối khi dán từ AI.
-- **`=>` ở phần 1** nhận: chữ cái (`B`), số thứ tự (`2`), hoặc chép nguyên văn đáp án. Nhiều đáp án đúng ngăn bằng dấu phẩy (`A, C`) → câu thành chọn nhiều. **Phần 2:** `Đúng`/`Sai` (nhận thêm `Đ`/`S`, `true`/`false`, `T`/`F`, `1`/`0`). **Phần 3:** giá trị đáp án, nhiều cách viết ngăn bằng `|`.
-- **Báo lỗi kèm số dòng và KHÔNG cho lưu** khi: câu rỗng; thiếu `=>`; phần 1 có <2 hoặc >10 đáp án; đáp án trùng nhau; `=>` không khớp đáp án nào; phần 2 giá trị lạ; phần 3 đáp án rỗng; có `+)` ở phần 2/3; ảnh không phải `https` hoặc host không nằm trong danh sách cho phép; ảnh đặt sai chỗ.
+- **`=>` ở phần 1** nhận: chữ cái (`B`), số thứ tự (`2`), hoặc chép nguyên văn đáp án. Nhiều đáp án đúng ngăn bằng dấu phẩy (`A, C`) → câu thành chọn nhiều. **Phần 2:** mỗi ý `+)` có đúng một dòng `=>` ngay sau với giá trị `Đúng`/`Sai` (nhận thêm `Đ`/`S`, `true`/`false`, `T`/`F`, `1`/`0`). **Phần 3:** giá trị đáp án, nhiều cách viết ngăn bằng `|`.
+- **Báo lỗi kèm số dòng và KHÔNG cho lưu** khi: câu rỗng; thiếu `=>` (phần 2: **từng ý** phải có `=>`); phần 1 có <2 hoặc >10 đáp án; đáp án trùng nhau; `=>` không khớp đáp án nào; **phần 2: câu không có ý `+)` nào / có <2 hoặc >10 ý / số ý khác 4 khi chọn cách chia THPTQG / ý rỗng / `=>` đứng trước ý đầu tiên / một ý có 2 dòng `=>` / giá trị `=>` lạ / `++)` đứng trước `=>`**; phần 3 đáp án rỗng; có `+)` ở phần 3; ảnh không phải `https` hoặc host không nằm trong danh sách cho phép; ảnh đặt sai chỗ.
 - Có hàm ngược `serialize(questions, part)` → cho ra đúng định dạng trên, để admin **sửa lại bằng text** sau khi đã nhập (form tải text từ đề đã lưu, sửa, bấm chuyển lại). Test bắt buộc: `parse(serialize(x))` ≡ `x`.
-- Giới hạn (đặt trong `config/quizConfig.js`): ≤100 câu/phần, ≤10 đáp án/câu, câu hỏi ≤2000 ký tự, giải thích ≤3000 ký tự, toàn bộ text nhập ≤200.000 ký tự.
+- Giới hạn (đặt trong `config/quizConfig.js`): ≤100 câu/phần, ≤10 đáp án/câu (phần 2: 2–10 ý/câu, mỗi ý ≤1000 ký tự), câu hỏi ≤2000 ký tự, giải thích ≤3000 ký tự, toàn bộ text nhập ≤200.000 ký tự.
 
 **Ảnh:** chỉ nhận `https`, host nằm trong `ALLOWED_IMAGE_HOSTS` (mặc định `raw.githubusercontent.com`); render bằng `img(loading="lazy" referrerpolicy="no-referrer")`. ⚠️ Link raw của **repo private không hiện được** với sinh viên (cần token) → dùng repo public cho ảnh, hoặc làm thêm route proxy đọc ảnh từ GitHub (giống `/layout/logo/:userKeyId`). Kiểm tra CSP `img-src` nếu có.
 
@@ -905,14 +936,14 @@ Bạn là giảng viên ra đề trắc nghiệm. Hãy tạo đề về: [CHỦ 
 
 Chỉ trả về ĐÚNG 3 khối code (mỗi khối nằm trong một ```), theo thứ tự dưới đây, không viết thêm bất cứ gì ngoài 3 khối:
 - KHỐI 1 – Trắc nghiệm nhiều đáp án: [N1] câu, mỗi câu 4 đáp án, chỉ 1 đáp án đúng.
-- KHỐI 2 – Đúng/Sai: [N2] câu.
+- KHỐI 2 – Đúng/Sai: [N2] câu, mỗi câu có một câu dẫn và đúng 4 ý (a, b, c, d), mỗi ý là một nhận định độc lập có thể đúng hoặc sai.
 - KHỐI 3 – Điền số liệu/đáp án: [N3] câu, đáp án là một con số hoặc một từ/cụm từ ngắn, duy nhất.
 
 QUY TẮC ĐỊNH DẠNG (bắt buộc, không tự đổi ký hiệu):
 1. Mỗi câu hỏi bắt đầu bằng một dòng: "- " + nội dung câu hỏi (có thể viết nhiều dòng; các dòng sau không được bắt đầu bằng "- ", "+)" hay "=>").
 2. Nếu câu có ảnh: dòng ngay sau câu hỏi là link ảnh https. Không có ảnh thì BỎ QUA dòng này, tuyệt đối không bịa link.
 3. KHỐI 1: mỗi đáp án một dòng bắt đầu bằng "+)" — không đánh số, không viết "A.", "B.". Sau các đáp án là dòng "=> " + chữ cái đáp án đúng (A, B, C hoặc D theo thứ tự đáp án).
-4. KHỐI 2: KHÔNG có dòng "+)". Sau câu hỏi là dòng "=> Đúng" hoặc "=> Sai".
+4. KHỐI 2: câu hỏi là câu dẫn / ngữ cảnh chung. Tiếp theo là 4 ý, mỗi ý một dòng bắt đầu bằng "+)" (không đánh a, b, c, d). Ngay dưới mỗi ý là dòng "=> Đúng" hoặc "=> Sai" của chính ý đó, rồi (tuỳ chọn) dòng "++) " giải thích riêng cho ý đó.
 5. KHỐI 3: sau câu hỏi là dòng "=> " + đáp án. Nếu có nhiều cách viết chấp nhận được, ngăn cách bằng dấu |. Số thập phân dùng dấu chấm. Không ghi đơn vị trong đáp án. Nếu cần hướng dẫn điền (làm tròn, đơn vị…), viết 1–2 dòng ghi chú ở ĐẦU khối, trước câu đầu tiên (dòng ghi chú không bắt đầu bằng "- ").
 6. (Tuỳ chọn) Giải thích: dòng "++) " + đoạn HTML ngắn, chỉ dùng thẻ <b>, <i>, <br>, <code>, <sub>, <sup>, <ul>, <li>. Đặt ngay sau dòng "=>". Không cần thì bỏ dòng này.
 7. Đáp án phải chính xác; đáp án nhiễu hợp lý; không lặp câu hỏi.
@@ -927,7 +958,16 @@ VÍ DỤ KHỐI 1:
 ++) Nhân trước, cộng sau: 3 × 4 = 12, rồi 12 + 2 = 14.
 
 VÍ DỤ KHỐI 2:
-- Số 17 là số nguyên tố.
+- Cho các số 15, 17, 21, 23. Xét các nhận định sau:
++)Số 17 là số nguyên tố.
+=> Đúng
+++) 17 chỉ chia hết cho 1 và chính nó.
++)Số 15 là số nguyên tố.
+=> Sai
+++) 15 chia hết cho 3 và 5.
++)Số 21 là số nguyên tố.
+=> Sai
++)Số 23 là số nguyên tố.
 => Đúng
 
 VÍ DỤ KHỐI 3:
@@ -942,7 +982,7 @@ Làm tròn đến 2 chữ số thập phân, chỉ nhập số.
 ### Trang admin tạo / sửa bài trắc nghiệm — `views/admin/quiz-form.pug`
 
 - Trường chung: môn (dropdown), tiêu đề, mô tả/hướng dẫn chung (tuỳ chọn, HTML sanitize), `maxScore`, đường dẫn GitHub (chỉ admin default tự đặt, admin user_key do hệ thống sinh — như bài tự luận), dropdown **Prompt phân tích** (chỉ liệt kê prompt `kind = 'quiz'`), và (chỉ admin default) chọn **các AI Key cho phép phân tích** (`analysisAiKeyIds`).
-- 3 khối **Phần 1 / Phần 2 / Phần 3**, mỗi khối có: ô `pointsPerQuestion`, ô text dán đề, nút **"Chuyển & xem trước"**, nút **"Xuất lại text"**. Phần 3 thêm ô `tolerance` và ô **"Ghi chú hướng dẫn điền"**.
+- 3 khối **Phần 1 / Phần 2 / Phần 3**, mỗi khối có: ô `pointsPerQuestion`, ô text dán đề, nút **"Chuyển & xem trước"**, nút **"Xuất lại text"**. Phần 2 thêm lựa chọn **"Cách chia điểm"** (radio: **1. Chia đều các ý** / **2. Theo THPTQG**); phần 3 thêm ô `tolerance` và ô **"Ghi chú hướng dẫn điền"**.
 - **Xem trước** hiển thị đề đúng như sinh viên thấy, nhưng **tô xanh đáp án đúng** (và hiện giải thích đã sanitize); lỗi parse hiện ngay danh sách "dòng N: …".
 - Khung "💡 Prompt mẫu nhờ AI tạo đề" + nút Copy (xem trên).
 - Lưu: client gửi **text**, **server tự parse lại** (không tin JSON do client gửi) → sinh id `mcq-1`, `tf-1`, `fill-1`… theo thứ tự → đẩy GitHub qua `syncQueueService` → cập nhật `Lesson` (`type`, `quizCounts`).
@@ -958,14 +998,14 @@ Làm tròn đến 2 chữ số thập phân, chỉ nhập số.
 Lesson {
   ...
   type: { type: String, enum: ['essay', 'quiz'], default: 'essay' },   // thiếu = essay (lean: lesson.type || 'essay')
-  quizCounts: { mcq: Number, tf: Number, fill: Number },                // chỉ để hiện "20 câu" ở danh sách, khỏi đọc GitHub
+  quizCounts: { mcq: Number, tf: Number, fill: Number },                // chỉ để hiện "20 câu" ở danh sách, khỏi đọc GitHub (tf = số CÂU, không phải số ý)
   analysisAiKeyIds: [{ type: ObjectId, ref: 'AIKey' }]                  // AI cho phép phân tích; rỗng = dùng aiKeyId của bài / xoay Gemini
 }
 Subject { ..., quizPromptId: { type: ObjectId, ref: 'GradingPrompt', default: null } }   // prompt phân tích trắc nghiệm theo môn
 Submission {
   ...
   type: { type: String, enum: ['essay', 'quiz'], default: 'essay' },    // thiếu = essay
-  maxScore: Number, correctCount: Number, totalCount: Number,           // quiz; score = điểm đã quy về maxScore
+  maxScore: Number, correctCount: Number, totalCount: Number,           // quiz; score = điểm đã quy về maxScore; correctCount/totalCount: mcq,fill = câu, tf = ý
   analysisCount: { type: Number, default: 0 }, lastAnalyzedAt: Date     // quiz; dùng để giới hạn số lần phân tích
 }
 GradingPrompt { ..., kind: { type: String, enum: ['essay', 'quiz'], default: 'essay' } }  // xem mục prompt trắc nghiệm
@@ -986,8 +1026,12 @@ GradingPrompt { ..., kind: { type: String, enum: ['essay', 'quiz'], default: 'es
         { "id": "mcq-1", "text": "2 + 3 × 4 = ?", "image": null,
           "options": [ { "key": "A", "text": "14" }, { "key": "B", "text": "20" } ],
           "correct": ["A"], "multi": false, "explanationHtml": "<p>…</p>" } ] },
-      "tf":  { "pointsPerQuestion": 1, "questions": [
-        { "id": "tf-1", "text": "17 là số nguyên tố", "image": null, "correct": true, "explanationHtml": null } ] },
+      "tf":  { "pointsPerQuestion": 1, "scoring": "thptqg", "questions": [
+        { "id": "tf-1", "text": "Cho các số 15, 17, 21, 23. Xét các nhận định sau:", "image": null, "statements": [
+          { "id": "tf-1-a", "text": "Số 17 là số nguyên tố.", "correct": true,  "explanationHtml": "<p>17 chỉ chia hết cho 1 và chính nó.</p>" },
+          { "id": "tf-1-b", "text": "Số 15 là số nguyên tố.", "correct": false, "explanationHtml": "<p>15 chia hết cho 3 và 5.</p>" },
+          { "id": "tf-1-c", "text": "Số 21 là số nguyên tố.", "correct": false, "explanationHtml": null },
+          { "id": "tf-1-d", "text": "Số 23 là số nguyên tố.", "correct": true,  "explanationHtml": null } ] } ] },
       "fill": { "pointsPerQuestion": 1, "tolerance": 0, "note": "Làm tròn 2 chữ số…", "questions": [
         { "id": "fill-1", "text": "…", "image": null, "answers": ["12.57", "12,57"], "explanationHtml": null } ] }
     }
@@ -1001,12 +1045,14 @@ GradingPrompt { ..., kind: { type: String, enum: ['essay', 'quiz'], default: 'es
 {
   "type": "quiz",
   "userId": "…", "lessonId": "…", "submittedAt": "…",
-  "answers": { "mcq-1": ["A"], "tf-1": true, "fill-1": "12.57" },
+  "answers": { "mcq-1": ["A"], "tf-1-a": true, "tf-1-b": false, "tf-1-c": false, "tf-1-d": true, "fill-1": "12.57" },
   "quizSnapshot": { "…": "bản sao nguyên khối quiz (có đáp án + giải thích) tại lúc nộp" },
   "result": {
     "score": 8.5, "maxScore": 10, "earnedPoints": 17, "totalPoints": 20, "correctCount": 15, "totalCount": 20,
-    "parts": { "mcq": { "correct": 8, "total": 10, "earned": 8, "points": 10 }, "tf": {}, "fill": {} },
-    "items": [ { "id": "mcq-1", "part": "mcq", "correct": true, "earned": 1, "studentAnswer": ["A"], "correctAnswer": ["A"] } ]
+    "parts": { "mcq": { "correct": 8, "total": 10, "earned": 8, "points": 10 }, "tf": { "correct": 7, "total": 8, "earned": 1.5, "points": 2 }, "fill": {} },
+    "tfQuestions": [ { "id": "tf-1", "correctStatements": 4, "totalStatements": 4, "earned": 1, "points": 1 }, { "id": "tf-2", "correctStatements": 3, "totalStatements": 4, "earned": 0.5, "points": 1 } ],
+    "items": [ { "id": "mcq-1", "part": "mcq", "correct": true, "earned": 1, "studentAnswer": ["A"], "correctAnswer": ["A"] },
+               { "id": "tf-1-a", "part": "tf", "questionId": "tf-1", "correct": true, "studentAnswer": true, "correctAnswer": true } ]
   },
   "gradedAt": "…", "gradedBy": "auto",
   "teacherComment": null, "teacherCommentHistory": [],
@@ -1034,7 +1080,7 @@ GradingPrompt { ..., kind: { type: String, enum: ['essay', 'quiz'], default: 'es
 Student mở bài trắc nghiệm (lesson.type = 'quiz')
       │   server đọc JSON đề từ GitHub (cache ~60s, xoá cache khi admin lưu)
       │   → toStudentView(): COPY theo allowlist chỉ các field cần để hiển thị
-      │     (text, image, options, multi, note) — KHÔNG gồm correct / answers / explanationHtml
+      │     (text, image, options, multi, note; riêng phần tf: `statements: [{ id, text }]` và `scoring`) — KHÔNG gồm correct / answers / explanationHtml
       ▼
 quiz-lesson.pug hiển thị 3 phần (phần rỗng thì ẩn) → SV làm bài
       │   nộp: cảnh báo nếu còn câu bỏ trống; khoá nút để chống bấm 2 lần
@@ -1067,7 +1113,7 @@ Trang hiện phần phân tích BÊN DƯỚI đề + đáp án; nút đổi thà
 - **Giới hạn** (`config/quizConfig.js`, không thêm biến `.env`): `MAX_ANALYSES_PER_SUBMISSION = 5`, `ANALYSIS_COOLDOWN_MS = 30000`; route nộp & phân tích có rate-limit. Đủ giới hạn → ẩn nút, hiện "Đã đạt số lần phân tích tối đa".
 - **Chọn AI:** không có `analysisAiKeyIds` → dùng `aiKeyId` của bài, nếu bài cũng không gán thì xoay trong các key Gemini (đúng quy tắc hiện tại; vilao.ai chỉ dùng khi được gán đích danh). Có `analysisAiKeyIds` → SV thấy dropdown gồm "Mặc định" + các AI đó (hiển thị bằng `formatAiLabel`). Server **chỉ chấp nhận `aiKeyId` nằm trong danh sách**, không cho SV chọn key tuỳ ý. Admin user_key không thấy/không gán được AI Key → bài của họ luôn dùng "Mặc định".
 - Chỉ **sinh viên chủ bài** được bấm phân tích; admin (đúng phạm vi `user_key`) chỉ **xem**.
-- Prompt phân tích gửi **đầy đủ các câu sai**, câu đúng chỉ gửi bản rút gọn (id + ~200 ký tự đầu) để tiết kiệm token nhưng AI vẫn biết chủ đề nào SV làm tốt. Chủ đề **do AI tự suy ra** từ nội dung câu hỏi (đề không có trường chủ đề).
+- Prompt phân tích gửi **đầy đủ các câu sai**, câu đúng chỉ gửi bản rút gọn (id + ~200 ký tự đầu) để tiết kiệm token (phần đúng/sai xét theo **từng ý**: ý sai gửi đầy đủ kèm đáp án đúng + giải thích, ý đúng gửi rút gọn) nhưng AI vẫn biết chủ đề nào SV làm tốt. Chủ đề **do AI tự suy ra** từ nội dung câu hỏi (đề không có trường chủ đề).
 - Bài làm (nhất là ô `fill` gõ tự do) được **sanitize + bọc delimiter** như `{bài_làm}` của tự luận để chống prompt injection.
 
 ### Prompt trắc nghiệm riêng (`GradingPrompt.kind = 'quiz'`)
@@ -1119,7 +1165,7 @@ Chỉ trả về DUY NHẤT một object JSON:
   "mistakes": [ { "id": string, "why": string, "correctReasoning": string, "tip": string } ],
   "studyPlan": [string]
 }
-(`questions` và `id` dùng đúng id câu hỏi trong đề, ví dụ "mcq-3".)
+(`questions` và `id` dùng đúng id câu hỏi trong đề, ví dụ "mcq-3"; với phần đúng/sai dùng id của ý, ví dụ "tf-2-b".)
 ```
 
 ### Hiển thị (làm riêng cho trắc nghiệm; danh sách bài nộp dùng chung)
@@ -1132,7 +1178,7 @@ Chỉ trả về DUY NHẤT một object JSON:
 | Lịch sử SV / danh sách bài nộp admin | `history.pug`, `admin/submissions.pug` | **dùng chung**, hai loại hiển thị như nhau (điểm, thời gian…). Cột "Prompt đã chấm" của quiz ghi "Chấm tự động"; cột lỗi/nhận xét AI hiện "—" |
 
 - Link ở danh sách đi cùng một URL (`/submissions/:id`, `/admin/submissions/:id/review`); controller **rẽ nhánh theo `submission.type`** (quiz → redirect/render trang quiz; route review cũ `redirect` sang `/admin/quiz-submissions/:id/review` khi bài là quiz). Nhờ đó không sửa logic tự luận.
-- **`quiz-submission-detail.pug`** (và phần trên của trang review) theo thứ tự từ trên xuống: ① tổng điểm + số câu đúng + điểm từng phần → ② **đề + bài làm + đáp án đúng** theo 3 phần (từ `quizSnapshot`; đúng xanh / sai đỏ / bỏ trống; ảnh; giải thích đã sanitize) → ③ **Phân tích AI**: nút bấm + danh sách các lần phân tích (mới nhất trên cùng), mỗi lần có tiêu đề `🤖 {nhãn AI} · {model} · {thời gian}` và `Prompt: {tên} v{phiên bản}`, nội dung `summary`, `weakTopics`, `mistakes` (bấm id nhảy tới câu tương ứng ở ②), `studyPlan` → ④ **Nhận xét giảng viên** (ẩn nếu chưa có, giống tự luận).
+- **`quiz-submission-detail.pug`** (và phần trên của trang review) theo thứ tự từ trên xuống: ① tổng điểm + số câu đúng + điểm từng phần → ② **đề + bài làm + đáp án đúng** theo 3 phần (từ `quizSnapshot`; đúng xanh / sai đỏ / bỏ trống; ảnh; giải thích đã sanitize; riêng phần đúng/sai: từng ý a, b, c, d tô xanh/đỏ riêng kèm giải thích riêng của ý, và dòng tổng kết của câu "đúng x/n ý → y điểm") → ③ **Phân tích AI**: nút bấm + danh sách các lần phân tích (mới nhất trên cùng), mỗi lần có tiêu đề `🤖 {nhãn AI} · {model} · {thời gian}` và `Prompt: {tên} v{phiên bản}`, nội dung `summary`, `weakTopics`, `mistakes` (bấm id nhảy tới câu tương ứng ở ②), `studyPlan` → ④ **Nhận xét giảng viên** (ẩn nếu chưa có, giống tự luận).
 - Mọi chữ do AI trả về render bằng `=` (tự escape), **không dùng `!=`**.
 - Dùng chung mixin ở `views/partials/quiz-result.pug` cho khối ②③ giữa trang SV và trang review (tránh lặp code).
 - **Nhận xét giảng viên cho trắc nghiệm:** cùng schema `teacherComment` / `teacherCommentHistory`, cùng quy tắc (không bắt buộc, nội dung rỗng bị từ chối, `AuditLog` `add/edit_teacher_comment`, notification `teacher_comment`, admin user_key chỉ nhận xét bài thuộc bài học của mình). Viết **hàm riêng** `saveQuizTeacherComment` trong `quiz.controller.js` (không sửa `saveTeacherComment` của tự luận); ghi JSON theo cách "đọc mới nhất → gộp → ghi theo SHA".
@@ -1140,14 +1186,14 @@ Chỉ trả về DUY NHẤT một object JSON:
 ### File tạo mới / file sửa (tính năng trắc nghiệm)
 
 **Tạo mới:**
-- `config/quizConfig.js` — hằng số 3 phần, giới hạn, `ALLOWED_IMAGE_HOSTS`, `MAX_ANALYSES_PER_SUBMISSION`, `ANALYSIS_COOLDOWN_MS`, `QUIZ_AUTHORING_PROMPT`, `DEFAULT_QUIZ_ANALYSIS_PROMPT`
+- `config/quizConfig.js` — hằng số 3 phần, giới hạn, cách chia điểm đúng/sai (`TF_SCORING`, `TF_THPTQG_RATIOS`), `ALLOWED_IMAGE_HOSTS`, `MAX_ANALYSES_PER_SUBMISSION`, `ANALYSIS_COOLDOWN_MS`, `QUIZ_AUTHORING_PROMPT`, `DEFAULT_QUIZ_ANALYSIS_PROMPT`
 - `routes/quiz.js`, `controllers/quiz.controller.js`
 - `services/quizParserService.js` (parse / serialize / validate), `services/quizGradingService.js`, `services/quizAnalysisService.js`
 - `views/admin/quiz-form.pug`, `views/admin/quiz_submission_review.pug`
 - `views/student/quiz-lesson.pug`, `views/student/quiz-submission-detail.pug`
 - `views/partials/quiz-result.pug`
 - `public/js/quizEditor.js` (xem trước, xuất lại text, copy prompt mẫu), `public/js/quizTake.js` (thu bài làm, nộp, poll trạng thái lưu, nút phân tích)
-- `tests/quizParser.test.js`, `tests/quizGrading.test.js` (khuyến nghị)
+- `tests/quizParser.test.js`, `tests/quizGrading.test.js` (khuyến nghị) — nhớ phủ phần đúng/sai nhiều ý: cả 2 cách chia điểm với 0–4 ý đúng, ý bỏ trống, `thptqg` + câu không đủ 4 ý bị báo lỗi, `parse(serialize(x)) ≡ x`
 
 **Sửa:**
 - `models/Lesson.js`, `models/Subject.js`, `models/Submission.js`, `models/GradingPrompt.js` — thêm field ở mục "Dữ liệu"
@@ -1175,6 +1221,7 @@ Chỉ trả về DUY NHẤT một object JSON:
 - [ ] Ảnh từ repo private (xem mục Ảnh): chọn repo public hay làm route proxy.
 - [ ] Đối chiếu tên hàm thật của `githubService` (đọc SHA / ghi theo SHA), `formatAiLabel`, `syncQueueService`, `Notification`, `AuditLog` trước khi viết code.
 - [ ] Giới hạn kích thước JSON bài nộp (có `quizSnapshot` + nhiều lần phân tích) so với giới hạn file GitHub API.
+- [ ] Phần đúng/sai: cách `thptqg` bắt buộc đúng 4 ý/câu (bảng hệ số chỉ có cho 4 ý). Nếu muốn câu có số ý khác 4 vẫn dùng THPTQG, cần định nghĩa thêm bảng hệ số cho số ý đó.
 - [ ] Chủ đề câu hỏi hiện do AI tự suy; nếu muốn thống kê chính xác theo chủ đề, thêm cú pháp gắn chủ đề cho từng câu ở đợt sau.
 - [ ] Chặn client chưa duyệt / student của `user_key` khác gọi thẳng các API `/api/quiz/...` (kiểm tra role + `canAccess(lesson)` ở tầng route).
 
@@ -1504,11 +1551,12 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - [x] Đa tổ chức `user_key` — phần nền: `UserKey`, `User.userKey/connectedUserKeys`, đăng ký kèm mã tổ chức, lọc Subject/Lesson trong `lesson.controller.js`, `requireDefaultAdmin`
 - [ ] vilao.ai (Gemini vẫn mặc định, không đổi): `AIKey.provider`, `Submission.aiProvider/aiKeyName`, nhánh gọi vilao.ai trong `aiService.js`, chọn provider ở form thêm key, nhãn "Gemini: {tên}" / "vilao.ai: {tên}" ở trang làm bài + sau khi chấm (xem mục "Hỗ Trợ Thêm vilao.ai")
 - [ ] Tuỳ chỉnh layout theo `user_key` (logo / chữ dưới logo / chân trang) + cấp quyền `canEditLayout` ở `admin/users` + trang `admin/users/connect` (xem mục "Tuỳ Chỉnh Layout & Quản Lý Kết Nối")
-- [ ] Bài trắc nghiệm (MỚI): `Lesson.type`, nút "Tạo bài trắc nghiệm", `quiz-form.pug` (3 phần: nhiều đáp án / đúng-sai / điền số liệu, số câu mỗi phần tự quyết)
+- [ ] Bài trắc nghiệm (MỚI): `Lesson.type`, nút "Tạo bài trắc nghiệm", `quiz-form.pug` (3 phần: nhiều đáp án / đúng-sai nhiều ý a-b-c-d / điền số liệu, số câu mỗi phần tự quyết)
 - [ ] Parser text đề trắc nghiệm (`quizParserService`: parse + serialize + báo lỗi theo dòng, ảnh `https`, giải thích HTML sanitize) + xem trước đáp án đúng + sửa lại bằng text
 - [ ] Prompt mẫu nhờ AI tạo đề hiển thị ở `quiz-form.pug` (có test parse đúng ví dụ trong prompt)
 - [ ] Đề + bài nộp trắc nghiệm đọc/ghi JSON GitHub; ẩn đáp án khỏi trình duyệt trước khi nộp (`toStudentView` allowlist); `quizSnapshot` trong bài nộp
 - [ ] Server chấm tự động (`quizGradingService`), điểm quy về `maxScore`, hiện đáp án đúng ngay sau khi nộp
+- [ ] Phần đúng/sai nhiều ý: parse `+)` / `=>` / `++)` theo từng ý; 2 cách chia điểm chọn ở form — (1) chia đều các ý, (2) theo THPTQG (đúng 1 ý = 0,1 · 2 ý = 0,25 · 3 ý = 0,5 · 4 ý = 1 điểm của câu)
 - [ ] Nút "🤖 Phân tích AI" sau khi bài `committed` trên GitHub; ghi `aiAnalyses` (AI nào, lúc nào, prompt nào) vào JSON bài nộp; cho phép nhiều AI; giới hạn số lần
 - [ ] Prompt trắc nghiệm riêng (`GradingPrompt.kind = 'quiz'`) + prompt phân tích mặc định cài sẵn + tab ở `/admin/prompts` + `Subject.quizPromptId`
 - [ ] Trang riêng cho trắc nghiệm: `quiz-lesson.pug`, `quiz-submission-detail.pug`, `quiz_submission_review.pug` (nhận xét GV); danh sách bài nộp dùng chung với tự luận

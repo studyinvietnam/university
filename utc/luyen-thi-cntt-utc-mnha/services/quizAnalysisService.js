@@ -10,6 +10,29 @@ const sanitizeService = require('./sanitizeService');
 const SUBMISSION_PATH_TMPL = (subjectSlug, lessonSlug, userId, ts) =>
   `submissions/${subjectSlug}/${lessonSlug}/${userId}-${ts}.json`;
 
+// Phần đúng/sai: xét theo TỪNG Ý. Ý sai gửi đầy đủ (kèm đáp án đúng + giải thích riêng của ý),
+// ý đúng chỉ gửi rút gọn (id + ~200 ký tự đầu).
+function pushTfQuestion(lines, q, result) {
+  const statements = q.statements || [];
+  const rows = statements.map((s) => ({ s, item: result.items.find((x) => x.id === s.id) }));
+  const anyWrong = rows.some((r) => !r.item?.correct);
+  const tfq = (result.tfQuestions || []).find((x) => x.id === q.id);
+  const summary = tfq ? ` (đúng ${tfq.correctStatements}/${tfq.totalStatements} ý)` : '';
+
+  const head = anyWrong ? q.text : (q.text || '').slice(0, cfg.CORRECT_QUESTION_PREVIEW_LEN);
+  lines.push(`- ${q.id}${summary}: ${head}`);
+  for (const { s, item } of rows) {
+    if (item?.correct) {
+      lines.push(`  [ĐÚNG] ${s.id}: ${(s.text || '').slice(0, cfg.CORRECT_QUESTION_PREVIEW_LEN)}`);
+      continue;
+    }
+    lines.push(`  [SAI] ${s.id}: ${s.text}`);
+    lines.push(`    Đáp án đúng: ${s.correct ? 'Đúng' : 'Sai'}`);
+    lines.push(`    SV chọn: ${item?.studentAnswer === true ? 'Đúng' : item?.studentAnswer === false ? 'Sai' : '(bỏ trống)'}`);
+    if (s.explanationHtml) lines.push(`    Giải thích của GV: ${s.explanationHtml}`);
+  }
+}
+
 function buildQuizForAI(quiz, result, answers) {
   // Câu sai: full (đề + đáp án + giải thích + bài làm + đúng/sai)
   // Câu đúng: rút gọn (id + ~200 ký tự đầu)
@@ -19,6 +42,10 @@ function buildQuizForAI(quiz, result, answers) {
     if (!p || !p.questions?.length) continue;
     lines.push(`## ${cfg.PART_LABEL[partKey]}`);
     for (const q of p.questions) {
+      if (partKey === 'tf') {
+        pushTfQuestion(lines, q, result);
+        continue;
+      }
       const item = result.items.find((x) => x.id === q.id);
       const correct = item?.correct;
       if (correct) {
@@ -49,9 +76,19 @@ function buildQuizForAI(quiz, result, answers) {
 function buildAnswerForAI(quiz, result) {
   const lines = [];
   for (const it of result.items) {
-    const q = (quiz.parts?.[it.part]?.questions || []).find((x) => x.id === it.id);
+    const qs = quiz.parts?.[it.part]?.questions || [];
+    let text = null;
+    if (it.part === 'tf') {
+      // item tf có id của Ý (vd "tf-2-b"), questionId là id câu
+      const q = qs.find((x) => x.id === it.questionId);
+      const st = (q?.statements || []).find((x) => x.id === it.id);
+      text = st ? st.text : null;
+    } else {
+      const q = qs.find((x) => x.id === it.id);
+      text = q ? q.text : null;
+    }
     const label = it.correct ? 'ĐÚNG' : 'SAI';
-    lines.push(`- ${it.id} [${label}]: SV=${JSON.stringify(it.studentAnswer)} | Đáp án=${JSON.stringify(it.correctAnswer)}${q ? ' | câu: ' + (q.text || '').slice(0, 120) : ''}`);
+    lines.push(`- ${it.id} [${label}]: SV=${JSON.stringify(it.studentAnswer)} | Đáp án=${JSON.stringify(it.correctAnswer)}${text ? ' | ' + (it.part === 'tf' ? 'ý' : 'câu') + ': ' + text.slice(0, 120) : ''}`);
   }
   return lines.join('\n');
 }
@@ -59,11 +96,15 @@ function buildAnswerForAI(quiz, result) {
 function buildResultForAI(result) {
   const lines = [];
   lines.push(`Điểm: ${result.score}/${result.maxScore}`);
-  lines.push(`Số câu đúng: ${result.correctCount}/${result.totalCount}`);
+  lines.push(`Số câu/ý đúng: ${result.correctCount}/${result.totalCount} (phần đúng/sai tính theo ý)`);
   for (const partKey of cfg.PARTS) {
     const s = result.parts[partKey];
     if (!s) continue;
-    lines.push(`- ${cfg.PART_LABEL[partKey]}: ${s.correct}/${s.total} câu, ${s.earned}/${s.points} điểm`);
+    const unit = partKey === 'tf' ? 'ý' : 'câu';
+    lines.push(`- ${cfg.PART_LABEL[partKey]}: ${s.correct}/${s.total} ${unit}, ${s.earned}/${s.points} điểm`);
+  }
+  for (const t of result.tfQuestions || []) {
+    lines.push(`  · ${t.id}: đúng ${t.correctStatements}/${t.totalStatements} ý → ${t.earned}/${t.points} điểm`);
   }
   return lines.join('\n');
 }

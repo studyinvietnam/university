@@ -26,6 +26,7 @@ const sanitizeService = require('../services/sanitizeService');
 const notificationService = require('../services/notificationService');
 const aiService = require('../services/aiService');
 const quizConfig = require('../config/quizConfig');
+const { normalizeAudioUrl } = require('../services/quizAudioService');
 
 // ============================================================
 // ADAPTERS — chỉnh cho khớp code thật của bạn
@@ -47,7 +48,7 @@ const A = {
 
   // → { errors: [{ line, msg }], questions: [...] } theo đúng JSON đề trong README
   parsePart: (part, text, opts) => {
-    const r = quizParser.parsePart(text, part);   // service export: parsePart(rawText, part)
+    const r = quizParser.parsePart(text, part, opts);   // service export: parsePart(rawText, part, { scoring })
     return { errors: r.errors || [], questions: r.questions || [], note: r.note || null };
   },
   serializePart: (part, questions, note) => quizParser.serializePart(questions, part, note),
@@ -143,6 +144,12 @@ function buildQuiz(body) {
     if (!(ppq > 0)) { errors.push({ part, msg: '“Điểm / câu” phải là số lớn hơn 0 (VD 0.1, 0.2, 0.25, 1).' }); continue; }
 
     const opts = {};
+    if (part === 'tf') {
+      // Cách chia điểm: 'equal' (chia đều các ý) | 'thptqg'. Form gửi field scoring_tf.
+      const sc = String(body.scoring_tf || body.tfScoring || quizConfig.TF_DEFAULT_SCORING || 'equal');
+      if (!(quizConfig.TF_SCORING || ['equal', 'thptqg']).includes(sc)) { errors.push({ part, msg: 'Cách chia điểm phần Đúng/Sai không hợp lệ.' }); continue; }
+      opts.scoring = sc;
+    }
     if (part === 'fill') {
       opts.tolerance = Math.max(0, toNum(body.tolerance, 0));
       opts.note = String(body.note || '').trim().slice(0, 300);
@@ -151,11 +158,22 @@ function buildQuiz(body) {
     if (r.errors.length) { r.errors.forEach((e) => errors.push({ part, line: e.line, msg: e.msg })); continue; }
     if (!r.questions.length) continue;
 
-    const questions = r.questions.map((q, i) => Object.assign({}, q, {
-      id: `${part}-${i + 1}`,
-      explanationHtml: q.explanationHtml ? (A.cleanHtml(q.explanationHtml) || null) : null,
-    }));
+    const questions = r.questions.map((q, i) => {
+      const id = `${part}-${i + 1}`;
+      if (part === 'tf') {
+        // giải thích nằm ở từng ý (không có ở cấp câu) → sanitize từng cái
+        return Object.assign({}, q, {
+          id,
+          statements: (q.statements || []).map((st) => Object.assign({}, st, {
+            explanationHtml: st.explanationHtml ? (A.cleanHtml(st.explanationHtml) || null) : null,
+          })),
+        });
+      }
+      return Object.assign({}, q, { id, explanationHtml: q.explanationHtml ? (A.cleanHtml(q.explanationHtml) || null) : null });
+    });
+    // tf: pointsPerQuestion = điểm tối đa của CẢ CÂU (mọi ý); scoring = cách chia điểm giữa các ý
     parts[part] = { pointsPerQuestion: round4(ppq), questions };
+    if (part === 'tf') parts.tf.scoring = opts.scoring;
     if (part === 'fill') {
       parts.fill.tolerance = opts.tolerance;
       parts.fill.note = opts.note || (r.note ? String(r.note).slice(0, 300) : '');
@@ -176,6 +194,9 @@ function buildQuiz(body) {
 // ============================================================
 function toStudentView(quiz) {
   const out = { maxScore: quiz.maxScore, parts: {} };
+  // Audio (tuỳ chọn): chuẩn hoá lại lần nữa khi hiển thị, chỉ nhận link hợp lệ
+  const audio = normalizeAudioUrl(quiz.audioUrl);
+  if (audio.url) out.audioUrl = audio.url;
   for (const k of PARTS) {
     const p = quiz.parts && quiz.parts[k];
     if (!p || !Array.isArray(p.questions) || !p.questions.length) continue;
@@ -184,9 +205,12 @@ function toStudentView(quiz) {
       questions: p.questions.map((q) => {
         const v = { id: q.id, text: q.text, image: q.image || null };
         if (k === 'mcq') { v.options = (q.options || []).map((o) => ({ key: o.key, text: o.text })); v.multi = !!q.multi; }
+        // tf: chỉ gửi id + nội dung từng ý — KHÔNG có correct / explanationHtml
+        if (k === 'tf') v.statements = (q.statements || []).map((st) => ({ id: st.id, text: st.text }));
         return v;
       }),
     };
+    if (k === 'tf') out.parts[k].scoring = p.scoring || quizConfig.TF_DEFAULT_SCORING || 'equal';
     if (k === 'fill') out.parts[k].note = p.note || '';
   }
   return out;
@@ -200,14 +224,19 @@ function sanitizeAnswers(quiz, raw) {
     const p = quiz.parts && quiz.parts[k];
     if (!p) continue;
     for (const q of p.questions) {
+      if (k === 'tf') {
+        // bài làm phần đúng/sai nằm theo id của TỪNG Ý (vd "tf-1-a": true)
+        for (const st of q.statements || []) {
+          if (typeof src[st.id] === 'boolean') out[st.id] = src[st.id];
+        }
+        continue;
+      }
       const a = src[q.id];
       if (a === undefined || a === null) continue;
       if (k === 'mcq') {
         const keys = new Set((q.options || []).map((o) => o.key));
         const picked = (Array.isArray(a) ? a : [a]).map(String).filter((x) => keys.has(x));
         if (picked.length) out[q.id] = Array.from(new Set(picked)).sort();
-      } else if (k === 'tf') {
-        if (typeof a === 'boolean') out[q.id] = a;
       } else if (typeof a === 'string' && a.trim()) {
         out[q.id] = a.trim().slice(0, 300);
       }
@@ -219,7 +248,13 @@ function sanitizeAnswers(quiz, raw) {
 // Kết quả trả ngay cho sinh viên: thêm giải thích đã sanitize (lấy từ đề, không lưu vào result)
 function withExplanations(result, quiz) {
   const expl = {};
-  for (const k of PARTS) ((quiz.parts[k] || {}).questions || []).forEach((q) => { expl[q.id] = q.explanationHtml || null; });
+  for (const k of PARTS) {
+    ((quiz.parts[k] || {}).questions || []).forEach((q) => {
+      expl[q.id] = q.explanationHtml || null;
+      // tf: giải thích riêng của từng ý (item.id = id của ý)
+      (q.statements || []).forEach((st) => { expl[st.id] = st.explanationHtml || null; });
+    });
+  }
   return Object.assign({}, result, {
     items: (result.items || []).map((it) => Object.assign({}, it, { explanationHtml: expl[it.id] ? A.cleanHtml(expl[it.id]) : null })),
   });
@@ -287,6 +322,10 @@ async function readCommon(req, body) {
   const built = buildQuiz(body);
   if (built.errors) return { errors: built.errors };
 
+  // Audio (tuỳ chọn): link GitHub raw/blob → chuẩn hoá; để trống = bài không có audio
+  const audio = normalizeAudioUrl(body.audioUrl);
+  if (audio.error) return { error: audio.error };
+
   let promptId = null;
   if (body.promptId) {
     const p = await GradingPrompt.findOne({ _id: body.promptId, kind: 'quiz', active: true }).select('_id').lean();
@@ -300,7 +339,7 @@ async function readCommon(req, body) {
     const ids = Array.isArray(body.aiKeyIds) ? body.aiKeyIds : [];
     analysisAiKeyIds = ids.length ? (await AIKey.find({ _id: { $in: ids }, active: true }).select('_id').lean()).map((k) => k._id) : [];
   }
-  return { duration, title, built, promptId, analysisAiKeyIds,
+  return { duration, title, built, promptId, analysisAiKeyIds, audioUrl: audio.url,
     contentHtml: body.contentHtml ? (A.cleanHtml(String(body.contentHtml).slice(0, 20000)) || null) : null };
 }
 
@@ -320,6 +359,7 @@ exports.create = async (req, res) => {
     const githubFile = `subjects/${subject.slug}/lessons/${slug}.json`;
     if (await A.ghRead(githubFile)) return fail(res, 409, 'Đã có file trùng đường dẫn trên GitHub. Đổi tiêu đề / slug.');
 
+    if (c.audioUrl) c.built.quiz.audioUrl = c.audioUrl;
     await A.ghWrite(githubFile, { type: 'quiz', title: c.title, contentHtml: c.contentHtml, quiz: c.built.quiz });
 
     const lesson = await Lesson.create({
@@ -354,6 +394,7 @@ exports.update = async (req, res) => {
     // Ai đó vừa sửa đề (trên GitHub hoặc tab khác) → không tự ghi đè
     if (body.sha && body.sha !== file.sha) return fail(res, 409, 'Đề đã bị đổi, vui lòng tải lại trang.');
 
+    if (c.audioUrl) c.built.quiz.audioUrl = c.audioUrl;
     try {
       await A.ghWrite(lesson.githubFile, { type: 'quiz', title: c.title, contentHtml: c.contentHtml, quiz: c.built.quiz }, file.sha);
     } catch (e) {

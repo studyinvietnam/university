@@ -19,6 +19,16 @@
     var HOSTS = CFG.allowedImageHosts || ["raw.githubusercontent.com"];
     var MAX_OPT = CFG.maxOptions || 10;
     var DUR = CFG.durationLimits || { min: 1, max: 600 };
+    var AUDIO_HOSTS = CFG.allowedAudioHosts || ["raw.githubusercontent.com", "media.githubusercontent.com"];
+    var AUDIO_EXT = /\.(mp3|wav|ogg|oga|m4a|aac|opus)$/i;
+    var STMT_LABELS = "abcdefghij";
+    var TF_MIN = CFG.tfMinStatements || 1;
+    var TF_MAX = CFG.tfMaxStatements || 10;
+    var TF_THPTQG_N = CFG.tfThptqgStatements || 4;
+    function tfScoring() {
+        var r = document.querySelector('input[name="scoring_tf"]:checked');
+        return r ? r.value : (CFG.tfScoring || "equal");
+    }
 
     var state = { mcq: [], tf: [], fill: [] };
     var saving = false;
@@ -51,6 +61,42 @@
         return "";
     }
 
+    // ---------- Audio: nhận link raw GitHub (hoặc github.com/.../blob|raw/...) → trả link raw ----------
+    // Mirror services/quizAudioService.js (server kiểm tra lại, đây chỉ để báo lỗi sớm + nghe thử).
+    function normalizeAudio(input) {
+        var s = String(input || "").trim();
+        if (!s) return { url: "" };
+        var u;
+        try { u = new URL(s); } catch (e) { return { url: "", error: "Link audio không hợp lệ." }; }
+        if (u.protocol !== "https:") return { url: "", error: "Audio phải là link https." };
+        if (u.hostname === "github.com" || u.hostname === "www.github.com") {
+            var m = u.pathname.match(/^\/([^/]+)\/([^/]+)\/(?:blob|raw)\/(.+)$/);
+            if (!m) return { url: "", error: "Link GitHub chưa đúng. Hãy mở file audio trên GitHub rồi bấm “View raw” để lấy link." };
+            u = new URL("https://raw.githubusercontent.com/" + m[1] + "/" + m[2] + "/" + m[3]);
+        }
+        if (AUDIO_HOSTS.indexOf(u.hostname) === -1) return { url: "", error: "Host audio không được phép (chỉ: " + AUDIO_HOSTS.join(", ") + ")." };
+        if (!AUDIO_EXT.test(u.pathname)) return { url: "", error: "File audio phải có đuôi .mp3, .wav, .ogg, .m4a, .aac hoặc .opus." };
+        u.search = ""; u.hash = "";
+        return { url: u.toString() };
+    }
+    function refreshAudio(rewrite) {
+        var inp = $("fAudio");
+        if (!inp) return { url: "" };
+        var r = normalizeAudio(inp.value);
+        var warn = $("audioWarn"), prev = $("audioPrev");
+        warn.textContent = r.error || "";
+        warn.hidden = !r.error;
+        if (r.url && !r.error) {
+            if (rewrite && inp.value.trim() !== r.url) inp.value = r.url;   // hiện luôn link raw đã chuẩn hoá
+            if (prev.getAttribute("src") !== r.url) prev.src = r.url;
+            prev.hidden = false;
+        } else {
+            if (prev.getAttribute("src")) { try { prev.pause(); } catch (e) { /* noop */ } prev.removeAttribute("src"); prev.load(); }
+            prev.hidden = true;
+        }
+        return r;
+    }
+
     function normTf(s) {
         s = String(s || "").trim().toLowerCase();
         if (["đúng", "dung", "đ", "d", "true", "t", "1"].indexOf(s) !== -1) return true;
@@ -58,7 +104,81 @@
         return null;
     }
 
+    // ---------- Phần Đúng/Sai: mỗi câu có NHIỀU Ý (+) … => Đúng/Sai … ++) giải thích) ----------
+    function parseTf(text) {
+        var errors = [], questions = [];
+        var t = String(text || "").replace(/\r/g, "").trim();
+        if (/^["“].*["”]$/s.test(t)) t = t.slice(1, -1);
+        var lines = [];
+        t.split("\n").forEach(function (raw, idx) {
+            if (/^\s*```/.test(raw)) return;
+            if (!raw.trim()) return;
+            lines.push({ n: idx + 1, s: raw.trim() });
+        });
+        var cur = null, st = null, open = null;
+        function err(line, msg, qi) { errors.push({ line: line, msg: msg, qi: qi }); }
+
+        lines.forEach(function (L) {
+            var s = L.s, escaped = false;
+            if (/^\\(- |\+\+\)|\+\)|=>)/.test(s)) { s = s.slice(1); escaped = true; }
+
+            if (!escaped && /^- /.test(s)) {
+                cur = { line: L.n, text: s.slice(2).trim(), image: "", imgLine: 0, statements: [], order: questions.length };
+                questions.push(cur); st = null; open = "text"; return;
+            }
+            if (!cur) { if (!escaped && (s.indexOf("+)") === 0 || s.indexOf("=>") === 0 || s.indexOf("++)") === 0)) err(L.n, "Dòng nằm ngoài câu hỏi."); return; }
+            if (!escaped && s.indexOf("++)") === 0) {
+                if (!st) return err(L.n, "“++)” phải nằm dưới một ý “+)” và dòng “=>” của ý đó.", cur.order);
+                if (st.raw === null) return err(L.n, "“++)” đứng trước dòng “=>” của ý.", cur.order);
+                st.explanation = st.explanation ? st.explanation + "\n" + s.slice(3).trim() : s.slice(3).trim();
+                open = "expl"; return;
+            }
+            if (!escaped && s.indexOf("+)") === 0) {
+                st = { line: L.n, text: s.slice(2).trim(), raw: null, explanation: "" };
+                cur.statements.push(st); open = "st"; return;
+            }
+            if (!escaped && s.indexOf("=>") === 0) {
+                if (!st) return err(L.n, "“=>” đứng trước ý “+)” đầu tiên.", cur.order);
+                if (st.raw !== null) return err(L.n, "Ý này có hơn một dòng “=>”.", cur.order);
+                st.raw = s.slice(2).trim(); open = "ans"; return;
+            }
+            if (/^https?:\/\/\S+$/.test(s) && open !== "expl") {
+                if (cur.statements.length || cur.image) return err(L.n, "Link ảnh phải đặt ngay sau câu dẫn, trước “+)”.", cur.order);
+                cur.image = s; cur.imgLine = L.n; open = null; return;
+            }
+            if (open === "text") cur.text += "\n" + s;
+            else if (open === "st" && st) st.text += " " + s;
+            else if (open === "expl" && st) st.explanation += "\n" + s;
+            else if (open === "ans" && st) st.raw += " " + s;
+            else err(L.n, "Dòng thừa, không thuộc mục nào.", cur.order);
+        });
+
+        var out = [], scoring = tfScoring();
+        questions.forEach(function (q, qi) {
+            if (!q.text.trim()) err(q.line, "Câu dẫn rỗng.", qi);
+            var iss = imageIssue(q.image);
+            if (iss) err(q.imgLine || q.line, iss, qi);
+            var n = q.statements.length;
+            if (!n) err(q.line, "Câu chưa có ý “+)” nào.", qi);
+            else {
+                if (n < TF_MIN || n > TF_MAX) err(q.line, "Câu có " + n + " ý, cần từ " + TF_MIN + " đến " + TF_MAX + " ý.", qi);
+                if (scoring === "thptqg" && n !== TF_THPTQG_N) err(q.line, "Cách chia điểm THPTQG yêu cầu đúng " + TF_THPTQG_N + " ý mỗi câu (câu này có " + n + " ý).", qi);
+            }
+            var sts = q.statements.map(function (st, si) {
+                var lb = STMT_LABELS.charAt(si) || String(si + 1);
+                if (!st.text.trim()) err(st.line, "Ý " + lb + " rỗng.", qi);
+                var v = null;
+                if (st.raw === null) err(st.line, "Ý " + lb + " thiếu dòng “=> Đúng” hoặc “=> Sai”.", qi);
+                else { v = normTf(st.raw); if (v === null) err(st.line, "Ý " + lb + ": chỉ nhận “Đúng” hoặc “Sai”.", qi); }
+                return { text: st.text.trim(), correct: v, explanation: st.explanation.trim() };
+            });
+            out.push({ text: q.text.trim(), image: q.image, statements: sts });
+        });
+        return { questions: out, note: "", errors: errors };
+    }
+
     function parsePart(part, text) {
+        if (part === "tf") return parseTf(text);
         var errors = [], questions = [], note = [];
         var t = String(text || "").replace(/\r/g, "").trim();
         if (/^["“].*["”]$/s.test(t)) t = t.slice(1, -1);
@@ -174,11 +294,15 @@
                 (q.options || []).forEach(function (t) { o.push("+)" + String(t).replace(/\n/g, " ")); });
                 o.push("=> " + (q.correct || []).slice().sort(function (a, b) { return a - b; }).map(function (i) { return LETTERS[i]; }).join(", "));
             } else if (part === "tf") {
-                o.push("=> " + (q.correct === true ? "Đúng" : q.correct === false ? "Sai" : ""));
+                (q.statements || []).forEach(function (st) {
+                    o.push("+)" + String(st.text || "").replace(/\n/g, " "));
+                    o.push("=> " + (st.correct === true ? "Đúng" : st.correct === false ? "Sai" : ""));
+                    if (st.explanation && st.explanation.trim()) o.push("++) " + escLine(st.explanation.trim()));
+                });
             } else {
                 o.push("=> " + (q.answers || ""));
             }
-            if (q.explanation && q.explanation.trim()) o.push("++) " + escLine(q.explanation.trim()));
+            if (part !== "tf" && q.explanation && q.explanation.trim()) o.push("++) " + escLine(q.explanation.trim()));
             return o.join("\n");
         }).join("\n");
     }
@@ -189,8 +313,10 @@
     function blank(part) {
         var b = { text: "", image: "", explanation: "" };
         if (part === "mcq") { b.options = ["", "", "", ""]; b.correct = []; }
-        else if (part === "tf") b.correct = null;
-        else b.answers = "";
+        else if (part === "tf") {
+            b.statements = [];
+            for (var i = 0; i < TF_THPTQG_N; i++) b.statements.push({ text: "", correct: null, explanation: "" });
+        } else b.answers = "";
         return b;
     }
     function fromSaved(part, q) {
@@ -200,8 +326,12 @@
             b.correct = (q.correct || []).map(function (k) {
                 return (q.options || []).findIndex(function (o) { return o.key === k; });
             }).filter(function (i) { return i >= 0; });
-        } else if (part === "tf") b.correct = q.correct === true ? true : q.correct === false ? false : null;
-        else b.answers = (q.answers || []).join(" | ");
+        } else if (part === "tf") {
+            b.statements = (q.statements || []).map(function (st) {
+                return { text: st.text || "", correct: st.correct === true ? true : st.correct === false ? false : null, explanation: st.explanationHtml || "" };
+            });
+            if (!b.statements.length) b.statements = blank("tf").statements;
+        } else b.answers = (q.answers || []).join(" | ");
         return b;
     }
 
@@ -238,18 +368,29 @@
                 }).join("") + "</div>" +
                 '<button type="button" class="qf-btn small" data-act="addopt" style="margin-top:8px"' + (q.options.length >= MAX_OPT ? " disabled" : "") + ">＋ Thêm đáp án</button>";
         } else if (part === "tf") {
-            h += '<label class="qc-l">Đáp án đúng</label><div class="qc-tf">' +
-                [[true, "Đúng"], [false, "Sai"]].map(function (c) {
-                    return '<label class="' + (q.correct === c[0] ? "ok" : "") + '"><input type="radio" name="tf-' + i + '" data-f="tf" value="' + c[0] + '"' +
-                        (q.correct === c[0] ? " checked" : "") + "> " + c[1] + "</label>";
-                }).join("") + "</div>";
+            h += '<label class="qc-l">Các ý — chọn Đúng / Sai cho từng ý (có thể ghi giải thích riêng từng ý)</label><div class="qc-opts">' +
+                q.statements.map(function (st, si) {
+                    var lb = STMT_LABELS.charAt(si) || String(si + 1);
+                    var nm = "tf-" + i + "-" + si;
+                    return '<div class="qc-opt qc-st' + (st.correct === true ? " ok" : "") + '" data-si="' + si + '" style="flex-wrap:wrap">' +
+                        '<span class="ltr">' + lb + "</span>" +
+                        '<input type="text" data-f="stext" value="' + esc(st.text) + '" placeholder="Nội dung ý ' + lb + '">' +
+                        '<span class="qc-tf" style="display:inline-flex;gap:6px">' +
+                        [[true, "Đúng"], [false, "Sai"]].map(function (c) {
+                            return '<label class="' + (st.correct === c[0] ? "ok" : "") + '"><input type="radio" name="' + nm + '" data-f="scorrect" value="' + c[0] + '"' +
+                                (st.correct === c[0] ? " checked" : "") + "> " + c[1] + "</label>";
+                        }).join("") + "</span>" +
+                        '<button type="button" data-act="rmst" title="Xoá ý"' + (q.statements.length <= 1 ? " disabled" : "") + ">✕</button>" +
+                        '<input type="text" data-f="sexpl" value="' + esc(st.explanation) + '" placeholder="Giải thích ý ' + lb + ' (tuỳ chọn)" style="flex-basis:100%;margin-top:6px"></div>';
+                }).join("") + "</div>" +
+                '<button type="button" class="qf-btn small" data-act="addst" style="margin-top:8px"' + (q.statements.length >= TF_MAX ? " disabled" : "") + ">＋ Thêm ý</button>";
         } else {
             h += '<label class="qc-l">Đáp án đúng (nhiều cách viết ngăn bằng dấu |)</label><div class="qc-ans">' +
                 '<input type="text" data-f="answers" value="' + esc(q.answers) + '" placeholder="VD: 12.57 | 12,57"></div>' +
                 '<div class="qc-note">Đáp án là số thì được so với “Sai số cho phép” ở trên (VD 0.01).</div>';
         }
-        h += '<label class="qc-l">Giải thích (tuỳ chọn, HTML ngắn)</label><textarea rows="2" data-f="explanation">' + esc(q.explanation) + "</textarea>" +
-            '<div class="qc-err"></div></div>';
+        if (part !== "tf") h += '<label class="qc-l">Giải thích (tuỳ chọn, HTML ngắn)</label><textarea rows="2" data-f="explanation">' + esc(q.explanation) + "</textarea>";
+        h += '<div class="qc-err"></div></div>';
         return h;
     }
 
@@ -312,6 +453,8 @@
             if (f === "text") c.q.text = e.target.value;
             else if (f === "explanation") c.q.explanation = e.target.value;
             else if (f === "answers") c.q.answers = e.target.value;
+            else if (f === "stext") c.q.statements[Number(e.target.closest(".qc-st").getAttribute("data-si"))].text = e.target.value;
+            else if (f === "sexpl") c.q.statements[Number(e.target.closest(".qc-st").getAttribute("data-si"))].explanation = e.target.value;
             else if (f === "opt") c.q.options[Number(e.target.closest(".qc-opt").getAttribute("data-oi"))] = e.target.value;
             else if (f === "image") {
                 c.q.image = e.target.value;
@@ -325,6 +468,19 @@
         if (/^(ppq-|fMax$|tolerance$)/.test(e.target.id || "")) refreshMeta();
     });
 
+    // Ô audio: kiểm tra khi gõ, đổi sang link raw khi rời ô / dán xong
+    if ($("fAudio")) {
+        $("fAudio").addEventListener("input", function () { refreshAudio(false); });
+        $("fAudio").addEventListener("change", function () { refreshAudio(true); });
+        $("fAudio").addEventListener("paste", function () { setTimeout(function () { refreshAudio(true); }, 0); });
+        $("audioPrev").addEventListener("error", function () {
+            var w = $("audioWarn");
+            if (!$("audioPrev").getAttribute("src")) return;
+            w.textContent = "Không nghe thử được file này. Kiểm tra: link đúng chưa, repo có public không, file đã commit chưa.";
+            w.hidden = false;
+        });
+    }
+
     document.addEventListener("change", function (e) {
         var c = ctx(e.target);
         if (!c) return;
@@ -335,8 +491,8 @@
             if (e.target.checked && at === -1) c.q.correct.push(oi);
             if (!e.target.checked && at !== -1) c.q.correct.splice(at, 1);
             renderPart(c.part);
-        } else if (f === "tf") {
-            c.q.correct = e.target.value === "true";
+        } else if (f === "scorrect") {
+            c.q.statements[Number(e.target.closest(".qc-st").getAttribute("data-si"))].correct = e.target.value === "true";
             renderPart(c.part);
         }
     });
@@ -362,6 +518,11 @@
             c.q.image = "";
         } else if (act === "addopt") {
             if (c.q.options.length < MAX_OPT) c.q.options.push("");
+        } else if (act === "addst") {
+            if (c.q.statements.length < TF_MAX) c.q.statements.push({ text: "", correct: null, explanation: "" });
+        } else if (act === "rmst") {
+            if (c.q.statements.length <= 1) return;
+            c.q.statements.splice(Number(btn.closest(".qc-st").getAttribute("data-si")), 1);
         } else if (act === "rmopt") {
             var oi = Number(btn.closest(".qc-opt").getAttribute("data-oi"));
             if (c.q.options.length <= 2) return;
@@ -429,6 +590,11 @@
             errs.push({ msg: "Thời gian làm bài phải là số phút nguyên từ " + DUR.min + " đến " + DUR.max + "." });
         }
 
+        if ($("fAudio")) {
+            var au = refreshAudio(true);
+            if (au.error) errs.push({ msg: au.error });
+        }
+
         var total = 0;
         PARTS.forEach(function (k) {
             var list = state[k];
@@ -461,6 +627,8 @@
             duration: toNum($("fDuration").value, 20),
             promptId: $("fPrompt").value,
             contentHtml: $("fDesc").value,
+            audioUrl: $("fAudio") ? normalizeAudio($("fAudio").value).url : "",
+            scoring_tf: tfScoring(),
             tolerance: toNum($("tolerance").value, 0),
             note: $("fillNote").value.trim(),
             aiKeyIds: Array.prototype.map.call(document.querySelectorAll('input[name="aiKeyIds"]:checked'), function (x) { return x.value; }),
@@ -516,4 +684,5 @@
         if ($("paste-" + k) && CFG.raw && CFG.raw[k]) $("paste-" + k).value = CFG.raw[k];
     });
     renderAll();
+    if ($("fAudio") && $("fAudio").value.trim()) refreshAudio(false);
 })();

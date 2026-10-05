@@ -16,6 +16,13 @@ mixin renderQuizResult(doc, formatAiLabel, opts)
         .text-sm.text-gray-600
           = (partKey === 'mcq' ? 'Phần 1' : partKey === 'tf' ? 'Phần 2' : 'Phần 3') + `: ${ps.correct}/${ps.total} câu (${ps.earned}/${ps.points} điểm)`
 
+  //- 🎧 Bài nghe (nếu đề có audio — lấy từ quizSnapshot nên bài cũ không có thì không hiện)
+  - const audioUrl = (quiz && typeof quiz.audioUrl === 'string' && /^https:\/\//.test(quiz.audioUrl)) ? quiz.audioUrl : ''
+  if audioUrl
+    .bg-white.border.rounded-lg.p-3.shadow.mb-4
+      .text-sm.font-semibold.mb-2 🎧 Bài nghe
+      audio(controls preload="metadata" src=audioUrl style="width:100%")
+
   //- ② Đề + bài làm + đáp án
   each partKey in ['mcq', 'tf', 'fill']
     - const p = quiz.parts[partKey]

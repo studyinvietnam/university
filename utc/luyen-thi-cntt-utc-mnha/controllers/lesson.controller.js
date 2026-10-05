@@ -398,40 +398,9 @@ exports.getStudentLesson = exports.showLesson;
 // sau này không vô tình bị lộ.
 // ============================================================
 function toStudentView(quiz) {
-    const parts = (quiz && quiz.parts) || {};
-    const out = { maxScore: Number(quiz?.maxScore) || 10, parts: {} };
-
-    const baseQ = (q) => ({
-        id: String(q.id),
-        text: String(q.text ?? ""),
-        image: q.image ? String(q.image) : null,
-    });
-
-    if (parts.mcq && Array.isArray(parts.mcq.questions) && parts.mcq.questions.length) {
-        out.parts.mcq = {
-            questions: parts.mcq.questions.map((q) => ({
-                ...baseQ(q),
-                multi: Boolean(q.multi),
-                options: (q.options || []).map((o) => ({
-                    key: String(o.key),
-                    text: String(o.text ?? ""),
-                })),
-            })),
-        };
-    }
-
-    if (parts.tf && Array.isArray(parts.tf.questions) && parts.tf.questions.length) {
-        out.parts.tf = { questions: parts.tf.questions.map(baseQ) };
-    }
-
-    if (parts.fill && Array.isArray(parts.fill.questions) && parts.fill.questions.length) {
-        out.parts.fill = {
-            note: parts.fill.note ? String(parts.fill.note) : "",
-            questions: parts.fill.questions.map(baseQ),
-        };
-    }
-
-    return out;
+    // Dùng CHUNG bản của quiz.controller (đã có audioUrl, pointsPerQuestion,
+    // statements + scoring của phần Đúng/Sai). Require lười để tránh vòng lặp require.
+    return require("./quiz.controller").toStudentView(quiz || {});
 }
 
 async function renderQuizLessonPage(req, res, lesson, subject) {

@@ -1,5 +1,16 @@
 // services/quizParserService.js
 // Parse / serialize / validate text đề trắc nghiệm theo format trong README.
+//
+// Phần 2 (tf) — mỗi câu có NHIỀU Ý:
+//   - câu dẫn
+//   <link ảnh nếu có>
+//   +)ý 1
+//   => Đúng
+//   ++) giải thích ý 1 (tuỳ chọn)
+//   +)ý 2
+//   => Sai
+//   ...
+// Câu tf lưu dạng { id, text, image, statements: [{ id: 'tf-1-a', text, correct, explanationHtml }] }
 
 const cfg = require('../config/quizConfig');
 
@@ -11,6 +22,13 @@ const RE = {
   IMAGE_LINE: /^https?:\/\/\S+$/,
   NUMBER: /^[-+]?\d+([.,]\d+)?$/,
 };
+
+const TF_TRUE = ['đúng', 'đ', 'true', 't', '1'];
+const TF_FALSE = ['sai', 's', 'false', 'f', '0'];
+
+// Nhãn a, b, c, d… cho các ý của phần đúng/sai (tối đa 10 ý)
+const STMT_LABELS = 'abcdefghij';
+const stmtLabel = (i) => STMT_LABELS[i] || String(i + 1);
 
 function stripFences(raw) {
   if (!raw) return '';
@@ -69,18 +87,31 @@ function parseNumber(s) {
 
 /**
  * Parse một phần (mcq | tf | fill)
+ * @param {string} rawText
+ * @param {'mcq'|'tf'|'fill'} part
+ * @param {{ scoring?: 'equal'|'thptqg' }} [opts] — scoring chỉ dùng cho tf: 'thptqg' bắt buộc mỗi câu đúng 4 ý
  * @returns { questions: [...], note?: string, errors: [{line:number, msg:string}] }
  */
-function parsePart(rawText, part) {
+function parsePart(rawText, part, opts) {
+  const scoring = (opts && opts.scoring) || cfg.TF_DEFAULT_SCORING || 'equal';
   const errors = [];
   const lines = stripFences(rawText).split(/\r?\n/);
   let note = null;
 
   const questions = [];
   let cur = null;         // câu đang mở
-  let mode = null;        // 'question' | 'options' | 'answer' | 'explanation' | 'note'
+  let curSt = null;       // (tf) ý đang mở
+  let mode = null;        // 'question' | 'options' | 'statement' | 'answer' | 'explanation' | 'note'
   let sawAnyQuestion = false;
-  let explanationIsHtml = false;
+
+  // (tf) đóng ý hiện tại: ý nào chưa có dòng "=>" thì báo lỗi
+  const closeStatement = () => {
+    if (!curSt) return;
+    if (!curSt.hasAnswer) {
+      errors.push({ line: curSt.startLine, msg: `Ý "${(curSt.text || '').slice(0, 40)}" thiếu dòng "=> Đúng" hoặc "=> Sai"` });
+    }
+    curSt = null;
+  };
 
   const pushCur = () => {
     if (!cur) return;
@@ -115,7 +146,37 @@ function parsePart(rawText, part) {
         errors.push({ line: q.startLine, msg: 'Thiếu dòng "=> đáp án đúng"' });
       }
     } else if (part === 'tf') {
-      if (typeof q.correct !== 'boolean') errors.push({ line: q.startLine, msg: 'Thiếu "=> Đúng" hoặc "=> Sai"' });
+      closeStatement();
+      const sts = q.statements || [];
+      const MIN = cfg.LIMITS.MIN_STATEMENTS_TF;
+      const MAX = cfg.LIMITS.MAX_STATEMENTS_TF;
+
+      if (sts.length === 0) {
+        errors.push({ line: q.startLine, msg: 'Câu không có ý "+)" nào' });
+      } else {
+        if (sts.length < MIN || sts.length > MAX) {
+          errors.push({ line: q.startLine, msg: `Câu có ${sts.length} ý, cần từ ${MIN} đến ${MAX} ý` });
+        }
+        if (scoring === 'thptqg' && sts.length !== cfg.TF_THPTQG_STATEMENTS) {
+          errors.push({ line: q.startLine, msg: `Cách chia điểm THPTQG yêu cầu đúng ${cfg.TF_THPTQG_STATEMENTS} ý mỗi câu, câu này có ${sts.length} ý` });
+        }
+      }
+      sts.forEach((s, i) => {
+        s.text = (s.text || '').trim();
+        s.explanationHtml = (s.explanationHtml || '').trim() || null;
+        if (!s.text) errors.push({ line: s.startLine, msg: `Ý ${stmtLabel(i)} rỗng` });
+        if (s.text.length > cfg.LIMITS.MAX_STATEMENT_LEN) {
+          errors.push({ line: s.startLine, msg: `Ý ${stmtLabel(i)} quá dài (>${cfg.LIMITS.MAX_STATEMENT_LEN} ký tự)` });
+        }
+        if (s.explanationHtml && s.explanationHtml.length > cfg.LIMITS.MAX_EXPLANATION_LEN) {
+          errors.push({ line: s.startLine, msg: `Giải thích của ý ${stmtLabel(i)} quá dài (>${cfg.LIMITS.MAX_EXPLANATION_LEN} ký tự)` });
+        }
+        delete s.startLine;
+        delete s.hasAnswer;
+      });
+      // câu tf không có đáp án / giải thích ở cấp câu — nằm trong từng ý
+      delete q.explanationHtml;
+      delete q.multi;
     } else if (part === 'fill') {
       if (!q.answers || q.answers.length === 0) errors.push({ line: q.startLine, msg: 'Thiếu đáp án điền' });
     }
@@ -155,12 +216,13 @@ function parsePart(rawText, part) {
         options: part === 'mcq' ? [] : undefined,
         correct: part === 'mcq' ? [] : undefined,
         correctIdx: part === 'mcq' ? [] : undefined,
+        statements: part === 'tf' ? [] : undefined,
         answers: part === 'fill' ? [] : undefined,
         explanationHtml: null,
         multi: false,
       };
+      curSt = null;
       mode = 'question';
-      explanationIsHtml = false;
       continue;
     }
 
@@ -174,20 +236,40 @@ function parsePart(rawText, part) {
     // Explanation phải check trước Option
     if (RE.EXPLANATION.test(trim)) {
       const body = unescapeLeading(trim.slice(3)).trim();
+      if (part === 'tf') {
+        // giải thích thuộc về ý ngay phía trên, và phải nằm SAU dòng "=>" của ý đó
+        if (!curSt) {
+          errors.push({ line: lineNo, msg: '"++)" phải nằm dưới một ý "+)" và dòng "=>" của ý đó' });
+          continue;
+        }
+        if (!curSt.hasAnswer) {
+          errors.push({ line: lineNo, msg: '"++)" đứng trước dòng "=>" của ý' });
+          continue;
+        }
+        curSt.explanationHtml = curSt.explanationHtml ? curSt.explanationHtml + '\n' + body : body;
+        mode = 'explanation';
+        continue;
+      }
       if (!cur.explanationHtml) cur.explanationHtml = body;
       else cur.explanationHtml += '\n' + body;
       mode = 'explanation';
-      explanationIsHtml = true;
       continue;
     }
 
-    // Option (chỉ mcq)
+    // Option: mcq = đáp án, tf = ý / giả thuyết
     if (RE.OPTION.test(trim)) {
-      if (part !== 'mcq') {
-        errors.push({ line: lineNo, msg: 'Phần này không có đáp án "+)"' });
+      if (part === 'fill') {
+        errors.push({ line: lineNo, msg: 'Phần này không có dòng "+)"' });
         continue;
       }
       const body = unescapeLeading(trim.slice(2)).trim();
+      if (part === 'tf') {
+        closeStatement();
+        curSt = { startLine: lineNo, text: body, correct: undefined, explanationHtml: null, hasAnswer: false };
+        cur.statements.push(curSt);
+        mode = 'statement';
+        continue;
+      }
       cur.options.push({ text: body });
       mode = 'options';
       continue;
@@ -231,9 +313,19 @@ function parsePart(rawText, part) {
         }
         cur.correctIdx = Array.from(new Set(correctKeys)).sort((a, b) => a - b);   // key A,B,C gán ở pushCur
       } else if (part === 'tf') {
+        // "=>" thuộc về ý "+)" ngay phía trên; mỗi ý đúng một dòng
+        if (!curSt) {
+          errors.push({ line: lineNo, msg: '"=>" đứng trước ý "+)" đầu tiên' });
+          continue;
+        }
+        if (curSt.hasAnswer) {
+          errors.push({ line: lineNo, msg: 'Ý này có hơn một dòng "=>"' });
+          continue;
+        }
+        curSt.hasAnswer = true;
         const low = body.toLowerCase();
-        if (['đúng', 'đ', 'true', 't', '1'].includes(low)) cur.correct = true;
-        else if (['sai', 's', 'false', 'f', '0'].includes(low)) cur.correct = false;
+        if (TF_TRUE.includes(low)) curSt.correct = true;
+        else if (TF_FALSE.includes(low)) curSt.correct = false;
         else errors.push({ line: lineNo, msg: `Giá trị đúng/sai không hợp lệ: "${body}"` });
       } else if (part === 'fill') {
         const answers = body.split('|').map((s) => normalizeFillValue(s)).filter(Boolean);
@@ -260,7 +352,14 @@ function parsePart(rawText, part) {
     // Nối dòng vào mục đang mở
     if (mode === 'question') cur.text += '\n' + continuationLine(raw, false);
     else if (mode === 'explanation') {
-      cur.explanationHtml = (cur.explanationHtml || '') + '\n' + continuationLine(raw, true);
+      if (part === 'tf') {
+        if (curSt) curSt.explanationHtml = (curSt.explanationHtml || '') + '\n' + continuationLine(raw, true);
+      } else {
+        cur.explanationHtml = (cur.explanationHtml || '') + '\n' + continuationLine(raw, true);
+      }
+    } else if (mode === 'statement') {
+      // nối vào ý đang mở (tf)
+      if (curSt) curSt.text += ' ' + trim;
     } else if (mode === 'options') {
       // nối vào option cuối
       if (cur.options && cur.options.length > 0) {
@@ -277,8 +376,11 @@ function parsePart(rawText, part) {
     errors.push({ line: 0, msg: `Vượt ${cfg.LIMITS.MAX_QUESTIONS_PER_PART} câu` });
   }
 
-  // Gán id
-  questions.forEach((q, i) => { q.id = `${part}-${i + 1}`; });
+  // Gán id: câu = `${part}-${n}`; ý của phần tf = `${part}-${n}-${a|b|c…}`
+  questions.forEach((q, i) => {
+    q.id = `${part}-${i + 1}`;
+    if (part === 'tf') (q.statements || []).forEach((s, j) => { s.id = `${q.id}-${stmtLabel(j)}`; });
+  });
 
   return { questions, note: note || null, errors };
 }
@@ -293,18 +395,29 @@ function serializePart(questions, part, note) {
       for (const o of q.options || []) out.push('+)' + String(o.text).replace(/\n/g, ' '));
       out.push('=> ' + (q.correct || []).join(', '));
     } else if (part === 'tf') {
-      out.push('=> ' + (q.correct ? 'Đúng' : 'Sai'));
+      for (const s of q.statements || []) {
+        out.push('+)' + String(s.text || '').replace(/\n/g, ' '));
+        out.push('=> ' + (s.correct ? 'Đúng' : 'Sai'));
+        if (s.explanationHtml) {
+          out.push('++) ' + s.explanationHtml.split('\n').map((l, i) => (i === 0 ? l : escapeContinuation(l))).join('\n'));
+        }
+      }
     } else {
       out.push('=> ' + (q.answers || []).join(' | '));
     }
-    if (q.explanationHtml) {
+    // mcq / fill: giải thích ở cấp câu (tf đã ghi theo từng ý ở trên)
+    if (part !== 'tf' && q.explanationHtml) {
       out.push('++) ' + q.explanationHtml.split('\n').map((l, i) => (i === 0 ? l : escapeContinuation(l))).join('\n'));
     }
   }
   return out.join('\n');
 }
 
-function parseAll(input) {
+/**
+ * @param {{mcq?:string, tf?:string, fill?:string}} input
+ * @param {{ tfScoring?: 'equal'|'thptqg' }} [opts]
+ */
+function parseAll(input, opts) {
   // input: { mcq, tf, fill } — mỗi cái là text
   const result = { parts: {}, errors: [] };
   for (const part of cfg.PARTS) {
@@ -313,7 +426,7 @@ function parseAll(input) {
       result.errors.push({ part, line: 0, msg: `Text vượt ${cfg.LIMITS.MAX_RAW_TEXT_LEN} ký tự` });
       continue;
     }
-    const r = parsePart(raw, part);
+    const r = parsePart(raw, part, part === 'tf' ? { scoring: opts && opts.tfScoring } : undefined);
     if (r.errors.length) {
       for (const e of r.errors) result.errors.push({ part, ...e });
     }
@@ -335,4 +448,5 @@ module.exports = {
   isNumberLike,
   parseNumber,
   normalizeFillValue,
+  stmtLabel,
 };

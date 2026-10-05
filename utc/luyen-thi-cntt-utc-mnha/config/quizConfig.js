@@ -19,7 +19,23 @@ module.exports = {
     MAX_EXPLANATION_LEN: 3000,
     MAX_RAW_TEXT_LEN: 200000,
     MIN_OPTIONS_MCQ: 2,
+    // Phần đúng/sai: mỗi câu có nhiều ý (a, b, c, d…)
+    MIN_STATEMENTS_TF: 2,
+    MAX_STATEMENTS_TF: 10,
+    MAX_STATEMENT_LEN: 1000,
   },
+
+  // Cách chia điểm phần Đúng/Sai (admin chọn ở form, lưu ở parts.tf.scoring)
+  //  - equal  : chia đều các ý            → điểm câu = P × k / n
+  //  - thptqg : theo THPTQG (đúng 4 ý/câu) → điểm câu = P × TF_THPTQG_RATIOS[k]
+  TF_SCORING: ['equal', 'thptqg'],
+  TF_DEFAULT_SCORING: 'equal',
+  TF_SCORING_LABEL: {
+    equal: '1. Chia đều các ý',
+    thptqg: '2. Theo THPTQG (đúng 1 ý = 0,1 · 2 ý = 0,25 · 3 ý = 0,5 · 4 ý = 1 điểm của câu)',
+  },
+  TF_THPTQG_STATEMENTS: 4,   // THPTQG chỉ định nghĩa cho câu đúng 4 ý
+  TF_THPTQG_RATIOS: { 0: 0, 1: 0.1, 2: 0.25, 3: 0.5, 4: 1 },
 
   // Ảnh
   ALLOWED_IMAGE_HOSTS: ['raw.githubusercontent.com'],
@@ -38,14 +54,14 @@ module.exports = {
 
 Chỉ trả về ĐÚNG 3 khối code (mỗi khối nằm trong một \`\`\`), theo thứ tự dưới đây, không viết thêm bất cứ gì ngoài 3 khối:
 - KHỐI 1 – Trắc nghiệm nhiều đáp án: [N1] câu, mỗi câu 4 đáp án, chỉ 1 đáp án đúng.
-- KHỐI 2 – Đúng/Sai: [N2] câu.
+- KHỐI 2 – Đúng/Sai: [N2] câu, mỗi câu có một câu dẫn và đúng 4 ý (a, b, c, d), mỗi ý là một nhận định độc lập có thể đúng hoặc sai.
 - KHỐI 3 – Điền số liệu/đáp án: [N3] câu, đáp án là một con số hoặc một từ/cụm từ ngắn, duy nhất.
 
 QUY TẮC ĐỊNH DẠNG (bắt buộc, không tự đổi ký hiệu):
 1. Mỗi câu hỏi bắt đầu bằng một dòng: "- " + nội dung câu hỏi (có thể viết nhiều dòng; các dòng sau không được bắt đầu bằng "- ", "+)" hay "=>").
 2. Nếu câu có ảnh: dòng ngay sau câu hỏi là link ảnh https. Không có ảnh thì BỎ QUA dòng này, tuyệt đối không bịa link.
 3. KHỐI 1: mỗi đáp án một dòng bắt đầu bằng "+)" — không đánh số, không viết "A.", "B.". Sau các đáp án là dòng "=> " + chữ cái đáp án đúng (A, B, C hoặc D theo thứ tự đáp án).
-4. KHỐI 2: KHÔNG có dòng "+)". Sau câu hỏi là dòng "=> Đúng" hoặc "=> Sai".
+4. KHỐI 2: câu hỏi là câu dẫn / ngữ cảnh chung. Tiếp theo là 4 ý, mỗi ý một dòng bắt đầu bằng "+)" (không đánh a, b, c, d). Ngay dưới mỗi ý là dòng "=> Đúng" hoặc "=> Sai" của chính ý đó, rồi (tuỳ chọn) dòng "++) " giải thích riêng cho ý đó.
 5. KHỐI 3: sau câu hỏi là dòng "=> " + đáp án. Nếu có nhiều cách viết chấp nhận được, ngăn cách bằng dấu |. Số thập phân dùng dấu chấm. Không ghi đơn vị trong đáp án. Nếu cần hướng dẫn điền (làm tròn, đơn vị…), viết 1–2 dòng ghi chú ở ĐẦU khối, trước câu đầu tiên (dòng ghi chú không bắt đầu bằng "- ").
 6. (Tuỳ chọn) Giải thích: dòng "++) " + đoạn HTML ngắn, chỉ dùng thẻ <b>, <i>, <br>, <code>, <sub>, <sup>, <ul>, <li>. Đặt ngay sau dòng "=>". Không cần thì bỏ dòng này.
 7. Đáp án phải chính xác; đáp án nhiễu hợp lý; không lặp câu hỏi.
@@ -60,8 +76,18 @@ VÍ DỤ KHỐI 1:
 ++) Nhân trước, cộng sau: 3 × 4 = 12, rồi 12 + 2 = 14.
 
 VÍ DỤ KHỐI 2:
-- Số 17 là số nguyên tố.
+- Cho các số 15, 17, 21, 23. Xét các nhận định sau:
++)Số 17 là số nguyên tố.
 => Đúng
+++) 17 chỉ chia hết cho 1 và chính nó.
++)Số 15 là số nguyên tố.
+=> Sai
+++) 15 chia hết cho 3 và 5.
++)Số 21 là số nguyên tố.
+=> Sai
++)Số 23 là số nguyên tố.
+=> Đúng
+
 
 VÍ DỤ KHỐI 3:
 Làm tròn đến 2 chữ số thập phân, chỉ nhập số.
@@ -97,7 +123,7 @@ Chỉ trả về DUY NHẤT một object JSON:
   "mistakes": [ { "id": string, "why": string, "correctReasoning": string, "tip": string } ],
   "studyPlan": [string]
 }
-(\`questions\` và \`id\` dùng đúng id câu hỏi trong đề, ví dụ "mcq-3".)`,
+(\`questions\` và \`id\` dùng đúng id câu hỏi trong đề, ví dụ "mcq-3"; với phần đúng/sai dùng id của ý, ví dụ "tf-2-b".)`,
 
   // Biến hợp lệ cho prompt quiz
   QUIZ_PROMPT_VARS: ['{đề_trắc_nghiệm}', '{bài_làm}', '{kết_quả}', '{student_name}', '{max_score}'],
