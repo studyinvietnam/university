@@ -11,10 +11,23 @@
 //   => Sai
 //   ...
 // Câu tf lưu dạng { id, text, image, statements: [{ id: 'tf-1-a', text, correct, explanationHtml }] }
+//
+// Câu hỏi chùm (CHỈ phần mcq và fill):
+//   *)/1-3/ nội dung chùm (HTML ngắn: <b>, <i>, <u>, <br>… — được sanitize)
+//   <link ảnh của chùm nếu có>
+//   - câu 1 ...
+//   - câu 2 ...
+//   - câu 3 ...
+// "/1-3/" là số thứ tự câu TRONG PHẦN ĐÓ (đếm từ 1), dòng "*)" phải đứng ngay trước câu thứ 1.
+// Kết quả: part.clusters = [{ id:'mcq-c1', from, to, text, image, questionIds }],
+//          câu thuộc chùm có thêm q.clusterId (câu ngoài chùm: null).
 
 const cfg = require('../config/quizConfig');
+const { sanitizeExplanationHtml } = require('./sanitizeService');
 
 const RE = {
+  CLUSTER: /^\*\)\s*\/\s*(\d+)\s*-\s*(\d+)\s*\/\s*(.*)$/,
+  CLUSTER_ANY: /^\*\)/,
   QUESTION: /^- /,
   OPTION: /^\+\)/,
   ANSWER: /^=>/,
@@ -46,7 +59,7 @@ function stripFences(raw) {
 
 function unescapeLeading(line) {
   // "\\- ..." => "- ...", "\\+) ..." => "+) ...", ...
-  return line.replace(/^\\(- |\+\)|=>|\+\+\))/, (m) => m.slice(1));
+  return line.replace(/^\\(- |\+\)|=>|\+\+\)|\*\))/, (m) => m.slice(1));
 }
 
 // Dòng nối (câu hỏi / giải thích nhiều dòng): nếu bắt đầu bằng ký tự thoát "\\" thì bỏ nó, còn lại giữ nguyên
@@ -57,7 +70,7 @@ function continuationLine(raw, keepIndent) {
 }
 // Khi serialize: dòng nối mà trông giống ký hiệu (- , +) , => , ++) ) phải thêm "\\" phía trước
 function escapeContinuation(line) {
-  return /^\s*(- |\+\+\)|\+\)|=>)/.test(line) ? '\\' + line.trimStart() : line;
+  return /^\s*(- |\+\+\)|\+\)|=>|\*\))/.test(line) ? '\\' + line.trimStart() : line;
 }
 
 function isImageUrl(line) {
@@ -90,7 +103,7 @@ function parseNumber(s) {
  * @param {string} rawText
  * @param {'mcq'|'tf'|'fill'} part
  * @param {{ scoring?: 'equal'|'thptqg' }} [opts] — scoring chỉ dùng cho tf: 'thptqg' bắt buộc mỗi câu đúng 4 ý
- * @returns { questions: [...], note?: string, errors: [{line:number, msg:string}] }
+ * @returns { questions: [...], clusters: [...], note?: string, errors: [{line:number, msg:string}] }
  */
 function parsePart(rawText, part, opts) {
   const scoring = (opts && opts.scoring) || cfg.TF_DEFAULT_SCORING || 'equal';
@@ -103,6 +116,8 @@ function parsePart(rawText, part, opts) {
   let curSt = null;       // (tf) ý đang mở
   let mode = null;        // 'question' | 'options' | 'statement' | 'answer' | 'explanation' | 'note'
   let sawAnyQuestion = false;
+  const clusters = [];    // chùm đã khai báo (mcq / fill)
+  let openCluster = null; // chùm đang gom nội dung (chưa gặp câu đầu tiên của chùm)
 
   // (tf) đóng ý hiện tại: ý nào chưa có dòng "=>" thì báo lỗi
   const closeStatement = () => {
@@ -198,6 +213,61 @@ function parsePart(rawText, part, opts) {
     const trim = raw.trim();
     if (!trim) continue;
 
+    // ===== Câu hỏi chùm: dòng "*)/từ-đến/ nội dung" (chỉ mcq / fill) =====
+    if (RE.CLUSTER_ANY.test(trim)) {
+      pushCur();            // đóng câu đang mở (nếu có)
+      openCluster = null;
+      curSt = null;
+      mode = null;
+      if (part === 'tf') {
+        errors.push({ line: lineNo, msg: 'Phần Đúng/Sai không có câu hỏi chùm "*)"' });
+        continue;
+      }
+      const m = RE.CLUSTER.exec(trim);
+      if (!m) {
+        errors.push({ line: lineNo, msg: 'Sai cú pháp chùm. Đúng dạng: *)/1-3/ nội dung chùm' });
+        continue;
+      }
+      const from = Number(m[1]);
+      const to = Number(m[2]);
+      const nextPos = questions.length + 1;
+      const lastOk = clusters.filter((c) => !c.bad).slice(-1)[0];
+      let bad = false;
+      if (!(from >= 1 && to > from)) {
+        errors.push({ line: lineNo, msg: `Chùm /${from}-${to}/ không hợp lệ: cần từ ≥ 1 và đến > từ (chùm có ít nhất ${cfg.LIMITS.MIN_QUESTIONS_PER_CLUSTER} câu)` });
+        bad = true;
+      } else if (lastOk && from <= lastOk.to) {
+        errors.push({ line: lineNo, msg: `Chùm /${from}-${to}/ chồng lên chùm /${lastOk.from}-${lastOk.to}/` });
+        bad = true;
+      } else if (from !== nextPos) {
+        errors.push({ line: lineNo, msg: `Chùm /${from}-${to}/ phải đặt ngay trước câu ${from}, nhưng câu kế tiếp ở đây là câu ${nextPos}` });
+        bad = true;
+      }
+      openCluster = { from, to, text: unescapeLeading(m[3] || '').trim(), image: null, startLine: lineNo, bad };
+      clusters.push(openCluster);
+      continue;
+    }
+
+    // Đang gom nội dung chùm (chưa gặp "- câu hỏi" đầu tiên của chùm)
+    if (openCluster && !cur && !RE.QUESTION.test(trim)) {
+      if (RE.OPTION.test(trim) || RE.ANSWER.test(trim) || RE.EXPLANATION.test(trim)) {
+        errors.push({ line: lineNo, msg: 'Dòng này nằm trong nội dung chùm; "+)", "=>", "++)" chỉ dùng sau dòng "- câu hỏi"' });
+        continue;
+      }
+      if (RE.IMAGE_LINE.test(trim)) {
+        if (!isImageUrl(trim)) {
+          errors.push({ line: lineNo, msg: 'Ảnh phải là https và host không nằm trong allowlist' });
+        } else if (openCluster.image) {
+          errors.push({ line: lineNo, msg: 'Mỗi chùm chỉ có một ảnh' });
+        } else {
+          openCluster.image = trim;
+        }
+        continue;
+      }
+      openCluster.text += (openCluster.text ? '\n' : '') + continuationLine(raw, false);
+      continue;
+    }
+
     // Note ở đầu khối (chỉ fill), trước câu đầu tiên
     if (!sawAnyQuestion && part === 'fill' && !RE.QUESTION.test(trim) && !RE.OPTION.test(trim) && !RE.ANSWER.test(trim) && !RE.EXPLANATION.test(trim) && !RE.IMAGE_LINE.test(trim)) {
       note = note ? note + '\n' + raw : raw;
@@ -207,6 +277,7 @@ function parsePart(rawText, part, opts) {
     // Câu hỏi mới
     if (RE.QUESTION.test(trim)) {
       pushCur();
+      openCluster = null;   // câu đầu tiên của chùm (nếu có) đã bắt đầu → hết phần nội dung chùm
       sawAnyQuestion = true;
       const text = unescapeLeading(trim.slice(2)).trim();
       cur = {
@@ -382,13 +453,67 @@ function parsePart(rawText, part, opts) {
     if (part === 'tf') (q.statements || []).forEach((s, j) => { s.id = `${q.id}-${stmtLabel(j)}`; });
   });
 
-  return { questions, note: note || null, errors };
+  // ----- Chùm: kiểm tra + gắn vào câu -----
+  if (clusters.length > cfg.LIMITS.MAX_CLUSTERS_PER_PART) {
+    errors.push({ line: 0, msg: `Vượt ${cfg.LIMITS.MAX_CLUSTERS_PER_PART} chùm trong một phần` });
+  }
+  const goodClusters = [];
+  for (const cl of clusters) {
+    if (cl.bad) continue;
+    const tag = `Chùm /${cl.from}-${cl.to}/`;
+    if (!cl.text && !cl.image) { errors.push({ line: cl.startLine, msg: `${tag} chưa có nội dung` }); continue; }
+    if (cl.text.length > cfg.LIMITS.MAX_CLUSTER_LEN) { errors.push({ line: cl.startLine, msg: `${tag} quá dài (>${cfg.LIMITS.MAX_CLUSTER_LEN} ký tự)` }); continue; }
+    if (cl.to > questions.length) { errors.push({ line: cl.startLine, msg: `${tag} vượt quá số câu của phần (chỉ có ${questions.length} câu)` }); continue; }
+    if (cl.to - cl.from + 1 > cfg.LIMITS.MAX_QUESTIONS_PER_CLUSTER) { errors.push({ line: cl.startLine, msg: `${tag} có hơn ${cfg.LIMITS.MAX_QUESTIONS_PER_CLUSTER} câu` }); continue; }
+    goodClusters.push(cl);
+  }
+  if (part !== 'tf') questions.forEach((q) => { q.clusterId = null; });
+  const outClusters = goodClusters.map((cl, i) => {
+    const id = `${part}-c${i + 1}`;
+    const ids = [];
+    for (let n = cl.from; n <= cl.to; n++) {
+      questions[n - 1].clusterId = id;
+      ids.push(questions[n - 1].id);
+    }
+    return {
+      id,
+      from: cl.from,
+      to: cl.to,
+      // nội dung chùm là HTML ngắn do admin nhập → sanitize ngay khi lưu (hiển thị lại sanitize lần nữa)
+      text: sanitizeExplanationHtml(cl.text || ''),
+      image: cl.image || null,
+      questionIds: ids,
+    };
+  });
+
+  return { questions, clusters: outClusters, note: note || null, errors };
 }
 
-function serializePart(questions, part, note) {
+/**
+ * @param {Array} questions
+ * @param {'mcq'|'tf'|'fill'} part
+ * @param {string} [note] — ghi chú hướng dẫn điền (chỉ fill)
+ * @param {Array} [clusters] — part.clusters đã lưu (mcq / fill). BẮT BUỘC truyền khi xuất lại text
+ *        của đề có chùm, nếu không các dòng "*)/từ-đến/" sẽ bị mất.
+ */
+function serializePart(questions, part, note, clusters) {
   const out = [];
   if (part === 'fill' && note) out.push(note);
-  for (const q of questions || []) {
+  const clById = {};
+  (clusters || []).forEach((c) => { clById[c.id] = c; });
+  const list = questions || [];
+  for (let qi = 0; qi < list.length; qi++) {
+    const q = list[qi];
+    // Đầu chùm: "*)/từ-đến/ nội dung" (+ dòng ảnh của chùm) đặt ngay trước câu đầu tiên
+    const cl = part !== 'tf' && q.clusterId ? clById[q.clusterId] : null;
+    if (cl && (qi === 0 || list[qi - 1].clusterId !== q.clusterId)) {
+      let to = qi + 1;
+      while (to < list.length && list[to].clusterId === q.clusterId) to++;
+      const lines = String(cl.text || '').split('\n');
+      out.push(`*)/${qi + 1}-${to}/` + (lines[0] ? ' ' + lines[0] : '') +
+        lines.slice(1).map((l) => '\n' + escapeContinuation(l)).join(''));
+      if (cl.image) out.push(cl.image);
+    }
     out.push('- ' + (q.text || '').split('\n').map((l, i) => (i === 0 ? l : escapeContinuation(l))).join('\n'));
     if (q.image) out.push(q.image);
     if (part === 'mcq') {
@@ -433,6 +558,7 @@ function parseAll(input, opts) {
     if (r.questions.length > 0) {
       result.parts[part] = {
         questions: r.questions,
+        ...(r.clusters && r.clusters.length ? { clusters: r.clusters } : {}),
         ...(part === 'fill' && r.note ? { note: r.note } : {}),
       };
     }

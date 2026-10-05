@@ -22,13 +22,27 @@
     PART_ORDER.forEach(function (k) {
         var p = CFG.parts && CFG.parts[k];
         if (!p || !Array.isArray(p.questions)) return;
+        // Câu hỏi chùm (phần mcq / fill): clusters[] + q.clusterId do server gửi (nội dung chùm đã sanitize)
+        var cmap = {};
+        (Array.isArray(p.clusters) ? p.clusters : []).forEach(function (c) { cmap[c.id] = c; });
         p.questions.forEach(function (q) {
-            questions.push(Object.assign({}, q, { part: k, partNote: k === "fill" ? (p.note || "") : "" }));
+            questions.push(Object.assign({}, q, {
+                part: k,
+                partNote: k === "fill" ? (p.note || "") : "",
+                cluster: q.clusterId && cmap[q.clusterId] ? cmap[q.clusterId] : null
+            }));
         });
     });
     if (!questions.length) return;
     var indexById = {};
     questions.forEach(function (q, i) { indexById[q.id] = i; });
+    // Khoảng số câu (đánh số liền qua các phần, đúng số sinh viên thấy) của từng chùm: id → [từ, đến]
+    var clusterRange = {};
+    questions.forEach(function (q, i) {
+        if (!q.cluster) return;
+        var r = clusterRange[q.cluster.id] || (clusterRange[q.cluster.id] = [i + 1, i + 1]);
+        r[1] = i + 1;
+    });
 
     // ---------- State ----------
     var DRAFT_KEY = "quiz-draft:" + CFG.lessonId;
@@ -85,6 +99,20 @@
         return "Cách tính điểm: chia đều cho các ý, mỗi ý đúng được một phần điểm" + (ppq ? " (tối đa " + ppq + "đ / câu)" : "") + ".";
     }
     function countAnswered() { return questions.filter(isAnswered).length; }
+
+    // Khung "Dữ kiện dùng chung" của câu hỏi chùm — hiện TRƯỚC câu hỏi.
+    // c.text là HTML ngắn đã được server sanitize (in đậm, in nghiêng…) nên chèn trực tiếp.
+    function clusterBox(q) {
+        var c = q.cluster;
+        if (!c) return "";
+        var r = clusterRange[c.id];
+        var label = r ? (r[0] === r[1] ? "câu " + r[0] : "câu " + r[0] + "–" + r[1]) : "";
+        return '<div class="cluster-box">' +
+            '<div class="cluster-label">📖 Dữ kiện dùng chung' + (label ? " cho " + label : "") + "</div>" +
+            (c.text ? '<div class="cluster-text">' + c.text + "</div>" : "") +
+            (c.image ? '<img class="cluster-image" src="' + esc(c.image) + '" alt="Hình minh hoạ chùm" loading="lazy" referrerpolicy="no-referrer">' : "") +
+            "</div>";
+    }
     function fmtTime(s) {
         var m = Math.floor(s / 60), ss = s % 60;
         return String(m).padStart(2, "0") + ":" + String(ss).padStart(2, "0");
@@ -302,6 +330,7 @@
         el.qContainer.innerHTML =
             '<article class="question-card">' +
             '<span class="part-tag">Phần ' + (PART_ORDER.indexOf(q.part) + 1) + " · " + PART_TITLES[q.part] + "</span>" +
+            clusterBox(q) +
             '<div class="question-title"><span class="q-number">' + (state.current + 1) + "</span><h2>" + esc(q.text) + "</h2></div>" +
             (q.image ? '<img class="q-image" src="' + esc(q.image) + '" alt="Hình minh hoạ" loading="lazy" referrerpolicy="no-referrer">' : "") +
             (q.part === "mcq" && q.multi ? '<div class="multi-hint">☑ Câu này có thể có nhiều đáp án đúng — chọn tất cả.</div>' : "") +
@@ -521,7 +550,11 @@
         if (unanswered > 0) m += " Bạn còn bỏ trống " + unanswered + " câu.";
         $("resultMessage").textContent = m;
 
-        el.review.innerHTML = questions.map(function (q, i) { return reviewCard(q, i, byId[q.id] || {}); }).join("");
+        // Chùm: hiện khung nội dung chùm MỘT lần, ngay trước câu đầu tiên của chùm
+        el.review.innerHTML = questions.map(function (q, i) {
+            var first = q.cluster && (i === 0 || !questions[i - 1].cluster || questions[i - 1].cluster.id !== q.cluster.id);
+            return (first ? clusterBox(q) : "") + reviewCard(q, i, byId[q.id] || {});
+        }).join("");
 
         el.result.classList.remove("hidden");
         setTimeout(function () { el.result.scrollIntoView({ behavior: "smooth", block: "start" }); }, 100);

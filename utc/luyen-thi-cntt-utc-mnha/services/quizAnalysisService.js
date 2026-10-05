@@ -33,15 +33,43 @@ function pushTfQuestion(lines, q, result) {
   }
 }
 
+// ---- Câu hỏi chùm: LUÔN gửi ĐẦY ĐỦ nội dung chùm (một lần, ngay trước câu đầu của chùm) ----
+// Nội dung chùm là HTML ngắn đã sanitize → đổi về text thuần cho AI đọc.
+function htmlToText(html) {
+  return String(html || '')
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|li|div|ul|ol|pre)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&amp;/g, '&')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function pushCluster(lines, cl) {
+  const ids = cl.questionIds || [];
+  const range = ids.length > 1 ? `${ids[0]} → ${ids[ids.length - 1]}` : (ids[0] || '');
+  lines.push(`### CHÙM CÂU ${range} — nội dung dùng chung (đọc để hiểu ngữ cảnh các câu bên dưới):`);
+  const t = htmlToText(cl.text);
+  if (t) lines.push(t);
+  if (cl.image) lines.push(`[Ảnh minh hoạ của chùm: ${cl.image}]`);
+}
+
 function buildQuizForAI(quiz, result, answers) {
   // Câu sai: full (đề + đáp án + giải thích + bài làm + đúng/sai)
   // Câu đúng: rút gọn (id + ~200 ký tự đầu)
+  // Chùm: nội dung chùm luôn đầy đủ, đặt trước câu đầu tiên của chùm
   const lines = [];
   for (const partKey of cfg.PARTS) {
     const p = quiz.parts?.[partKey];
     if (!p || !p.questions?.length) continue;
     lines.push(`## ${cfg.PART_LABEL[partKey]}`);
+    const clusterByFirst = {};
+    for (const cl of (p.clusters || [])) {
+      if (cl.questionIds && cl.questionIds.length) clusterByFirst[cl.questionIds[0]] = cl;
+    }
     for (const q of p.questions) {
+      if (clusterByFirst[q.id]) pushCluster(lines, clusterByFirst[q.id]);
       if (partKey === 'tf') {
         pushTfQuestion(lines, q, result);
         continue;
@@ -211,6 +239,7 @@ module.exports = {
   resolvePrompt,
   renderPrompt,
   buildQuizForAI,
+  htmlToText,
   buildAnswerForAI,
   buildResultForAI,
   safeParseAnalysis,

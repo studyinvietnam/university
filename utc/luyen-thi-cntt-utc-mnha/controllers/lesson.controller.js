@@ -400,7 +400,34 @@ exports.getStudentLesson = exports.showLesson;
 function toStudentView(quiz) {
     // Dùng CHUNG bản của quiz.controller (đã có audioUrl, pointsPerQuestion,
     // statements + scoring của phần Đúng/Sai). Require lười để tránh vòng lặp require.
-    return require("./quiz.controller").toStudentView(quiz || {});
+    const view = require("./quiz.controller").toStudentView(quiz || {});
+
+    // ★ CÂU HỎI CHÙM (phần mcq / fill): thêm vào bản gửi cho sinh viên, theo allowlist
+    //   (id, text, image, questionIds). Nội dung chùm là HTML ngắn → sanitize lại lần nữa
+    //   (đã sanitize khi lưu đề). Không chứa đáp án nên an toàn gửi trước khi nộp.
+    try {
+        ["mcq", "fill"].forEach((k) => {
+            const src = quiz && quiz.parts && quiz.parts[k];
+            const dst = view && view.parts && view.parts[k];
+            if (!src || !dst || !Array.isArray(src.clusters) || !src.clusters.length) return;
+
+            const clusterOf = {};
+            dst.clusters = src.clusters.map((c) => {
+                const ids = Array.isArray(c.questionIds) ? c.questionIds.map(String) : [];
+                ids.forEach((id) => { clusterOf[id] = String(c.id); });
+                return {
+                    id: String(c.id),
+                    text: sanitizeExplanationHtml(c.text || ""),
+                    image: c.image || null,
+                    questionIds: ids,
+                };
+            });
+            (dst.questions || []).forEach((q) => { q.clusterId = clusterOf[q.id] || null; });
+        });
+    } catch (err) {
+        console.warn("[lesson] Không gắn được câu hỏi chùm:", err.message);
+    }
+    return view;
 }
 
 async function renderQuizLessonPage(req, res, lesson, subject) {

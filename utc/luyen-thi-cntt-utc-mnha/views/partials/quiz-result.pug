@@ -32,7 +32,19 @@ mixin renderQuizResult(doc, formatAiLabel, opts)
           = (partKey === 'mcq' ? 'Phần 1 — Trắc nghiệm' : partKey === 'tf' ? 'Phần 2 — Đúng/Sai' : 'Phần 3 — Điền đáp án')
         if partKey === 'fill' && p.note
           .text-sm.italic.text-gray-600.mb-2= p.note
-        each q in p.questions
+        - const clMap = {}
+        - (p.clusters || []).forEach(function (c) { clMap[c.id] = c })
+        each q, qi in p.questions
+          //- Câu hỏi chùm: hiện nội dung chùm MỘT lần, ngay trước câu đầu của chùm.
+          //- cl.text là HTML ngắn đã sanitize khi lưu đề (xem quizParserService) → render bằng `!=`
+          - const cl = q.clusterId ? clMap[q.clusterId] : null
+          if cl && (qi === 0 || p.questions[qi - 1].clusterId !== q.clusterId)
+            .border.border-amber-300.bg-amber-50.rounded-lg.p-3.mb-3
+              .text-xs.font-semibold.text-amber-700.mb-1 📖 Dữ kiện dùng chung cho: #{(cl.questionIds || []).join(', ')}
+              if cl.text
+                div(style="white-space:pre-line")!= cl.text
+              if cl.image
+                img(src=cl.image loading="lazy" referrerpolicy="no-referrer" style="max-height:240px").mt-2
           - const item = (result.items || []).find(x => x.id === q.id) || {}
           - const status = item.correct ? 'correct' : (item.studentAnswer == null || item.studentAnswer === '' || (Array.isArray(item.studentAnswer) && !item.studentAnswer.length)) ? 'blank' : 'wrong'
           .border.rounded-lg.p-3.mb-3(class=status)

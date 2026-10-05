@@ -116,7 +116,7 @@ block content
                 button(type="button", id="btnExport", class="qf-btn") ⬆ Xuất câu hỏi → text
                 span(id="syncHint", class="qf-msg")
 
-            each part in [{ k: 'mcq', t: 'Phần 1 · Trắc nghiệm nhiều đáp án', hint: 'Mỗi câu: “- câu hỏi”, các dòng “+)đáp án”, rồi “=> A” (nhiều đáp án đúng: “=> A, C”).' }, { k: 'tf', t: 'Phần 2 · Đúng / Sai', hint: 'Mỗi câu: “- câu dẫn”, rồi nhiều ý: “+)ý a”, “=> Đúng/Sai”, (tuỳ chọn) “++) giải thích ý”; lặp lại cho ý b, c, d.' }, { k: 'fill', t: 'Phần 3 · Điền số liệu / đáp án', hint: 'Mỗi câu: “- câu hỏi”, rồi “=> đáp án” (nhiều cách viết ngăn bằng |).' }]
+            each part in [{ k: 'mcq', t: 'Phần 1 · Trắc nghiệm nhiều đáp án', hint: 'Mỗi câu: “- câu hỏi”, các dòng “+)đáp án”, rồi “=> A” (nhiều đáp án đúng: “=> A, C”). Câu hỏi chùm: thêm dòng “*)/1-3/ nội dung chùm” (có thể in đậm/nghiêng bằng <b>, <i>) ngay trước câu 1; không có dòng *) = không phải câu chùm.' }, { k: 'tf', t: 'Phần 2 · Đúng / Sai', hint: 'Mỗi câu: “- câu dẫn”, rồi nhiều ý: “+)ý a”, “=> Đúng/Sai”, (tuỳ chọn) “++) giải thích ý”; lặp lại cho ý b, c, d.' }, { k: 'fill', t: 'Phần 3 · Điền số liệu / đáp án', hint: 'Mỗi câu: “- câu hỏi”, rồi “=> đáp án” (nhiều cách viết ngăn bằng |). Câu hỏi chùm: thêm dòng “*)/1-3/ nội dung chùm” ngay trước câu 1 (ghi chú hướng dẫn điền, nếu có, đặt trước dòng *) đầu tiên).' }]
                 div(class="qf-part", id="part-" + part.k)
                     div(class="qf-parthead")
                         h3= part.t

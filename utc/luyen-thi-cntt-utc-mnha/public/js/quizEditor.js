@@ -120,7 +120,7 @@
 
         lines.forEach(function (L) {
             var s = L.s, escaped = false;
-            if (/^\\(- |\+\+\)|\+\)|=>)/.test(s)) { s = s.slice(1); escaped = true; }
+            if (/^\\(- |\+\+\)|\+\)|=>|\*\))/.test(s)) { s = s.slice(1); escaped = true; }
 
             if (!escaped && /^- /.test(s)) {
                 cur = { line: L.n, text: s.slice(2).trim(), image: "", imgLine: 0, statements: [], order: questions.length };
@@ -189,16 +189,39 @@
             lines.push({ n: idx + 1, s: raw.trim() });
         });
 
-        var cur = null, open = null;
+        var cur = null, open = null, openCl = null, clDecl = [];
         function err(line, msg, qi) { errors.push({ line: line, msg: msg, qi: qi }); }
 
         lines.forEach(function (L) {
             var s = L.s, escaped = false;
-            if (/^\\(- |\+\+\)|\+\)|=>)/.test(s)) { s = s.slice(1); escaped = true; }
+            if (/^\\(- |\+\+\)|\+\)|=>|\*\))/.test(s)) { s = s.slice(1); escaped = true; }
 
             if (!escaped && /^- /.test(s)) {
                 cur = { line: L.n, text: s.slice(2).trim(), image: "", options: [], rawCorrect: null, explanation: "", imgLine: 0, order: questions.length };
+                openCl = null;
                 questions.push(cur); open = "text"; return;
+            }
+            // ----- Câu hỏi chùm: "*)/từ-đến/ nội dung" (chỉ phần 1 và 3) -----
+            if (!escaped && s.indexOf("*)") === 0) {
+                var cm = /^\*\)\s*\/\s*(\d+)\s*-\s*(\d+)\s*\/\s*(.*)$/.exec(s);
+                open = null; openCl = null; cur = null;
+                if (!cm) return err(L.n, "Sai cú pháp chùm. Đúng dạng: *)/1-3/ nội dung chùm.");
+                var cFrom = Number(cm[1]), cTo = Number(cm[2]), cNext = questions.length + 1, cBad = false, lastOk = null;
+                clDecl.forEach(function (c) { if (!c.bad) lastOk = c; });
+                if (!(cFrom >= 1 && cTo > cFrom)) { err(L.n, "Chùm /" + cFrom + "-" + cTo + "/ không hợp lệ: cần từ ≥ 1 và đến > từ (chùm có ít nhất 2 câu)."); cBad = true; }
+                else if (lastOk && cFrom <= lastOk.to) { err(L.n, "Chùm /" + cFrom + "-" + cTo + "/ chồng lên chùm /" + lastOk.from + "-" + lastOk.to + "/."); cBad = true; }
+                else if (cFrom !== cNext) { err(L.n, "Chùm /" + cFrom + "-" + cTo + "/ phải đặt ngay trước câu " + cFrom + " (câu kế tiếp ở đây là câu " + cNext + ")."); cBad = true; }
+                openCl = { from: cFrom, to: cTo, text: cm[3].trim(), image: "", line: L.n, imgLine: 0, bad: cBad };
+                clDecl.push(openCl); return;
+            }
+            // đang gom nội dung chùm (chưa gặp "- câu hỏi" đầu tiên của chùm)
+            if (openCl && !cur) {
+                if (!escaped && /^(\+\+\)|\+\)|=>)/.test(s)) return err(L.n, "Dòng này nằm trong nội dung chùm; “+)”, “=>”, “++)” chỉ dùng sau dòng “- câu hỏi”.");
+                if (!escaped && /^https?:\/\/\S+$/.test(s)) {
+                    if (openCl.image) return err(L.n, "Mỗi chùm chỉ có một ảnh.");
+                    openCl.image = s; openCl.imgLine = L.n; return;
+                }
+                openCl.text += (openCl.text ? "\n" : "") + s; return;
             }
             if (!escaped && s.indexOf("++)") === 0) {
                 if (!cur) return err(L.n, "Giải thích nằm ngoài câu hỏi.");
@@ -278,17 +301,36 @@
             }
             out.push(item);
         });
+        // Chùm: câu đầu chùm giữ nội dung (q.cluster), các câu sau đánh dấu joinPrev
+        clDecl.forEach(function (c) {
+            if (c.bad) return;
+            var tag = "Chùm /" + c.from + "-" + c.to + "/";
+            if (!c.text && !c.image) { err(c.line, tag + " chưa có nội dung."); return; }
+            if (c.to > out.length) { err(c.line, tag + " vượt quá số câu của phần (chỉ có " + out.length + " câu)."); return; }
+            var ci = imageIssue(c.image);
+            if (ci) { err(c.imgLine || c.line, ci); return; }
+            out[c.from - 1].cluster = { text: c.text, image: c.image };
+            for (var n = c.from; n < c.to; n++) out[n].joinPrev = true;
+        });
         return { questions: out, note: note.join(" "), errors: errors };
     }
 
     function escLine(s) {
         return String(s).split("\n").map(function (l, i) {
-            return (i > 0 && /^\s*(- |\+\+\)|\+\)|=>)/.test(l)) ? "\\" + l.replace(/^\s+/, "") : l;
+            return (i > 0 && /^\s*(- |\+\+\)|\+\)|=>|\*\))/.test(l)) ? "\\" + l.replace(/^\s+/, "") : l;
         }).join("\n");
     }
     function serializePart(part, list) {
-        return list.map(function (q) {
-            var o = ["- " + escLine(q.text || "")];
+        return list.map(function (q, i) {
+            var o = [];
+            if (part !== "tf" && q.cluster) {   // đầu chùm: *)/từ-đến/ nội dung (+ ảnh chùm)
+                var to = i + 1;
+                while (to < list.length && list[to].joinPrev) to++;
+                var ctext = String(q.cluster.text || "").trim();
+                o.push("*)/" + (i + 1) + "-" + to + "/" + (ctext ? " " + escLine(ctext) : ""));
+                if (q.cluster.image && q.cluster.image.trim()) o.push(q.cluster.image.trim());
+            }
+            o.push("- " + escLine(q.text || ""));
             if (q.image && q.image.trim()) o.push(q.image.trim());
             if (part === "mcq") {
                 (q.options || []).forEach(function (t) { o.push("+)" + String(t).replace(/\n/g, " ")); });
@@ -348,11 +390,38 @@
             '<img class="qc-imgprev" referrerpolicy="no-referrer" alt=""' + (okImg ? ' src="' + esc(q.image) + '"' : " hidden") + "></div>";
     }
 
+    // Câu hỏi chùm (chỉ phần 1 và 3): khung nội dung chùm ở câu đầu chùm, các câu sau "thuộc chùm ở trên"
+    function clusterBlock(part, q, i) {
+        if (part === "tf") return "";
+        var list = state[part], prev = i > 0 ? list[i - 1] : null;
+        if (q.cluster) {
+            var iss = imageIssue(q.cluster.image);
+            return '<div class="qc-cluster" style="margin:8px 0;padding:10px;border:1px dashed #f59e0b;border-radius:10px;background:#fffbeb">' +
+                '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>📖 Chùm — bắt đầu từ câu ' + (i + 1) + "</b>" +
+                '<button type="button" class="qf-btn danger-s" data-act="rmcluster">Bỏ chùm</button></div>' +
+                '<label class="qc-l">Nội dung dùng chung (có thể dùng &lt;b&gt; in đậm, &lt;i&gt; in nghiêng, &lt;u&gt;, &lt;br&gt;, &lt;sub&gt;, &lt;sup&gt;, &lt;ul&gt;&lt;li&gt;…)</label>' +
+                '<textarea rows="3" data-f="cltext">' + esc(q.cluster.text) + "</textarea>" +
+                '<label class="qc-l">Ảnh của chùm (link https, tuỳ chọn)</label>' +
+                '<input type="text" data-f="climage" value="' + esc(q.cluster.image) + '" placeholder="https://raw.githubusercontent.com/…">' +
+                '<div class="qc-imgwarn">' + esc(iss) + "</div>" +
+                '<div class="qc-note">Các câu liền sau: bấm “＋ Thêm vào chùm ở trên” để dùng chung nội dung này (chùm cần ít nhất 2 câu).</div></div>';
+        }
+        if (q.joinPrev) {
+            return '<div class="qc-cluster-tag" style="margin:6px 0;color:#b45309">⛓ Thuộc chùm ở trên ' +
+                '<button type="button" class="qf-btn small" data-act="unjoin">Tách khỏi chùm (từ câu này trở đi)</button></div>';
+        }
+        var h = '<div class="qc-cluster-actions" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap">' +
+            '<button type="button" class="qf-btn small" data-act="mkcluster">⛓ Tạo chùm từ câu này</button>';
+        if (prev && (prev.cluster || prev.joinPrev)) h += '<button type="button" class="qf-btn small" data-act="join">＋ Thêm vào chùm ở trên</button>';
+        return h + "</div>";
+    }
+
     function cardHtml(part, q, i, n) {
         var h = '<div class="qc" data-k="' + part + '" data-i="' + i + '"><div class="qc-head"><b>Câu ' + (i + 1) + "</b>" +
             '<span class="qc-tools"><button type="button" data-act="up" title="Lên"' + (i === 0 ? " disabled" : "") + ">↑</button>" +
             '<button type="button" data-act="down" title="Xuống"' + (i === n - 1 ? " disabled" : "") + ">↓</button>" +
             '<button type="button" data-act="del" title="Xoá câu">✕</button></span></div>' +
+            clusterBlock(part, q, i) +
             '<label class="qc-l">Nội dung câu hỏi</label><textarea rows="2" data-f="text">' + esc(q.text) + "</textarea>" +
             imageBlock(q);
 
@@ -453,6 +522,12 @@
             if (f === "text") c.q.text = e.target.value;
             else if (f === "explanation") c.q.explanation = e.target.value;
             else if (f === "answers") c.q.answers = e.target.value;
+            else if (f === "cltext") { if (c.q.cluster) c.q.cluster.text = e.target.value; }
+            else if (f === "climage") {
+                if (c.q.cluster) c.q.cluster.image = e.target.value;
+                var cw = c.card.querySelector(".qc-cluster .qc-imgwarn");
+                if (cw) cw.textContent = imageIssue(e.target.value);
+            }
             else if (f === "stext") c.q.statements[Number(e.target.closest(".qc-st").getAttribute("data-si"))].text = e.target.value;
             else if (f === "sexpl") c.q.statements[Number(e.target.closest(".qc-st").getAttribute("data-si"))].explanation = e.target.value;
             else if (f === "opt") c.q.options[Number(e.target.closest(".qc-opt").getAttribute("data-oi"))] = e.target.value;
@@ -509,13 +584,24 @@
 
         if (act === "del") {
             if (!confirm("Xoá câu " + (c.i + 1) + "?")) return;
-            list.splice(c.i, 1);
+            var gone = list.splice(c.i, 1)[0];
+            // xoá câu đầu chùm → chùm chuyển sang câu kế tiếp (nếu câu đó đang thuộc chùm)
+            if (gone && gone.cluster && list[c.i] && list[c.i].joinPrev) { list[c.i].cluster = gone.cluster; list[c.i].joinPrev = false; }
         } else if (act === "up" && c.i > 0) {
             list.splice(c.i - 1, 0, list.splice(c.i, 1)[0]);
         } else if (act === "down" && c.i < list.length - 1) {
             list.splice(c.i + 1, 0, list.splice(c.i, 1)[0]);
         } else if (act === "rmimg") {
             c.q.image = "";
+        } else if (act === "mkcluster") {
+            c.q.cluster = { text: "", image: "" }; c.q.joinPrev = false;
+        } else if (act === "rmcluster") {
+            c.q.cluster = null;
+            for (var jr = c.i + 1; jr < list.length && list[jr].joinPrev; jr++) list[jr].joinPrev = false;
+        } else if (act === "join") {
+            c.q.joinPrev = true; c.q.cluster = null;
+        } else if (act === "unjoin") {
+            for (var ju = c.i; ju < list.length && list[ju].joinPrev; ju++) list[ju].joinPrev = false;
         } else if (act === "addopt") {
             if (c.q.options.length < MAX_OPT) c.q.options.push("");
         } else if (act === "addst") {
@@ -600,6 +686,12 @@
             var list = state[k];
             if (!list.length) return;
             total += list.length;
+            // chùm: câu đánh dấu "thuộc chùm" mà câu trước không thuộc chùm nào (vd sau khi đổi thứ tự câu)
+            if (k !== "tf") list.forEach(function (q, qi) {
+                if (q.joinPrev && !(qi > 0 && (list[qi - 1].cluster || list[qi - 1].joinPrev))) {
+                    errs.push({ part: k, q: qi + 1, msg: "Câu này được đánh dấu thuộc chùm nhưng câu trước không thuộc chùm nào (kiểm tra lại thứ tự câu)." });
+                }
+            });
             if (!(partPoints(k) > 0)) errs.push({ part: k, msg: "“Điểm / câu” phải là số lớn hơn 0 (VD 0.1, 0.2, 0.25, 1)." });
             if (k === "fill" && toNum($("tolerance").value, 0) < 0) errs.push({ part: k, msg: "Sai số cho phép không được âm." });
 
@@ -681,6 +773,17 @@
     PARTS.forEach(function (k) {
         var p = parts[k];
         state[k] = (p && Array.isArray(p.questions)) ? p.questions.map(function (q) { return fromSaved(k, q); }) : [];
+        // chùm đã lưu: câu đầu chùm giữ nội dung, các câu sau đánh dấu joinPrev
+        if (p && Array.isArray(p.clusters)) {
+            p.clusters.forEach(function (cl) {
+                (cl.questionIds || []).forEach(function (id, n) {
+                    var idx = (p.questions || []).findIndex(function (q) { return q.id === id; });
+                    if (idx < 0 || !state[k][idx]) return;
+                    if (n === 0) state[k][idx].cluster = { text: cl.text || "", image: cl.image || "" };
+                    else state[k][idx].joinPrev = true;
+                });
+            });
+        }
         if ($("paste-" + k) && CFG.raw && CFG.raw[k]) $("paste-" + k).value = CFG.raw[k];
     });
     renderAll();
