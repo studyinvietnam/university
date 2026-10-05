@@ -9,7 +9,7 @@ block content
       | Sinh viên: #{student ? student.name + ' (' + student.email + ')' : '—'}
       |  · Bài: #{lesson.title}
 
-    +renderQuizResult(doc, formatAiLabel)
+    +renderQuizResult(doc, formatAiLabel, { hideTeacherComment: true })
 
     .bg-white.border.rounded-lg.p-4.shadow
       h3.text-lg.font-semibold.mb-2 Nhận xét của giảng viên

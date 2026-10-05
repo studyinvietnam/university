@@ -1,4 +1,5 @@
 extends ../layout
+include quiz-ai-panel
 
 //- ================================================================
 //-  Trang LÀM BÀI TRẮC NGHIỆM (student)
@@ -10,6 +11,7 @@ extends ../layout
 //-    quiz.audioUrl   : (tuỳ chọn) link audio https — toStudentView() phải giữ field này (xem quizAudioService.js)
 //-    analysisAis     : (tuỳ chọn) [{ id, label }] các AI cho phép phân tích
 //-    maxAnalyses     : (tuỳ chọn) mặc định 5
+//-    (Phân tích AI dùng mixin +quizAiPanel() trong quiz-ai-panel.pug + /js/quizAiPanel.js, do quizTake.js nạp)
 //- ================================================================
 
 block content
@@ -208,14 +210,9 @@ block content
                 div(class="review-list", id="reviewList")
 
                 //- ===== PHÂN TÍCH AI (nằm dưới đề + đáp án) =====
-                div(class="ai-section", id="aiSection")
-                    h3 🤖 Phân tích AI
-                    p AI chỉ ra lỗ hổng kiến thức và giải thích vì sao sai. Điểm số đã được server chấm tự động, AI không thay đổi điểm.
-                    div(class="ai-actions")
-                        select(id="aiPick", class="hidden")
-                        button(type="button", class="btn-analyze", id="analyzeBtn", disabled) ⏳ Đang lưu bài…
-                        span(id="analyzeMsg", class="analyze-msg")
-                    div(class="analysis-list", id="analysisList")
+                //- Thanh "Kiểm tra AI" + nút "Phân tích AI" (mixin trong quiz-ai-panel.pug).
+                //- quizTake.js dựng QuizAiPanel SAU khi nộp bài; nộp bài không phụ thuộc AI.
+                +quizAiPanel()
 
                 button(type="button", class="retry-btn", id="retryBtn") LÀM LẠI BÀI
 

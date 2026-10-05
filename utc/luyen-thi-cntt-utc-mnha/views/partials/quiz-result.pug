@@ -1,130 +1,375 @@
 //- views/partials/quiz-result.pug
 //- Mixin hiển thị khối đề + đáp án + phân tích AI (dùng cho cả SV và admin)
+//- opts.hideAnalyses = true: không in mục "Phân tích AI" (trang SV tự vẽ bằng QuizAiPanel)
+//-
+//- Dữ liệu theo README:
+//-   doc.quizSnapshot.parts.{mcq|tf|fill}.questions   (tf: q.statements[{id,text,correct,explanationHtml}])
+//-   doc.result.items      [{id, part, correct, earned, studentAnswer, correctAnswer, questionId?}]
+//-   doc.result.tfQuestions [{id, correctStatements, totalStatements, earned, points}]
 mixin renderQuizResult(doc, formatAiLabel, opts)
   - opts = opts || {}
-  - const quiz = doc.quizSnapshot
-  - const result = doc.result
+  - const quiz = doc.quizSnapshot || { parts: {} }
+  - const result = doc.result || { parts: {}, items: [] }
+  //- Khôi phục thẻ HTML ngắn (allowlist, KHÔNG thuộc tính) bị escape 1–2 lần khi lưu đề:
+  //-   &lt;b&gt; hoặc &amp;lt;b&amp;gt;  →  <b>.  Mọi thứ khác giữ nguyên (vẫn escape) → không mở lỗ XSS.
+  - const restoreTags = function (s) { return String(s == null ? '' : s).replace(/&(?:amp;)*lt;(\/?)(b|i|u|strong|em|br|p|ul|ol|li|code|pre|sub|sup|span)(\s*\/?)&(?:amp;)*gt;/gi, '<$1$2$3>') }
+  -
+    const PART_KEYS = ['mcq', 'tf', 'fill']
+    const PART_TITLE = { mcq: 'Phần 1 — Trắc nghiệm', tf: 'Phần 2 — Đúng/Sai', fill: 'Phần 3 — Điền đáp án' }
+    const ST = {
+      correct: { icon: '✔', text: 'Đúng' },
+      wrong: { icon: '✘', text: 'Sai' },
+      partial: { icon: '◐', text: 'Đúng một phần' },
+      blank: { icon: '○', text: 'Chưa làm' }
+    }
+    const fmt = function (n) { return n == null || isNaN(Number(n)) ? '' : String(Math.round(Number(n) * 100) / 100).replace('.', ',') }
+    const isBlank = function (v) { return v == null || v === '' || (Array.isArray(v) && !v.length) }
+    const tfText = function (v) { return (v === true || v === 'true') ? 'Đúng' : (v === false || v === 'false') ? 'Sai' : '(bỏ trống)' }
+    const itemById = {}
+    ;(result.items || []).forEach(function (x) { itemById[x.id] = x })
+    const tfById = {}
+    ;(result.tfQuestions || []).forEach(function (x) { tfById[x.id] = x })
+    const entries = []
+    const meta = {}
+    let no = 0
+    PART_KEYS.forEach(function (pk) {
+      const p = quiz.parts && quiz.parts[pk]
+      if (!p || !p.questions) return
+      p.questions.forEach(function (q) {
+        no++
+        let status = 'blank'
+        let earned = null
+        let pts = p.pointsPerQuestion != null ? Number(p.pointsPerQuestion) : null
+        if (pk === 'tf') {
+          const sts = q.statements || []
+          const sItems = sts.map(function (s) { return itemById[s.id] || {} })
+          const k = sItems.filter(function (x) { return x.correct }).length
+          const allBlank = sItems.length > 0 && sItems.every(function (x) { return isBlank(x.studentAnswer) })
+          status = (sts.length && k === sts.length) ? 'correct' : allBlank ? 'blank' : k > 0 ? 'partial' : 'wrong'
+          const tq = tfById[q.id]
+          if (tq) { earned = tq.earned; pts = tq.points }
+        } else {
+          const it = itemById[q.id] || {}
+          status = it.correct ? 'correct' : isBlank(it.studentAnswer) ? 'blank' : 'wrong'
+          if (it.earned != null) earned = it.earned
+        }
+        meta[q.id] = { no: no, status: status, earned: earned, points: pts }
+        entries.push({ id: q.id, no: no, status: status })
+      })
+    })
+    const cnt = { correct: 0, wrong: 0, partial: 0, blank: 0 }
+    entries.forEach(function (e) { cnt[e.status]++ })
+    const total = entries.length
+    const answered = total - cnt.blank
+
+  style.
+    .qr-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .qr-title{font-size:1.15rem;font-weight:700;margin-bottom:6px}
+    .qr-sub{font-size:.9rem;color:#4b5563}
+    .qr-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .qr-chip{font-size:.85rem;padding:3px 10px;border-radius:999px;border:1px solid;font-weight:600}
+    .qr-chip.qr-correct{background:#dcfce7;border-color:#16a34a;color:#166534}
+    .qr-chip.qr-wrong{background:#fee2e2;border-color:#dc2626;color:#991b1b}
+    .qr-chip.qr-partial{background:#fef3c7;border-color:#d97706;color:#92400e}
+    .qr-chip.qr-blank{background:#f3f4f6;border-color:#9ca3af;color:#4b5563}
+    .qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:8px;margin-top:12px}
+    .qr-cell{display:flex;align-items:center;justify-content:center;height:40px;border-radius:8px;font-weight:700;font-size:.9rem;text-decoration:none;border:2px solid}
+    .qr-cell.qr-correct{background:#dcfce7;border-color:#16a34a;color:#166534}
+    .qr-cell.qr-wrong{background:#fee2e2;border-color:#dc2626;color:#991b1b}
+    .qr-cell.qr-partial{background:#fef3c7;border-color:#d97706;color:#92400e}
+    .qr-cell.qr-blank{background:#f3f4f6;border-color:#9ca3af;color:#4b5563}
+    .qr-cell:hover{filter:brightness(.95)}
+    .qr-filter{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .qr-fbtn{font-size:.85rem;padding:4px 12px;border-radius:8px;border:1px solid #d1d5db;background:#fff;cursor:pointer}
+    .qr-fbtn.active{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+    .qr-part-title{font-size:1.1rem;font-weight:700;margin:20px 0 10px}
+    .qr-cluster{border:1px solid #fcd34d;background:#fffbeb;border-radius:10px;padding:12px;margin-bottom:10px}
+    .qr-cluster-title{font-size:.75rem;font-weight:700;color:#b45309;margin-bottom:4px}
+    .qr-q{scroll-margin-top:80px;background:#fff;border:1px solid #e5e7eb;border-left:6px solid #9ca3af;border-radius:10px;padding:14px;margin-bottom:12px}
+    .qr-q.qr-correct{border-left-color:#16a34a}
+    .qr-q.qr-wrong{border-left-color:#dc2626}
+    .qr-q.qr-partial{border-left-color:#d97706}
+    .qr-q.qr-blank{border-left-color:#9ca3af;background:#fafafa}
+    .qr-q-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}
+    .qr-q-no{font-weight:700}
+    .qr-q-pts{font-size:.8rem;color:#6b7280;margin-left:auto}
+    .qr-badge{font-size:.78rem;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid}
+    .qr-b-correct{background:#dcfce7;border-color:#16a34a;color:#166534}
+    .qr-b-wrong{background:#fee2e2;border-color:#dc2626;color:#991b1b}
+    .qr-b-partial{background:#fef3c7;border-color:#d97706;color:#92400e}
+    .qr-b-blank{background:#f3f4f6;border-color:#9ca3af;color:#4b5563}
+    .qr-q-text{font-weight:500;margin-bottom:8px}
+    .qr-img{max-height:220px;margin:6px 0;border-radius:6px}
+    .qr-opt{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;margin-top:6px}
+    .qr-opt-key{font-weight:700;min-width:1.2em}
+    .qr-opt-text{flex:1;min-width:0}
+    .qr-opt.is-correct{background:#f0fdf4;border-color:#16a34a;color:#166534;font-weight:600}
+    .qr-opt.is-wrong{background:#fef2f2;border-color:#dc2626;color:#991b1b}
+    .qr-tag{font-size:.72rem;font-weight:700;padding:1px 8px;border-radius:999px;background:#e5e7eb;color:#374151}
+    .qr-tag-you{background:#dbeafe;color:#1e40af}
+    .qr-tag-ok{background:#16a34a;color:#fff}
+    .qr-st{border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-top:8px;scroll-margin-top:80px}
+    .qr-st.qr-st-correct{background:#f0fdf4;border-color:#86efac}
+    .qr-st.qr-st-wrong{background:#fef2f2;border-color:#fca5a5}
+    .qr-st-main{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px}
+    .qr-st-key{font-weight:700}
+    .qr-st-text{flex:1;min-width:0}
+    .qr-st-ans{font-size:.88rem;margin-top:4px;color:#374151}
+    .qr-ok{color:#15803d}
+    .qr-note{font-size:.88rem;margin-top:8px;color:#374151}
+    .qr-fill{font-size:.92rem;line-height:1.7}
+    .qr-exp{margin-top:10px;font-size:.9rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px}
+    .qr-exp.qr-exp-empty{background:#f9fafb;border-color:#e5e7eb;color:#6b7280;font-style:italic}
+    .qr-exp-body{margin-top:2px}
 
   //- ① Tổng quan
-  .bg-white.border.rounded-lg.p-4.shadow.mb-4
-    h2.text-xl.font-bold.mb-2 Kết quả
-    .text-lg Điểm: <b>#{result.score}</b> / #{result.maxScore}
-    .text-sm.text-gray-600 Đúng #{result.correctCount}/#{result.totalCount} câu
-    each partKey in ['mcq', 'tf', 'fill']
-      - const ps = result.parts[partKey]
+  .qr-card
+    .qr-title Kết quả
+    .qr-score Điểm: <b>#{result.score}</b> / #{result.maxScore}
+    .qr-sub Đúng #{result.correctCount}/#{result.totalCount} · Đã làm #{answered}/#{total} câu
+    each partKey in PART_KEYS
+      - const ps = result.parts && result.parts[partKey]
       if ps
-        .text-sm.text-gray-600
-          = (partKey === 'mcq' ? 'Phần 1' : partKey === 'tf' ? 'Phần 2' : 'Phần 3') + `: ${ps.correct}/${ps.total} câu (${ps.earned}/${ps.points} điểm)`
+        .qr-sub
+          = PART_TITLE[partKey] + `: ${ps.correct}/${ps.total} ${partKey === 'tf' ? 'ý' : 'câu'} (${ps.earned}/${ps.points} điểm)`
+    .qr-chips
+      span.qr-chip.qr-correct ✔ Đúng: #{cnt.correct}
+      span.qr-chip.qr-wrong ✘ Sai: #{cnt.wrong}
+      if cnt.partial
+        span.qr-chip.qr-partial ◐ Đúng một phần: #{cnt.partial}
+      span.qr-chip.qr-blank ○ Chưa làm: #{cnt.blank}
+
+  //- Bản đồ câu hỏi: màu = đúng/sai/một phần/chưa làm, bấm để nhảy tới câu
+  if entries.length
+    .qr-card
+      .qr-title Bản đồ câu hỏi
+      .qr-sub Bấm số câu để nhảy tới phần đáp án và giải thích.
+      .qr-grid
+        each e in entries
+          a.qr-cell(class='qr-' + e.status, href='#review-' + e.id, title='Câu ' + e.no + ' — ' + ST[e.status].text)= e.no
+      .qr-filter
+        button.qr-fbtn.active(type='button', data-filter='all') Tất cả (#{total})
+        button.qr-fbtn(type='button', data-filter='wrong') Sai / một phần (#{cnt.wrong + cnt.partial})
+        button.qr-fbtn(type='button', data-filter='blank') Chưa làm (#{cnt.blank})
+        button.qr-fbtn(type='button', data-filter='correct') Đúng (#{cnt.correct})
 
   //- 🎧 Bài nghe (nếu đề có audio — lấy từ quizSnapshot nên bài cũ không có thì không hiện)
   - const audioUrl = (quiz && typeof quiz.audioUrl === 'string' && /^https:\/\//.test(quiz.audioUrl)) ? quiz.audioUrl : ''
   if audioUrl
-    .bg-white.border.rounded-lg.p-3.shadow.mb-4
-      .text-sm.font-semibold.mb-2 🎧 Bài nghe
-      audio(controls preload="metadata" src=audioUrl style="width:100%")
+    .qr-card
+      .qr-title 🎧 Bài nghe
+      audio(controls, preload="metadata", src=audioUrl, style="width:100%")
 
-  //- ② Đề + bài làm + đáp án
-  each partKey in ['mcq', 'tf', 'fill']
-    - const p = quiz.parts[partKey]
+  //- ② Đề + bài làm + đáp án + giải thích
+  each partKey in PART_KEYS
+    - const p = quiz.parts && quiz.parts[partKey]
     if p && p.questions && p.questions.length
-      section.mb-6
-        h3.text-lg.font-semibold.mb-2
-          = (partKey === 'mcq' ? 'Phần 1 — Trắc nghiệm' : partKey === 'tf' ? 'Phần 2 — Đúng/Sai' : 'Phần 3 — Điền đáp án')
+      section
+        h3.qr-part-title= PART_TITLE[partKey]
         if partKey === 'fill' && p.note
-          .text-sm.italic.text-gray-600.mb-2= p.note
+          .qr-sub(style="font-style:italic;margin-bottom:8px")= p.note
         - const clMap = {}
         - (p.clusters || []).forEach(function (c) { clMap[c.id] = c })
         each q, qi in p.questions
           //- Câu hỏi chùm: hiện nội dung chùm MỘT lần, ngay trước câu đầu của chùm.
-          //- cl.text là HTML ngắn đã sanitize khi lưu đề (xem quizParserService) → render bằng `!=`
           - const cl = q.clusterId ? clMap[q.clusterId] : null
           if cl && (qi === 0 || p.questions[qi - 1].clusterId !== q.clusterId)
-            .border.border-amber-300.bg-amber-50.rounded-lg.p-3.mb-3
-              .text-xs.font-semibold.text-amber-700.mb-1 📖 Dữ kiện dùng chung cho: #{(cl.questionIds || []).join(', ')}
+            - const clNos = (cl.questionIds || []).map(function (id) { return meta[id] ? meta[id].no : id }).join(', ')
+            .qr-cluster
+              .qr-cluster-title 📖 Dữ kiện dùng chung cho câu #{clNos}
               if cl.text
-                div(style="white-space:pre-line")!= cl.text
+                div(style="white-space:pre-line")!= restoreTags(cl.text)
               if cl.image
-                img(src=cl.image loading="lazy" referrerpolicy="no-referrer" style="max-height:240px").mt-2
-          - const item = (result.items || []).find(x => x.id === q.id) || {}
-          - const status = item.correct ? 'correct' : (item.studentAnswer == null || item.studentAnswer === '' || (Array.isArray(item.studentAnswer) && !item.studentAnswer.length)) ? 'blank' : 'wrong'
-          .border.rounded-lg.p-3.mb-3(class=status)
-            .font-medium.mb-2
-              span.text-gray-500= q.id + '. '
-              //- q.text là text thuần → render bằng `=` (tự escape), xuống dòng bằng CSS
-              span(style="white-space:pre-line")= q.text
-              if item.points != null
-                span.text-xs.text-gray-500.ml-2= ' (' + item.earned + '/' + item.points + 'đ)'
+                img.qr-img(src=cl.image, loading="lazy", referrerpolicy="no-referrer")
+          - const m = meta[q.id] || { no: '?', status: 'blank', earned: null, points: null }
+          - const stt = ST[m.status]
+          article.qr-q(class='qr-' + m.status, id='review-' + q.id, data-status=m.status)
+            .qr-q-head
+              span.qr-q-no Câu #{m.no}
+              span.qr-badge(class='qr-b-' + m.status) #{stt.icon} #{stt.text}
+              if m.points != null && m.earned != null
+                span.qr-q-pts #{fmt(m.earned)}/#{fmt(m.points)} điểm
+            //- q.text là text thuần → render bằng `=` (tự escape), xuống dòng bằng CSS
+            .qr-q-text(style="white-space:pre-line")= q.text
             if q.image
-              img(src=q.image loading="lazy" referrerpolicy="no-referrer" style="max-height:200px").mb-2
+              img.qr-img(src=q.image, loading="lazy", referrerpolicy="no-referrer")
 
             if partKey === 'mcq'
-              each o in q.options
-                - const chosen = (item.studentAnswer || []).includes(o.key)
-                - const isCorrect = (q.correct || []).includes(o.key)
-                div(class=(isCorrect ? 'text-green-700 font-semibold' : '') + (chosen && !isCorrect ? ' text-red-600 line-through' : ''))
-                  = o.key + '. ' + o.text
-                  if chosen then span.text-xs  (bạn chọn)
-                  if isCorrect then span.text-xs  ✔
+              - const it = itemById[q.id] || {}
+              - const chosenArr = Array.isArray(it.studentAnswer) ? it.studentAnswer : (isBlank(it.studentAnswer) ? [] : [it.studentAnswer])
+              if q.multi
+                .qr-sub(style="margin-bottom:4px") (Chọn nhiều đáp án — phải chọn đủ và không thừa)
+              each o in (q.options || [])
+                - const chosen = chosenArr.indexOf(o.key) !== -1
+                - const isCorrect = (q.correct || []).indexOf(o.key) !== -1
+                .qr-opt(class=(isCorrect ? 'is-correct' : '') + (chosen && !isCorrect ? ' is-wrong' : ''))
+                  span.qr-opt-key= o.key + '.'
+                  span.qr-opt-text= o.text
+                  if chosen
+                    span.qr-tag.qr-tag-you Bạn chọn
+                  if isCorrect
+                    span.qr-tag.qr-tag-ok ✔ Đáp án đúng
+              if m.status === 'blank'
+                .qr-note Bạn chưa chọn đáp án. Đáp án đúng: <b>#{(q.correct || []).join(', ')}</b>
+
             else if partKey === 'tf'
-              .text-sm
-                | Bạn chọn: <b>#{item.studentAnswer === true ? 'Đúng' : item.studentAnswer === false ? 'Sai' : '(bỏ trống)'}</b>
-                |  — Đáp án: <b class="text-green-700">#{q.correct ? 'Đúng' : 'Sai'}</b>
+              - const sts = q.statements || []
+              - const kOk = sts.filter(function (s) { return (itemById[s.id] || {}).correct }).length
+              each s, si in sts
+                - const sit = itemById[s.id] || {}
+                - const sStat = sit.correct ? 'correct' : (isBlank(sit.studentAnswer) ? 'blank' : 'wrong')
+                - const sLabel = String.fromCharCode(97 + si)
+                .qr-st(class='qr-st-' + sStat, id='review-' + s.id)
+                  .qr-st-main
+                    span.qr-st-key= sLabel + ')'
+                    span.qr-st-text(style="white-space:pre-line")= s.text
+                    span.qr-badge(class='qr-b-' + sStat) #{ST[sStat].icon} #{ST[sStat].text}
+                  .qr-st-ans Bạn chọn: <b>#{tfText(sit.studentAnswer)}</b> — Đáp án: <b class="qr-ok">#{tfText(s.correct)}</b>
+                  if s.explanationHtml
+                    .qr-exp
+                      b 💡 Giải thích ý #{sLabel}:
+                      div.qr-exp-body!= restoreTags(s.explanationHtml)
+              .qr-note
+                | Đúng #{kOk}/#{sts.length} ý
+                if m.earned != null && m.points != null
+                  |  → #{fmt(m.earned)}/#{fmt(m.points)} điểm
+
             else
-              .text-sm
-                | Bạn điền: <b>#{item.studentAnswer || '(bỏ trống)'}</b>
-                |  — Đáp án chấp nhận: <b class="text-green-700">#{(q.answers || []).join(' | ')}</b>
+              - const fit = itemById[q.id] || {}
+              .qr-fill
+                div Bạn điền: <b>#{isBlank(fit.studentAnswer) ? '(bỏ trống)' : fit.studentAnswer}</b>
+                div Đáp án chấp nhận: <b class="qr-ok">#{(q.answers || []).join(' | ')}</b>
 
+            //- Giải thích của cả câu (mcq / fill / phần chung của tf). Luôn có khối để SV biết là "chưa có giải thích" chứ không phải bị lỗi.
+            - const tfHasExp = partKey === 'tf' && (q.statements || []).some(function (s) { return s.explanationHtml })
             if q.explanationHtml
-              .mt-2.text-sm.bg-blue-50.border.border-blue-200.rounded.p-2
-                b Giải thích:
-                //- explanationHtml đã sanitize ở controller (prepareDocForView) + lúc lưu đề
-                span!= q.explanationHtml
+              - const eh = restoreTags(q.explanationHtml)
+              - const hasBlock = new RegExp('<(br|p|ul|ol|li)\\b', 'i').test(eh)
+              .qr-exp
+                b 💡 Giải thích:
+                div.qr-exp-body(style=(hasBlock ? '' : 'white-space:pre-line'))!= eh
+            else if !tfHasExp
+              .qr-exp.qr-exp-empty Câu này chưa có giải thích.
 
-  //- ③ Phân tích AI
-  if doc.aiAnalyses && doc.aiAnalyses.length
-    .bg-white.border.rounded-lg.p-4.shadow.mb-4
-      h3.text-lg.font-semibold.mb-3 Phân tích AI
-      each an in doc.aiAnalyses.slice().reverse()
-        .border.rounded.p-3.mb-3.bg-purple-50
-          .text-sm.text-gray-600.mb-2
-            | 🤖 #{formatAiLabel(an.aiProvider || 'gemini', an.aiKeyName)} · #{an.model || ''} · #{new Date(an.analyzedAt).toLocaleString('vi-VN')}
-          .text-xs.text-gray-500.mb-2 Prompt: #{an.promptName} v#{an.promptVersion}
-          if an.status === 'parse_failed'
-            .text-sm.whitespace-pre-wrap= an.rawText
-          else if an.result
-            - const r = an.result
+  script.
+    (function () {
+      var btns = document.querySelectorAll('.qr-fbtn');
+      if (!btns.length) return;
+      function apply(f) {
+        btns.forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-filter') === f); });
+        document.querySelectorAll('.qr-q').forEach(function (c) {
+          var s = c.getAttribute('data-status');
+          var show = f === 'all' || (f === 'wrong' ? (s === 'wrong' || s === 'partial') : s === f);
+          c.style.display = show ? '' : 'none';
+        });
+        document.querySelectorAll('.qr-cluster').forEach(function (c) { c.style.display = f === 'all' ? '' : 'none'; });
+      }
+      btns.forEach(function (b) { b.addEventListener('click', function () { apply(b.getAttribute('data-filter')); }); });
+      document.querySelectorAll('.qr-cell').forEach(function (c) { c.addEventListener('click', function () { apply('all'); }); });
+    })();
+
+  //- ③ Phân tích AI — mọi lần phân tích (đủ hay bị cắt dở) đều qua CÙNG một bộ render
+  include ai-salvage
+  - const aiList = (doc.aiAnalyses || []).slice().reverse()
+  if !opts.hideAnalyses && aiList.length
+    style.
+      .ai-item{border:1px solid #ddd6fe;background:#faf5ff;border-radius:12px;padding:14px;margin-top:12px}
+      .ai-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;font-size:.82rem;color:#6b7280}
+      .ai-chip{background:#ede9fe;color:#5b21b6;font-weight:700;padding:2px 10px;border-radius:999px}
+      .ai-warn{font-size:.82rem;background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:6px 10px;margin-bottom:10px}
+      .ai-summary{background:#fff;border:1px solid #e9d5ff;border-radius:10px;padding:12px;line-height:1.65;margin-bottom:12px;white-space:pre-line}
+      .ai-sec{font-weight:700;margin:14px 0 8px}
+      .ai-topic{background:#fff;border:1px solid #e5e7eb;border-left:5px solid #7c3aed;border-radius:10px;padding:10px 12px;margin-bottom:8px}
+      .ai-topic-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+      .ai-topic-name{font-weight:700}
+      .ai-badge{margin-left:auto;font-size:.75rem;font-weight:700;background:#fee2e2;color:#991b1b;border:1px solid #dc2626;border-radius:999px;padding:1px 9px}
+      .ai-qids{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+      .ai-qid{font-size:.72rem;background:#f3f4f6;border:1px solid #d1d5db;color:#374151;border-radius:6px;padding:0 6px;text-decoration:none}
+      .ai-qid:hover{background:#e0e7ff;border-color:#818cf8}
+      .ai-advice{margin-top:8px;font-size:.92rem;line-height:1.6;color:#374151}
+      .ai-mistake{background:#fff;border:1px solid #e5e7eb;border-left:5px solid #dc2626;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:.92rem;line-height:1.6}
+      .ai-mistake-id{font-weight:700;color:#991b1b;text-decoration:none}
+      .ai-right{margin-top:6px;background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:8px;padding:6px 10px}
+      .ai-tip{margin-top:6px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:8px;padding:6px 10px}
+      .ai-plan{margin:0;padding-left:0;list-style:none;counter-reset:ai}
+      .ai-plan li{counter-increment:ai;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px 8px 40px;margin-bottom:6px;position:relative;font-size:.92rem;line-height:1.6}
+      .ai-plan li:before{content:counter(ai);position:absolute;left:10px;top:8px;width:22px;height:22px;border-radius:50%;background:#7c3aed;color:#fff;font-weight:700;font-size:.78rem;display:flex;align-items:center;justify-content:center}
+    .qr-card
+      .qr-title 🤖 Phân tích AI
+      each an in aiList
+        - const res = aiResolve(an)
+        - const r = res ? res.r : null
+        .ai-item
+          .ai-head
+            span.ai-chip= formatAiLabel(an.aiProvider || 'gemini', an.aiKeyName)
+            if an.model
+              span= an.model
+            span= new Date(an.analyzedAt).toLocaleString('vi-VN')
+            if an.promptName
+              span Prompt: #{an.promptName} v#{an.promptVersion}
+          if res && res.salvaged
+            .ai-warn ⚠ AI trả về chưa đầy đủ (bị cắt dở). Đang hiển thị phần đọc được; nên chạy phân tích lại để có kết quả đầy đủ.
+          if !r
+            .ai-summary= an.rawText
+          else
             if r.summary
-              p.mb-2= r.summary
+              .ai-summary= r.summary
             if r.weakTopics && r.weakTopics.length
-              .mb-2
-                b Chủ đề cần ôn:
-                ul.list-disc.ml-5
-                  each t in r.weakTopics
-                    li
-                      b= t.topic
-                      |  (#{t.wrongCount} câu sai) — #{t.advice || ''}
+              .ai-sec 📚 Chủ đề cần ôn
+              each t in r.weakTopics
+                - const tq = Array.isArray(t.questions) ? t.questions : []
+                - const wc = tq.length || t.wrongCount
+                .ai-topic
+                  .ai-topic-head
+                    span.ai-topic-name= t.topic
+                    if wc != null
+                      span.ai-badge #{wc} câu sai
+                  if tq.length
+                    .ai-qids
+                      each id in tq
+                        a.ai-qid(href='#review-' + id)= id
+                  if t.advice
+                    .ai-advice= t.advice
             if r.mistakes && r.mistakes.length
-              .mb-2
-                b Lỗi cụ thể:
-                ul.list-disc.ml-5
-                  each m in r.mistakes
-                    li
-                      | [#{m.id}] #{m.why}
-                      br
-                      i Đúng: #{m.correctReasoning}
-                      br
-                      small 💡 #{m.tip}
+              .ai-sec 🔍 Lỗi cụ thể
+              each m in r.mistakes
+                .ai-mistake
+                  a.ai-mistake-id(href='#review-' + m.id)= m.id
+                  |  — #{m.why || ''}
+                  if m.correctReasoning
+                    .ai-right <b>Đúng:</b> #{m.correctReasoning}
+                  if m.tip
+                    .ai-tip 💡 #{m.tip}
             if r.studyPlan && r.studyPlan.length
-              div
-                b Kế hoạch học:
-                ol.list-decimal.ml-5
-                  each s in r.studyPlan
-                    li= s
+              .ai-sec 🗺 Kế hoạch học
+              ol.ai-plan
+                each s in r.studyPlan
+                  li= s
+    script.
+      (function () {
+        var all = document.querySelector('.qr-fbtn[data-filter="all"]');
+        document.querySelectorAll('.ai-qid, .ai-mistake-id').forEach(function (a) {
+          a.addEventListener('click', function () { if (all) all.click(); });
+        });
+      })();
 
-  //- ④ Nhận xét GV
-  if doc.teacherComment
-    .bg-white.border.rounded-lg.p-4.shadow.mb-4
-      h3.text-lg.font-semibold.mb-2 Nhận xét của giảng viên
-      p= doc.teacherComment.content
-      .text-xs.text-gray-500.mt-2
-        | — #{doc.teacherComment.commentedByName || 'Giảng viên'}, #{new Date(doc.teacherComment.commentedAt).toLocaleString('vi-VN')}
+  //- ④ Nhận xét GV (trang SV/admin có thể tắt bằng opts.hideTeacherComment và tự gọi +renderTeacherComment ở vị trí khác)
+  - const tcm = opts.teacherComment || doc.teacherComment
+  if !opts.hideTeacherComment && tcm && tcm.content
+    +renderTeacherComment(tcm)
+
+//- Khối nhận xét của giảng viên (dùng chung)
+mixin renderTeacherComment(tc)
+  if tc && tc.content
+    style.
+      .tc-card{background:#fffbeb;border:1px solid #fcd34d;border-left:6px solid #d97706;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+      .tc-title{font-size:1.1rem;font-weight:700;color:#92400e;margin-bottom:8px}
+      .tc-body{white-space:pre-line;line-height:1.7;color:#1f2937}
+      .tc-meta{margin-top:10px;font-size:.8rem;color:#6b7280}
+    .tc-card
+      .tc-title 👩‍🏫 Nhận xét của giảng viên
+      .tc-body= tc.content
+      .tc-meta
+        | — #{tc.commentedByName || 'Giảng viên'}
+        if tc.commentedAt
+          | , #{new Date(tc.commentedAt).toLocaleString('vi-VN')}

@@ -1,0 +1,79 @@
+/* quiz-ai-panel.css — thanh "Kiểm tra AI" cho trắc nghiệm (giống thanh AI của lesson.pug tự luận).
+   Tất cả class có tiền tố qai- để không đụng quiz-exam.css. */
+.qai-wrap { margin: 24px 0; }
+.qai-bar {
+    background: #fff; border: 1px solid #e3e3e3; border-radius: 9px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.06); padding: 14px 16px; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;
+}
+.qai-bar * { box-sizing: border-box; }
+.qai-bar-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.qai-icon {
+    width: 36px; height: 36px; border-radius: 50%; background: #f8e9ec;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px;
+}
+.qai-title { font-weight: 800; font-size: 14px; }
+.qai-desc { color: #6f6f6f; font-size: 12px; }
+.qai-label { color: #334155; font-size: 12px; font-weight: 600; }
+
+.qai-pill {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 20px;
+    font-size: 13px; font-weight: 700; border: 1px solid #e3e3e3; background: #f8fafc; color: #64748b;
+    white-space: nowrap;
+}
+.qai-pill .dot { width: 9px; height: 9px; border-radius: 50%; background: #94a3b8; }
+.qai-pill.checking { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.qai-pill.checking .dot { background: #2563eb; animation: qaiPulse 1s infinite; }
+.qai-pill.connected { background: #f0fdf4; color: #16834b; border-color: #bbf7d0; }
+.qai-pill.connected .dot { background: #16834b; }
+.qai-pill.error { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.qai-pill.error .dot { background: #dc2626; }
+@keyframes qaiPulse { 0% { opacity: 1; } 50% { opacity: .35; } 100% { opacity: 1; } }
+
+.qai-selectors { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.qai-field { display: flex; align-items: center; gap: 6px; }
+.qai-field label { font-weight: 700; font-size: 13px; }
+.qai-field select {
+    padding: 6px 10px; border-radius: 6px; border: 1px solid #e3e3e3; background: #fff;
+    font-size: 13px; outline: none; max-width: 260px;
+}
+.qai-field select:disabled { background: #f1f5f9; cursor: not-allowed; opacity: .7; }
+
+.qai-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.qai-btn-outline {
+    background: #f3f4f6; border: 1px solid #e3e3e3; padding: 8px 14px; border-radius: 7px;
+    font-weight: 700; font-size: 13px; cursor: pointer; color: #334155;
+}
+.qai-btn-outline:hover { background: #e5e7eb; }
+.qai-btn-outline:disabled { opacity: .5; cursor: not-allowed; }
+.qai-btn-check {
+    background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; padding: 8px 12px;
+    border-radius: 7px; font-weight: 700; font-size: 13px; cursor: pointer;
+}
+.qai-btn-check:hover { background: #dbeafe; }
+.qai-btn-check:disabled { opacity: .6; cursor: not-allowed; }
+
+.qai-action {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 20px 24px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05); margin-bottom: 16px;
+}
+.qai-action h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; color: #111827; }
+.qai-action p { margin: 0 0 12px; font-size: 14px; color: #6b7280; }
+.qai-action-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.qai-btn-analyze {
+    padding: 10px 18px; background: #7c3aed; color: #fff; border: 0; border-radius: 10px;
+    font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.qai-btn-analyze:hover:not(:disabled) { background: #6d28d9; }
+.qai-btn-analyze:disabled { background: #cbd5e1; color: #475569; cursor: not-allowed; }
+.qai-msg { font-size: 13px; color: #6b7280; }
+.qai-msg.error { color: #dc2626; }
+
+.qai-chip {
+    display: inline-block; margin: 0 6px 6px 0; padding: 2px 10px; border-radius: 999px;
+    background: #eef2ff; color: #4338ca; font-size: 12px; font-weight: 700; cursor: pointer;
+    text-decoration: none;
+}
+.qai-chip:hover { background: #e0e7ff; }
+.qai-flash { animation: qaiFlash 1.4s ease; }
+@keyframes qaiFlash { 0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); } 30% { box-shadow: 0 0 0 4px rgba(124,58,237,.45); } }

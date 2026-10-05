@@ -3,34 +3,73 @@
 //-   quizConfig, formatAiLabel, analysisAiOptions ([{id,label}] — rỗng = dùng AI mặc định)
 extends ../layout
 include ../partials/quiz-result
+include ../partials/quiz-ai-panel
 
 block content
   .max-w-4xl.mx-auto.px-4.py-6
     h1.text-2xl.font-bold.mb-2= lesson.title
     .text-sm.text-gray-500.mb-4= subject ? subject.name : ''
 
-    +renderQuizResult(doc, formatAiLabel)
+    //- ===== Nút dành cho giảng viên (admin) =====
+    //- Không phụ thuộc controller có truyền `user` hay không: thử nhiều nguồn, kể cả res.locals.
+    - var _lc = (typeof locals !== 'undefined' && locals) ? locals : {}
+    - var _u = (typeof user !== 'undefined' && user) || (typeof currentUser !== 'undefined' && currentUser) || _lc.user || _lc.currentUser || null
+    - var _role = _u && _u.role ? (typeof _u.role === 'string' ? _u.role : _u.role.name) : ''
+    - var isTeacher = _role === 'admin' || (typeof isAdminView !== 'undefined' && isAdminView === true) || (typeof isAdmin !== 'undefined' && isAdmin === true) || _lc.isAdminView === true
+    if isTeacher
+      .bg-white.border.border-indigo-200.rounded-lg.p-4.shadow.mb-4.flex.flex-wrap.items-center.justify-between.gap-3
+        div
+          .font-semibold.text-indigo-700 👩‍🏫 Dành cho giảng viên
+          .text-sm.text-gray-600
+            if (submission.teacherComment || (doc && doc.teacherComment))
+              | Bài này đã có nhận xét. Bạn có thể xem hoặc sửa.
+            else
+              | Điểm do hệ thống chấm tự động. Bạn có thể viết nhận xét thêm (không bắt buộc).
+        a.inline-block.px-4.py-2.rounded-lg.bg-indigo-600.text-white.font-semibold.no-underline(href='/admin/quiz-submissions/' + submission._id + '/review')
+          | 📝 #{(submission.teacherComment || (doc && doc.teacherComment)) ? 'Xem / sửa nhận xét' : 'Chấm & nhận xét'}
 
-    //- Nút phân tích luôn hiện cho chủ bài (dropdown chỉ hiện khi bài cho phép chọn AI)
-    .bg-white.border.rounded-lg.p-4.shadow.mb-4
-      h3.text-lg.font-semibold.mb-1 🤖 Phân tích AI
-      p.text-sm.text-gray-500.mb-3 AI chỉ ra lỗ hổng kiến thức và giải thích vì sao sai. Điểm đã do server chấm tự động, AI không đổi điểm.
-      .flex.gap-2.items-center.flex-wrap
-        if analysisAiOptions && analysisAiOptions.length
-          select#aiSelect.border.rounded.px-2.py-1
-            option(value="") — AI mặc định —
-            each o in analysisAiOptions
-              option(value=o.id)= o.label
-        button#analyzeBtn.px-4.py-2.bg-purple-600.text-white.rounded(type="button" disabled) ⏳ Đang kiểm tra…
-        span#analyzeMsg.text-sm.text-gray-500
+    //- Nhận xét của GV: lấy từ submission hoặc doc (controller có thể chỉ gắn vào một trong hai) — hiện ngay trên đầu
+    - var _tc = submission.teacherComment || (doc && doc.teacherComment) || null
+    +renderTeacherComment(_tc)
+
+    +renderQuizResult(doc, formatAiLabel, { hideAnalyses: true, hideTeacherComment: true })
+
+    //- Thanh Kiểm tra AI + nút Phân tích (nút chỉ mở khi kiểm tra AI OK và bài đã committed)
+    +quizAiPanel()
 
     a(href="/student/history").inline-block.mt-4.text-blue-600 ← Về lịch sử
 
+  //- Cứu các phân tích AI bị cắt dở (parse_failed) để QuizAiPanel vẽ đẹp như bản đủ
+  include ../partials/ai-salvage
+  - var qd = { submissionId: String(submission._id), sync: submission.syncStatus || 'none', maxAnalyses: (quizConfig && quizConfig.MAX_ANALYSES_PER_SUBMISSION) || 5, analysisCount: submission.analysisCount || 0, allowed: analysisAiOptions || [], analyses: aiNormalize(doc.aiAnalyses) }
+  script#quizDetailData(type="application/json")!= JSON.stringify(qd).replace(/</g, '\\u003c')
+  script(src="/js/quizAiPanel.js")
   script.
-    window.__QUIZ_SUBMISSION_ID__ = '#{submission._id}';
-    window.__QUIZ_STATUS__ = '#{submission.status || ""}';
-    window.__QUIZ_MAX_ANALYSES__ = #{quizConfig.MAX_ANALYSES_PER_SUBMISSION || 5};
-    window.__QUIZ_ANALYSIS_COUNT__ = #{submission.analysisCount || 0};
-
-  //- Trang này KHÔNG dùng quizTake.js (không có #quizData nên script đó thoát sớm)
-  script(src="/js/quizDetail.js")
+    (function () {
+      var d = JSON.parse(document.getElementById('quizDetailData').textContent);
+      var panel = window.QuizAiPanel && window.QuizAiPanel.create({
+        submissionId: d.submissionId,
+        allowed: d.allowed,
+        maxAnalyses: d.maxAnalyses,
+        analysisCount: d.analysisCount,
+        committed: d.sync === 'committed',
+        syncFailed: d.sync === 'failed'
+      });
+      if (!panel) return;
+      panel.renderExisting(d.analyses);
+      // Bài chưa committed (đang đồng bộ GitHub) → chờ rồi mở khoá nút
+      if (d.sync !== 'committed' && d.sync !== 'failed') {
+        (function poll(n) {
+          if (n > 25) { panel.setSyncFailed(); panel.setMessage('Bài chưa đồng bộ lên GitHub. Tải lại trang sau ít phút.', true); return; }
+          fetch('/api/quiz/submissions/' + encodeURIComponent(d.submissionId) + '/status', { cache: 'no-store', headers: { Accept: 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (x) {
+              var st = x && (x.syncStatus || x.status);
+              if (st === 'committed') return panel.setCommitted(true);
+              if (st === 'failed') { panel.setSyncFailed(); return; }
+              setTimeout(function () { poll(n + 1); }, 2500);
+            })
+            .catch(function () { setTimeout(function () { poll(n + 1); }, 4000); });
+        })(0);
+      }
+    })();

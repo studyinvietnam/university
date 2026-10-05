@@ -4,8 +4,12 @@
 const cfg = require('../config/quizConfig');
 const aiService = require('./aiService');
 const githubService = require('./githubService');
-const promptService = require('./promptService');
+const GradingPrompt = require('../models/GradingPrompt');
 const sanitizeService = require('./sanitizeService');
+
+const wrapAsData = typeof sanitizeService.wrapAsData === 'function'
+  ? sanitizeService.wrapAsData.bind(sanitizeService)
+  : (text, label) => `<<<${label}\n${String(text == null ? '' : text).replace(/<<<|>>>/g, '')}\n>>>`;
 
 const SUBMISSION_PATH_TMPL = (subjectSlug, lessonSlug, userId, ts) =>
   `submissions/${subjectSlug}/${lessonSlug}/${userId}-${ts}.json`;
@@ -142,23 +146,31 @@ function buildResultForAI(result) {
  * Lesson.promptId (kind=quiz) → Subject.quizPromptId → global default (kind=quiz) → fallback cứng
  */
 async function resolvePrompt({ lesson, subject }) {
-  const fromLesson = lesson?.promptId ? await promptService.getPromptById(lesson.promptId) : null;
-  if (fromLesson && fromLesson.active && (fromLesson.kind || 'essay') === 'quiz') return fromLesson;
-
-  const fromSubject = subject?.quizPromptId ? await promptService.getPromptById(subject.quizPromptId) : null;
-  if (fromSubject && fromSubject.active && (fromSubject.kind || 'essay') === 'quiz') return fromSubject;
-
-  const globalDefault = await promptService.getDefaultPromptByKind('quiz');
-  if (globalDefault) return globalDefault;
-
-  return null; // dùng fallback cứng
+  // Query thẳng GradingPrompt (không qua promptService: service đó chưa có hàm theo kind).
+  const isQuiz = (p) => p && p.active !== false && (p.kind || 'essay') === 'quiz';
+  try {
+    if (lesson?.promptId) {
+      const p = await GradingPrompt.findById(lesson.promptId).lean();
+      if (isQuiz(p)) return p;
+    }
+    if (subject?.quizPromptId) {
+      const p = await GradingPrompt.findById(subject.quizPromptId).lean();
+      if (isQuiz(p)) return p;
+    }
+    const def = await GradingPrompt.findOne({ kind: 'quiz', isDefault: true, active: { $ne: false } }).lean();
+    if (def) return def;
+  } catch (e) {
+    // Lỗi DB khi chọn prompt không được làm hỏng phân tích → dùng prompt cứng
+    console.warn('[quizAnalysis] resolvePrompt lỗi, dùng prompt mặc định cứng:', e.message);
+  }
+  return null; // dùng fallback cứng (cfg.DEFAULT_QUIZ_ANALYSIS_PROMPT)
 }
 
 function renderPrompt(promptDoc, { quiz, result, answers, studentName }) {
   const rawTemplate = promptDoc?.content || cfg.DEFAULT_QUIZ_ANALYSIS_PROMPT;
   const map = {
-    '{đề_trắc_nghiệm}': sanitizeService.wrapAsData(buildQuizForAI(quiz, result, answers), 'ĐỀ TRẮC NGHIỆM'),
-    '{bài_làm}': sanitizeService.wrapAsData(buildAnswerForAI(quiz, result), 'BÀI LÀM'),
+    '{đề_trắc_nghiệm}': wrapAsData(buildQuizForAI(quiz, result, answers), 'ĐỀ TRẮC NGHIỆM'),
+    '{bài_làm}': wrapAsData(buildAnswerForAI(quiz, result), 'BÀI LÀM'),
     '{kết_quả}': buildResultForAI(result),
     '{student_name}': studentName || 'sinh viên',
     '{max_score}': String(quiz.maxScore || cfg.DEFAULT_MAX_SCORE),
@@ -187,51 +199,57 @@ function safeParseAnalysis(text) {
 }
 
 /**
- * Chạy phân tích AI.
- * @returns { aiAnalyses: [...] } - trả về object mới để controller append vào GitHub
+ * Chạy phân tích AI. KHÔNG ghi GitHub — controller nhận entry rồi append vào aiAnalyses.
+ * Chữ ký khớp quiz.controller.analyze (không còn providerResolver / aiService.runQuizAnalysis,
+ * vì aiService chỉ có runAnalysisPrompt).
+ * @returns {Promise<object>} entry để append vào aiAnalyses
  */
 async function analyze({
-  quiz, result, answers, submission, studentName,
+  quiz, result, answers, studentName,
   lesson, subject, userId,
-  aiKeyId, aiProviderHint, // hint provider nếu client chọn key
-  providerResolver, // hàm (aiKeyId) => { provider, keyName, model, apiKey }
+  aiKeyId, model,
 }) {
+  if (typeof aiService.runAnalysisPrompt !== 'function') {
+    throw Object.assign(new Error('aiService.runAnalysisPrompt chưa tồn tại'), { status: 500, userMessage: 'Server chưa cấu hình hàm phân tích AI.' });
+  }
   const promptDoc = await resolvePrompt({ lesson, subject });
   const rendered = renderPrompt(promptDoc, { quiz, result, answers, studentName });
 
-  const resolved = await providerResolver(aiKeyId);
-  if (!resolved) throw new Error('Không có AI key khả dụng để phân tích.');
+  let out;
+  try {
+    out = await aiService.runAnalysisPrompt(rendered, {
+      model: model || null,
+      timeoutMs: cfg.ANALYSIS_TIMEOUT_MS || 45000,
+      preferredKeyId: aiKeyId || null,
+    });
+  } catch (e) {
+    // Lỗi quota / 401 / timeout / hết số dư → ném lỗi, KHÔNG ghi gì lên GitHub
+    const f = typeof aiService.friendlyAiError === 'function'
+      ? aiService.friendlyAiError(e, e && e.provider)
+      : { status: e.status || 502, message: e.message || 'AI lỗi, thử lại sau.' };
+    console.error('[quizAnalysis] AI lỗi:', e.message);
+    const err = new Error(e.message);
+    err.status = f.status;
+    err.userMessage = f.message;
+    throw err;
+  }
 
-  const startedAt = Date.now();
-  const callResult = await aiService.runQuizAnalysis({
-    systemPrompt: rendered,
-    provider: resolved.provider,
-    apiKey: resolved.apiKey,
-    model: resolved.model,
-    timeoutMs: cfg.ANALYSIS_TIMEOUT_MS,
-  });
-  const latencyMs = Date.now() - startedAt;
-
-  const parsed = safeParseAnalysis(callResult.text);
-
-  const entry = {
+  return {
     id: `an_${Date.now()}`,
-    aiProvider: resolved.provider,
-    aiKeyName: resolved.keyName,
-    model: resolved.model,
+    aiProvider: out.aiProvider,
+    aiKeyName: out.aiKeyName,
+    model: out.modelUsed || model || null,
     analyzedAt: new Date().toISOString(),
     triggeredBy: String(userId),
     promptId: promptDoc?._id ? String(promptDoc._id) : null,
     promptName: promptDoc?.name || 'Mặc định (fallback)',
     promptVersion: promptDoc?.version || 1,
     promptSnapshot: rendered, // lưu toàn bộ prompt đã render
-    status: parsed ? 'ok' : 'parse_failed',
-    result: parsed || null,
-    rawText: parsed ? null : String(callResult.text || '').slice(0, 5000),
-    latencyMs,
+    status: out.status,       // 'ok' | 'parse_failed'
+    result: out.result || null,
+    rawText: out.status === 'ok' ? null : String(out.rawText || '').slice(0, 5000),
+    latencyMs: out.latencyMs,
   };
-
-  return entry;
 }
 
 module.exports = {

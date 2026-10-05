@@ -48,7 +48,8 @@ const MAX_COMMENT_LENGTH = 5000;
 //   Danh sách bài nộp dùng chung URL → controller này chỉ RẼ NHÁNH, không đụng logic tự luận.
 //   Bài cũ không có `type` (lean không áp default) → coi là essay.
 const isQuizSubmission = (s) => (s?.type || 'essay') === 'quiz';
-const quizDetailUrl = (id) => `/quiz/submissions/${id}`;
+// ★ FIX: route thật trong routes/quiz.js là GET /quiz-submissions/:id (bản cũ trỏ /quiz/submissions/:id → 404)
+const quizDetailUrl = (id) => `/quiz-submissions/${id}`;
 const quizReviewUrl = (id) => `/admin/quiz-submissions/${id}/review`;
 
 // ============================================================

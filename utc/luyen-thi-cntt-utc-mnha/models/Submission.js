@@ -122,8 +122,11 @@ const submissionSchema = new mongoose.Schema(
         correctCount: { type: Number, default: null },
         totalCount: { type: Number, default: null },
 
-        // ★ Phân tích AI (quiz): dùng để giới hạn số lần + cooldown
-        analysisCount: { type: Number, default: 0 },
+        // ★ Phân tích AI (quiz): CHỈ là bộ đếm để giới hạn số lần + cooldown.
+        //   Nội dung phân tích (aiAnalyses) nằm trong JSON bài nộp trên GitHub,
+        //   KHÔNG lưu ở Mongo. Bài nộp quiz lưu kết quả trước (syncStatus='committed'),
+        //   AI phân tích chỉ APPEND thêm vào JSON sau đó.
+        analysisCount: { type: Number, default: 0, min: 0 },
         lastAnalyzedAt: { type: Date, default: null },
 
         // Trạng thái
@@ -174,7 +177,9 @@ const submissionSchema = new mongoose.Schema(
             default: null
         },
 
-        // Đồng bộ GitHub
+        // Đồng bộ GitHub (tự luận + quiz dùng chung field này).
+        //   Quiz: nộp xong ghi thẳng JSON lên GitHub rồi đặt 'committed'; lỗi thì 'failed'/'pending' (queue retry).
+        //   Nút "Phân tích AI" chỉ mở khi syncStatus === 'committed'.
         syncStatus: {
             type: String,
             enum: ['none', 'pending', 'committed', 'failed'],
@@ -202,5 +207,7 @@ const submissionSchema = new mongoose.Schema(
 
 submissionSchema.index({ userId: 1, lessonId: 1, createdAt: -1 });
 submissionSchema.index({ status: 1, createdAt: -1 });
+// ★ Quiz: tìm bài nộp của 1 sinh viên theo bài học + loại (trang kết quả, đếm lượt)
+submissionSchema.index({ userId: 1, lessonId: 1, type: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Submission', submissionSchema);

@@ -56,6 +56,19 @@ function assertConfigured() {
 }
 
 /**
+ * Giải mã nội dung file từ Contents API.
+ * File > 1MB: Contents API trả content rỗng → đọc qua Git Blob API (bài nộp quiz chứa cả đề + bài làm nên có thể lớn).
+ */
+async function decodeContent(data, path) {
+    if (data.content) return Buffer.from(data.content, 'base64').toString('utf8');
+    if (data.sha) {
+        const blob = await octokit.git.getBlob({ owner, repo, file_sha: data.sha });
+        return Buffer.from(blob.data.content, 'base64').toString('utf8');
+    }
+    throw new Error(`Không đọc được nội dung file: ${path}`);
+}
+
+/**
  * Lấy SHA của file (null nếu chưa tồn tại).
  */
 async function getFileSha(path) {
@@ -121,7 +134,7 @@ async function readJsonFile(path) {
         if (Array.isArray(res.data)) {
             throw new Error(`Path không phải file: ${path}`);
         }
-        const content = Buffer.from(res.data.content, 'base64').toString('utf8');
+        const content = await decodeContent(res.data, path);
         return JSON.parse(content);
     } catch (e) {
         if (e.status === 404) return null;
@@ -145,7 +158,7 @@ async function readJsonFileWithSha(path) {
         if (Array.isArray(res.data)) {
             throw new Error(`Path không phải file: ${path}`);
         }
-        const data = JSON.parse(Buffer.from(res.data.content, 'base64').toString('utf8'));
+        const data = JSON.parse(await decodeContent(res.data, path));
         return { data, sha: res.data.sha };
     } catch (e) {
         if (e.status === 404) return null;
@@ -224,7 +237,7 @@ async function updateJsonFile(path, updater, commitMessage = 'Update JSON') {
             throw new Error(`Path không phải file: ${path}`);
         }
 
-        const current = JSON.parse(Buffer.from(res.data.content, 'base64').toString('utf8'));
+        const current = JSON.parse(await decodeContent(res.data, path));
         const next = await updater(current);
 
         const put = await octokit.repos.createOrUpdateFileContents({
@@ -348,6 +361,12 @@ async function fileExists(path) {
     return sha !== null;
 }
 
+/**
+ * Tương thích: quiz.controller gọi invalidate(path) sau khi sửa đề.
+ * githubService KHÔNG có cache (mọi lần đọc đều gọi API) nên không cần làm gì.
+ */
+function invalidate(_path) { /* no-op */ }
+
 // ============================================================
 // PATH HELPERS — alias cho code cũ
 // ============================================================
@@ -375,6 +394,7 @@ module.exports = {
     deleteFile,
     fileExists,
     getFileSha,
+    invalidate,
 
     // Path helpers
     submissionPath,

@@ -3,8 +3,11 @@
    Dữ liệu đề lấy từ <script id="quizData"> (đã qua toStudentView: KHÔNG có đáp án).
    API dùng:
      POST /api/quiz/:lessonId/submit            { answers }
-     GET  /api/quiz/submissions/:id/status      → { success, status }   (status: 'pending' | 'committed' | 'failed')
-     POST /api/quiz/submissions/:id/analyze     { aiKeyId? } → { success, analysis, analysisCount?, limitReached? }
+     GET  /api/quiz/submissions/:id/status      → { success, status }   (status = syncStatus: 'pending' | 'committed' | 'failed')
+     Phân tích AI do /js/quizAiPanel.js đảm nhiệm (Kiểm tra AI → Phân tích):
+       GET  /api/ai/ai-status?aiKeyId=&model=
+       POST /api/quiz/submissions/:id/analyze   { aiKeyId, model }
+     Nộp bài lưu kết quả TRƯỚC; phân tích AI chỉ bổ sung thêm vào JSON bài nộp.
    ============================================================ */
 (function () {
     "use strict";
@@ -58,8 +61,7 @@
         submitting: false,
         submitted: false,
         submissionId: null,
-        analysisCount: 0,
-        analyzing: false
+        aiPanel: null
     };
 
     // ---------- DOM ----------
@@ -72,8 +74,7 @@
         submitTop: $("submitTop"), submitMain: $("submitMain"), saveBtn: $("saveBtn"), saveHint: $("saveHint"),
         statusText: $("statusText"), dot: $("connectionDot"),
         result: $("resultSection"), review: $("reviewList"),
-        listen: $("quizAudio"), listenMsg: $("listenMsg"),
-        analyzeBtn: $("analyzeBtn"), analyzeMsg: $("analyzeMsg"), aiPick: $("aiPick"), analysisList: $("analysisList")
+        listen: $("quizAudio"), listenMsg: $("listenMsg")
     };
 
     // ---------- Helpers ----------
@@ -124,7 +125,6 @@
         if (!isFinite(n)) return "0";
         return String(Math.round(n * 100) / 100);
     }
-    function providerName(p) { return /vilao/i.test(String(p || "")) ? "vilao.ai" : "Gemini"; }
 
     // ---------- Nháp (localStorage, có try/catch) ----------
     function saveDraft(showHint) {
@@ -476,6 +476,8 @@
             el.lockMsg.classList.remove("show");
             showResult(data);
             afterSubmitUi();
+            addSubmissionCard(data);
+            loadExplanations(state.submissionId, 0);
             setupAnalyze(data);
         } catch (err) {
             console.error("submitExam:", err);
@@ -615,144 +617,135 @@
     }
 
     // ============================================================
-    // PHÂN TÍCH AI
+    // LINK TỚI BÀI NỘP (đọc từ database) + BỔ SUNG GIẢI THÍCH
     // ============================================================
+    // Khung điểm + nút "Xem chi tiết" dẫn tới /quiz-submissions/:id
+    function addSubmissionCard(data) {
+        if (!state.submissionId || !el.result) return;
+        var r = data.result || data;
+        var score = r.score != null ? r.score : data.score;
+        var maxScore = r.maxScore != null ? r.maxScore : CFG.maxScore;
+        var url = "/quiz-submissions/" + encodeURIComponent(state.submissionId);
+        var box = document.createElement("div");
+        box.style.cssText = "margin:0 0 16px;padding:16px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px";
+        box.innerHTML =
+            '<div><div style="font-weight:700;color:#1e40af">✔ Đã nộp &amp; chấm xong</div>' +
+            (score != null ? '<div style="margin-top:4px;color:#1f2937">Điểm: <b>' + fmtPts(Number(score)) + "</b> / " + fmtPts(maxScore) + "</div>" : "") +
+            '<div style="margin-top:2px;font-size:.85rem;color:#64748b">Xem đáp án, giải thích chi tiết và phân tích AI ở trang bài nộp.</div></div>' +
+            '<a href="' + url + '" style="display:inline-block;padding:10px 18px;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;text-decoration:none">📄 Xem chi tiết bài nộp →</a>';
+        el.result.insertBefore(box, el.result.firstChild);
+    }
+
+    // Kết quả nộp bài (items) không kèm giải thích → lấy từ trang bài nộp trong database
+    // (/quiz-submissions/:id đã sanitize + khôi phục thẻ <b>, <i>… an toàn) rồi chèn vào từng thẻ đáp án.
+    function loadExplanations(id, tries) {
+        if (!id) return;
+        fetch("/quiz-submissions/" + encodeURIComponent(id), { cache: "no-store", credentials: "same-origin", headers: { Accept: "text/html" } })
+            .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+            .then(function (html) {
+                var doc = new DOMParser().parseFromString(html, "text/html");   // inert: không chạy script
+                function expBody(root, selfOnly) {
+                    var kids = root ? root.children : [];
+                    for (var i = 0; i < kids.length; i++) {
+                        var k = kids[i];
+                        if (k.classList.contains("qr-exp") && !k.classList.contains("qr-exp-empty")) {
+                            var b = k.querySelector(".qr-exp-body");
+                            return b ? b.innerHTML : "";
+                        }
+                    }
+                    return "";
+                }
+                var found = 0;
+                questions.forEach(function (q) {
+                    var card = document.getElementById("review-" + q.id);
+                    var src = doc.getElementById("review-" + q.id);
+                    if (!card || !src) return;
+                    found++;
+                    if (q.part === "tf") {
+                        var opts = card.querySelectorAll(".review-option");
+                        (q.statements || []).forEach(function (st, si) {
+                            var o = opts[si];
+                            var sSrc = doc.getElementById("review-" + st.id);
+                            if (!o || !sSrc || o.querySelector(".explanation")) return;
+                            var h = expBody(sSrc);
+                            if (h) o.insertAdjacentHTML("beforeend", '<div class="explanation"><strong>💡</strong><span>' + h + "</span></div>");
+                        });
+                    }
+                    if (!Array.prototype.some.call(card.children, function (c) { return c.classList.contains("explanation"); })) {
+                        var hq = expBody(src);
+                        if (hq) card.insertAdjacentHTML("beforeend", '<div class="explanation"><strong>💡 Giải thích:</strong><span>' + hq + "</span></div>");
+                    }
+                });
+                if (!found) throw new Error("chưa có dữ liệu");
+            })
+            .catch(function (err) {
+                if (tries < 3) setTimeout(function () { loadExplanations(id, tries + 1); }, 1500);
+                else console.warn("Không tải được giải thích từ bài nộp:", err);
+            });
+    }
+
+    // ============================================================
+    // PHÂN TÍCH AI — dùng QuizAiPanel (views/partials/quiz-ai-panel.pug)
+    // Nộp bài đã lưu kết quả; thanh AI chỉ dựng SAU khi nộp. Nút "Phân tích AI" mở khi
+    // ① Kiểm tra AI thành công  ② bài đã committed lên GitHub  ③ chưa quá giới hạn.
+    // ============================================================
+    function chipLabel(id) {
+        var key = String(id || "");
+        var i = indexById[key];
+        // ý của câu đúng/sai: "tf-2-b" → câu "tf-2"
+        if (i == null) i = indexById[key.replace(/-[a-z]$/i, "")];
+        return i == null ? key : "Câu " + (i + 1);
+    }
+
+    function loadAiPanelScript(cb) {
+        if (window.QuizAiPanel) return cb();
+        var s = document.createElement("script");
+        s.src = "/js/quizAiPanel.js";
+        s.onload = cb;
+        s.onerror = function () { console.error("Không tải được /js/quizAiPanel.js"); };
+        document.body.appendChild(s);
+    }
+
+    function syncOf(d) { return d && (d.syncStatus || d.status); }
+
     function setupAnalyze(data) {
-        // Dropdown AI (chỉ hiện khi bài cho phép chọn AI)
-        if (Array.isArray(CFG.analysisAis) && CFG.analysisAis.length) {
-            el.aiPick.innerHTML = '<option value="">— AI mặc định —</option>' + CFG.analysisAis.map(function (a) {
-                return '<option value="' + esc(a.id) + '">' + esc(a.label) + "</option>";
-            }).join("");
-            el.aiPick.classList.remove("hidden");
-        }
-        if (!state.submissionId) {
-            el.analyzeBtn.textContent = "Không có mã bài nộp";
-            return;
-        }
-        if (data.status === "committed") return enableAnalyze();
-        pollStatus(0);
+        if (!state.submissionId) return;
+        var sync = syncOf(data);
+        loadAiPanelScript(function () {
+            state.aiPanel = window.QuizAiPanel.create({
+                submissionId: state.submissionId,
+                allowed: Array.isArray(CFG.analysisAis) ? CFG.analysisAis : [],
+                maxAnalyses: CFG.maxAnalyses || 5,
+                analysisCount: 0,
+                committed: sync === "committed",
+                syncFailed: sync === "failed",
+                chipLabel: chipLabel
+            });
+            if (state.aiPanel && sync !== "committed" && sync !== "failed") pollStatus(0);
+        });
     }
 
-    function enableAnalyze() {
-        el.analyzeBtn.disabled = false;
-        el.analyzeBtn.textContent = state.analysisCount ? "🤖 Phân tích thêm bằng AI khác" : "🤖 Phân tích AI";
-        el.analyzeMsg.textContent = "";
-    }
-
+    // Chờ bài lên GitHub (committed) rồi mở khoá nút phân tích (giới hạn ~1 phút)
     function pollStatus(n) {
+        if (!state.aiPanel) return;
         if (n > 25) {
-            el.analyzeBtn.textContent = "⏳ Chưa lưu xong";
-            el.analyzeMsg.textContent = "Bài chưa đồng bộ lên GitHub. Tải lại trang sau ít phút để phân tích.";
+            state.aiPanel.setSyncFailed();
+            state.aiPanel.setMessage("Bài chưa đồng bộ lên GitHub. Tải lại trang sau ít phút để phân tích.", true);
             return;
         }
         fetch("/api/quiz/submissions/" + encodeURIComponent(state.submissionId) + "/status", { cache: "no-store", headers: { Accept: "application/json" } })
             .then(function (r) { return r.json(); })
             .then(function (d) {
-                if (d && d.status === "committed") return enableAnalyze();
-                if (d && d.status === "failed") {
-                    el.analyzeBtn.textContent = "❌ Lưu bài lỗi";
-                    el.analyzeMsg.textContent = "Điểm của bạn vẫn được ghi nhận. Liên hệ giảng viên nếu cần phân tích.";
+                var st = syncOf(d);
+                if (st === "committed") return state.aiPanel.setCommitted(true);
+                if (st === "failed") {
+                    state.aiPanel.setSyncFailed();
+                    state.aiPanel.setMessage("Điểm của bạn vẫn được ghi nhận. Liên hệ giảng viên nếu cần phân tích.", true);
                     return;
                 }
                 setTimeout(function () { pollStatus(n + 1); }, 2500);
             })
             .catch(function () { setTimeout(function () { pollStatus(n + 1); }, 4000); });
-    }
-
-    async function analyze() {
-        if (state.analyzing || !state.submissionId) return;
-        state.analyzing = true;
-        el.analyzeBtn.disabled = true;
-        el.analyzeBtn.textContent = "🤖 AI đang phân tích…";
-        el.analyzeMsg.textContent = "";
-        el.analyzeMsg.classList.remove("error");
-        try {
-            var body = {};
-            if (el.aiPick && !el.aiPick.classList.contains("hidden") && el.aiPick.value) body.aiKeyId = el.aiPick.value;
-            var res = await fetch("/api/quiz/submissions/" + encodeURIComponent(state.submissionId) + "/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Accept: "application/json" },
-                body: JSON.stringify(body)
-            });
-            var data;
-            try { data = await res.json(); } catch (e) { throw new Error("Server không trả JSON."); }
-            if (!res.ok || !data.success) throw new Error(data.message || "Phân tích thất bại.");
-
-            state.analysisCount = data.analysisCount != null ? data.analysisCount : state.analysisCount + 1;
-            if (data.analysis) el.analysisList.insertAdjacentHTML("afterbegin", analysisCard(data.analysis));
-            bindChips();
-            if (data.limitReached || state.analysisCount >= CFG.maxAnalyses) {
-                el.analyzeBtn.disabled = true;
-                el.analyzeBtn.textContent = "Đã đạt số lần phân tích tối đa";
-            } else {
-                enableAnalyze();
-            }
-        } catch (err) {
-            console.error("analyze:", err);
-            el.analyzeMsg.textContent = "❌ " + err.message;
-            el.analyzeMsg.classList.add("error");
-            enableAnalyze();
-        } finally {
-            state.analyzing = false;
-        }
-    }
-
-    function analysisCard(a) {
-        var label = a.aiLabel || (providerName(a.aiProvider) + (a.aiKeyName ? ": " + a.aiKeyName : ""));
-        var when = a.analyzedAt ? new Date(a.analyzedAt).toLocaleString("vi-VN") : "";
-        var head = '<div class="an-head"><strong>🤖 ' + esc(label) + "</strong><span>" +
-            esc([a.model, when].filter(Boolean).join(" · ")) + "</span></div>";
-        var prompt = a.promptName ? '<div class="an-prompt">Prompt: ' + esc(a.promptName) + (a.promptVersion ? " v" + esc(a.promptVersion) : "") + "</div>" : "";
-
-        var body;
-        if (a.status === "parse_failed" || !a.result) {
-            body = "<div>AI trả về định dạng không đọc được. Nội dung gốc:</div><pre class=\"an-raw\">" + esc(a.rawText || "(trống)") + "</pre>";
-        } else {
-            var r = a.result;
-            body = "";
-            if (r.summary) body += "<div><h4>Tổng quan</h4><div>" + esc(r.summary) + "</div></div>";
-            if (Array.isArray(r.weakTopics) && r.weakTopics.length) {
-                body += "<div><h4>Chủ đề cần ôn</h4>" + r.weakTopics.map(function (t) {
-                    return '<div class="an-topic"><b>' + esc(t.topic) + "</b>" + (t.wrongCount != null ? " — sai " + esc(t.wrongCount) + " câu" : "") +
-                        (t.advice ? "<div>" + esc(t.advice) + "</div>" : "") + chips(t.questions) + "</div>";
-                }).join("") + "</div>";
-            }
-            if (Array.isArray(r.mistakes) && r.mistakes.length) {
-                body += "<div><h4>Phân tích từng câu sai</h4>" + r.mistakes.map(function (x) {
-                    return '<div class="an-mistake">' + chips([x.id]) +
-                        (x.why ? "<div><b>Vì sao sai:</b> " + esc(x.why) + "</div>" : "") +
-                        (x.correctReasoning ? "<div><b>Cách nghĩ đúng:</b> " + esc(x.correctReasoning) + "</div>" : "") +
-                        (x.tip ? "<div><b>Mẹo:</b> " + esc(x.tip) + "</div>" : "") + "</div>";
-                }).join("") + "</div>";
-            }
-            if (Array.isArray(r.studyPlan) && r.studyPlan.length) {
-                body += "<div><h4>Kế hoạch ôn tập</h4><ol>" + r.studyPlan.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ol></div>";
-            }
-        }
-        return '<article class="an-card">' + head + '<div class="an-body">' + prompt + body + "</div></article>";
-    }
-
-    // chip "Câu N" bấm để nhảy tới câu tương ứng ở phần đáp án
-    function chips(ids) {
-        if (!Array.isArray(ids)) return "";
-        return ids.map(function (id) {
-            var i = indexById[id];
-            if (i == null) return "";
-            return '<a class="an-chip" data-goto="' + esc(id) + '">Câu ' + (i + 1) + "</a>";
-        }).join("");
-    }
-    function bindChips() {
-        el.analysisList.querySelectorAll(".an-chip:not([data-bound])").forEach(function (c) {
-            c.setAttribute("data-bound", "1");
-            c.addEventListener("click", function () {
-                var t = document.getElementById("review-" + c.getAttribute("data-goto"));
-                if (!t) return;
-                t.scrollIntoView({ behavior: "smooth", block: "center" });
-                t.classList.remove("review-flash");
-                void t.offsetWidth;
-                t.classList.add("review-flash");
-            });
-        });
     }
 
     // ============================================================
@@ -770,7 +763,6 @@
     el.submitTop.addEventListener("click", submitExam);
     el.submitMain.addEventListener("click", submitExam);
     el.saveBtn.addEventListener("click", function () { saveDraft(true); });
-    el.analyzeBtn.addEventListener("click", analyze);
     $("retryBtn").addEventListener("click", function () {
         // Mỗi lần nộp là một bài nộp mới. Nếu muốn khoá làm lại thì sửa ở server (xem README: "Cho làm lại bài?").
         clearDraft();

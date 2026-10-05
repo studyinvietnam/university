@@ -227,6 +227,73 @@ async function retryOnOverload(fn, label = "gemini") {
     throw lastErr;
 }
 
+function isTimeoutError(err) {
+    const msg = String(err?.message || "").toLowerCase();
+    return msg.includes("timeout") || msg.includes("không phản hồi sau") || msg.includes("timed out");
+}
+
+// ============================================================
+// ★ CHUYỂN MODEL DỰ PHÒNG KHI 503 / TIMEOUT (dùng cho kiểm tra kết nối + phân tích)
+// ------------------------------------------------------------
+// Thay cho retryOnOverload (chờ 3s+6s+12s trên CÙNG model đang quá tải):
+//   lần 1: model người dùng chọn → lỗi 503/timeout → thử ngay model kế trong FALLBACK_MODEL_CHAIN.
+//   - Tối đa MODEL_FALLBACK_MAX_ATTEMPTS lần và trong MODEL_FALLBACK_BUDGET_MS.
+//   - Các lần sau dùng timeout ngắn hơn (tối đa 25s) để không chờ dồn.
+//   - Key vilao.ai: không có chuỗi model Gemini → thử lại đúng 1 lần cùng model rồi báo lỗi.
+//   - Lỗi khác (quota, 401, hết số dư, chưa subscribe…) → ném ngay, để xoay key / báo lỗi như cũ.
+// fn(modelToUse, timeoutMs) → kết quả; kết quả có thêm fallbackFrom nếu phải đổi model.
+// ============================================================
+const MODEL_FALLBACK_MAX_ATTEMPTS = 3;
+const MODEL_FALLBACK_BUDGET_MS = 45000;
+
+function buildModelChain(requestedModel) {
+    const first = requestedModel || null;
+    const firstSafe = getSafeModel(requestedModel);
+    const seen = new Set([firstSafe]);
+    const chain = [first];
+    for (const m of FALLBACK_MODEL_CHAIN) {
+        if (seen.has(m)) continue;
+        if (typeof isSupportedModel === "function" && !isSupportedModel(m)) continue;
+        seen.add(m);
+        chain.push(m);
+    }
+    return chain;
+}
+
+async function callWithModelFallback(fn, { model = null, timeoutMs = 45000, label = "ai" } = {}) {
+    const chain = buildModelChain(model);
+    const t0 = Date.now();
+    let last = null;
+    let vilaoRetried = false;
+
+    for (let i = 0; i < chain.length && i < MODEL_FALLBACK_MAX_ATTEMPTS; i++) {
+        if (i > 0 && Date.now() - t0 > MODEL_FALLBACK_BUDGET_MS) break;
+        const useTimeout = i === 0 ? timeoutMs : Math.min(timeoutMs, 25000);
+        try {
+            const r = await fn(chain[i], useTimeout);
+            if (i > 0 && r && typeof r === "object") r.fallbackFrom = model || getSafeModel(null);
+            return r;
+        } catch (err) {
+            last = err;
+            const retryable = isOverloadError(err) || isTimeoutError(err);
+            if (!retryable || err.noFallback) throw err;
+
+            if (err.aiProvider === "vilao") {
+                if (vilaoRetried) throw err;
+                vilaoRetried = true;
+                console.warn(`⏳ [${label}] vilao.ai quá tải/timeout — thử lại 1 lần sau 2s...`);
+                await sleep(2000);
+                i--; // thử lại cùng model
+                continue;
+            }
+            const next = chain[i + 1];
+            console.warn(`⚠️ [${label}] model "${chain[i] || "mặc định"}" ${isTimeoutError(err) ? "timeout" : "quá tải (503)"}` +
+                (next ? ` — chuyển sang "${next}"` : " — hết model dự phòng"));
+        }
+    }
+    throw last;
+}
+
 // ============================================================
 // ★ PROMPT CHẤM BÀI CODE CNTT
 // ------------------------------------------------------------
@@ -432,12 +499,13 @@ async function callGeminiViaSDK(prompt, model, apiKeyPlain, timeoutMs = 45000) {
 
     const ai = new GoogleGenAI({ apiKey: apiKeyPlain });
 
-    const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(
+    let sdkTimer = null;
+    const timeoutPromise = new Promise((_, reject) => {
+        sdkTimer = setTimeout(
             () => reject(new Error(`Gemini SDK timeout sau ${timeoutMs}ms`)),
             timeoutMs
-        )
-    );
+        );
+    });
 
     const callPromise = (async () => {
         const response = await ai.models.generateContent({
@@ -464,7 +532,11 @@ async function callGeminiViaSDK(prompt, model, apiKeyPlain, timeoutMs = 45000) {
         return text;
     })();
 
-    return Promise.race([callPromise, timeoutPromise]);
+    try {
+        return await Promise.race([callPromise, timeoutPromise]);
+    } finally {
+        clearTimeout(sdkTimer);
+    }
 }
 
 // ============================================================
@@ -534,8 +606,9 @@ async function callGeminiGenerateContent(prompt, model, apiKeyPlain, timeoutMs =
             return text;
         } catch (err) {
             sdkError = err;
-            if (isOverloadError(err)) {
-                console.warn(`⚠️ [aiService] SDK 503 (model=${model}), thử fetch fallback...`);
+            if (isOverloadError(err) || isTimeoutError(err)) {
+                console.warn(`⚠️ [aiService] SDK ${isTimeoutError(err) ? "timeout" : "503"} (model=${model}) — bỏ qua fetch fallback (cùng máy chủ Google).`);
+                throw err;
             } else {
                 console.warn(
                     `⚠️ [aiService] SDK fail (${err.message.slice(0, 80)}), thử fetch fallback...`
@@ -716,13 +789,19 @@ async function callProvider(keyDoc, apiKeyPlain, promptText, requestedModel, tim
                 );
                 throw buildVilaoSubscribeError(err, keyDoc, modelUsed);
             }
+            if (err && typeof err === "object" && !err.aiProvider) err.aiProvider = "vilao";
             throw err;
         }
     }
 
     const modelUsed = getSafeModel(requestedModel);
-    const text = await callGeminiGenerateContent(promptText, modelUsed, apiKeyPlain, timeoutMs);
-    return { text, modelUsed, provider };
+    try {
+        const text = await callGeminiGenerateContent(promptText, modelUsed, apiKeyPlain, timeoutMs);
+        return { text, modelUsed, provider };
+    } catch (err) {
+        if (err && typeof err === "object" && !err.aiProvider) err.aiProvider = "gemini";
+        throw err;
+    }
 }
 
 function buildKeyResult(keyDoc, r) {
@@ -806,7 +885,8 @@ async function callWithKeyRotation(promptText, model, timeoutMs, preferredKeyId 
                 }
             }
         } catch (e) {
-            if (isOverloadError(e) || isProjectDenied(e) || e.noFallback) {
+            // timeout cũng ném thẳng: để callWithModelFallback đổi model, đừng xoay sang key khác rồi chờ thêm một lượt timeout
+            if (isOverloadError(e) || isTimeoutError(e) || isProjectDenied(e) || e.noFallback) {
                 throw e;
             }
             console.warn("[aiService] preferred key failed:", e.message);
@@ -1072,17 +1152,17 @@ async function testGeminiConnection(
     //   (getSafeModel làm mất tên model vilao.ai, ví dụ chib/deepseek-v4.1-flash → gemini-flash-latest).
     const selectedModel = model || null;
 
-    const result = await retryOnOverload(
-        async () => {
+    const result = await callWithModelFallback(
+        async (m, tMs) => {
             const { text, keyUsed, modelUsed, provider } = await callWithKeyRotation(
                 "Reply only with the word OK.",
-                selectedModel,
-                timeoutMs,
+                m,
+                tMs,
                 preferredKeyId
             );
             return { text, keyUsed, modelUsed, provider };
         },
-        `testConnection:${selectedModel}`
+        { model: selectedModel, timeoutMs: Math.min(timeoutMs, 20000), label: `testConnection:${selectedModel}` }
     );
 
     return {
@@ -1091,7 +1171,9 @@ async function testGeminiConnection(
         model: result.modelUsed || selectedModel,
         provider: result.provider || "gemini",
         response: (result.text || "").trim() || "OK",
-        keyUsed: result.keyUsed
+        keyUsed: result.keyUsed,
+        // có giá trị khi model chọn đang quá tải và hệ thống đã tự chuyển sang model khác
+        fallbackFrom: result.fallbackFrom || null
     };
 }
 
@@ -1126,9 +1208,9 @@ async function runAnalysisPrompt(renderedPrompt, options = {}) {
     let last = null;
 
     for (let attempt = 1; attempt <= 2; attempt++) {
-        last = await retryOnOverload(
-            () => callWithKeyRotation(renderedPrompt, model, timeoutMs, preferredKeyId),
-            `analysis:${model || "default"}`
+        last = await callWithModelFallback(
+            (m, tMs) => callWithKeyRotation(renderedPrompt, m, tMs, preferredKeyId),
+            { model, timeoutMs, label: `analysis:${model || "default"}` }
         );
 
         let parsed = null;
@@ -1165,9 +1247,51 @@ function buildAnalysisResult(status, result, rawText, callResult, t0) {
     };
 }
 
+// ============================================================
+// ★ THÔNG BÁO LỖI AI THÂN THIỆN (dùng cho phân tích trắc nghiệm)
+// ------------------------------------------------------------
+// Đổi lỗi thô của nhà cung cấp thành câu tiếng Việt cho sinh viên.
+// Trả về { status, message } — nơi gọi gắn vào err.status / err.userMessage.
+// ============================================================
+function friendlyAiError(err, provider = "gemini") {
+    const msg = String(err?.message || "").toLowerCase();
+    const name = provider === "vilao" ? "vilao.ai" : "Google AI";
+
+    if (err?.code === "VILAO_MODEL_NOT_SUBSCRIBED") {
+        return { status: 400, message: `Key vilao.ai "${err.keyName || ""}" chưa đăng ký model "${err.missingModel || ""}". Hãy chọn AI/model khác hoặc báo giảng viên.` };
+    }
+    if (isBalanceError(err) || err?.code === "AI_BALANCE_EXHAUSTED") {
+        return { status: 503, message: `Tài khoản ${name} của key này đã hết số dư. Hãy chọn AI khác hoặc báo giảng viên.` };
+    }
+    if (isQuotaError(err)) {
+        return { status: 429, message: `${name} đang hết quota/giới hạn tốc độ. Thử lại sau 1 phút hoặc chọn AI khác.` };
+    }
+    if (isOverloadError(err)) {
+        return { status: 503, message: `${name} đang quá tải. Thử lại sau 30 giây.` };
+    }
+    if (isProjectDenied(err) || msg.includes("401") || msg.includes("403") || msg.includes("invalid api key")) {
+        return { status: 502, message: `API Key ${name} không hợp lệ hoặc chưa được cấp quyền. Chọn AI khác hoặc báo giảng viên.` };
+    }
+    if (msg.includes("timeout") || msg.includes("timed out") || msg.includes("abort")) {
+        return { status: 504, message: "AI phản hồi quá lâu (timeout). Thử lại hoặc chọn AI/model khác." };
+    }
+    if (err?.noFallback && err?.message) {
+        // thông báo cấu hình do chính aiService dựng (vd key vilao.ai đang tắt) → đã là tiếng Việt cho người dùng
+        return { status: err.status || 503, message: err.message };
+    }
+    if (msg.includes("prompt quá dài")) {
+        return { status: 400, message: "Đề + bài làm quá dài để gửi cho AI." };
+    }
+    if (msg.includes("không có ai key")) {
+        return { status: 503, message: "Hiện không có AI Key nào hoạt động. Báo giảng viên." };
+    }
+    return { status: 500, message: "Phân tích thất bại, thử lại sau." };
+}
+
 module.exports = {
     // ★ Phân tích trắc nghiệm (thêm mới)
     runAnalysisPrompt,
+    friendlyAiError,
 
     // Tên mới (CNTT)
     checkSubmissionByGemini,
@@ -1202,5 +1326,7 @@ module.exports = {
     // Debug
     isBalanceError,
     isOverloadError,
+    isTimeoutError,
+    callWithModelFallback,
     retryOnOverload
 };

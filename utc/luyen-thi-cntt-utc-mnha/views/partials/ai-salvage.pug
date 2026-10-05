@@ -1,0 +1,45 @@
+//- views/partials/ai-salvage.pug
+//- Helper dùng chung: đọc kết quả phân tích AI dù JSON đủ hay bị cắt dở.
+//-   aiResolve(an)      → { r: <object kết quả>, salvaged: <bool> } | null
+//-   aiNormalize(list)  → list mới, mỗi phần tử parse_failed cứu được sẽ có `result` (status = 'salvaged')
+//- Dùng bằng:  include ../partials/ai-salvage   (đặt TRONG block/mixin, không đặt ở top-level của template extends)
+-
+  var aiTryParse = function (s) { try { return JSON.parse(s) } catch (e) { return null } }
+  var aiSalvage = function (raw) {
+    var s = String(raw || '').replace(/^\s*```(?:json)?\s*/i, '').replace(/```\s*$/, '')
+    var start = s.indexOf('{')
+    if (start < 0) return null
+    s = s.slice(start)
+    var whole = aiTryParse(s)
+    if (whole && typeof whole === 'object') return { r: whole, salvaged: false }
+    for (var i = 0; i < 500 && s.length > 1; i++) {
+      var inStr = false, esc = false, stack = []
+      for (var k = 0; k < s.length; k++) {
+        var c = s[k]
+        if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false }
+        else if (c === '"') inStr = true
+        else if (c === '{') stack.push('}')
+        else if (c === '[') stack.push(']')
+        else if (c === '}' || c === ']') stack.pop()
+      }
+      var t = (s + (inStr ? '"' : '')).replace(/[\s,:]+$/, '')
+      var out = aiTryParse(t + stack.reverse().join(''))
+      if (out && typeof out === 'object') return { r: out, salvaged: true }
+      var cut = s.lastIndexOf(',')
+      if (cut <= 0) return null
+      s = s.slice(0, cut)
+    }
+    return null
+  }
+  var aiResolve = function (an) {
+    if (an && an.result && typeof an.result === 'object') return { r: an.result, salvaged: false }
+    return aiSalvage(an && an.rawText)
+  }
+  var aiNormalize = function (list) {
+    return (list || []).map(function (an) {
+      if (!an || (an.result && typeof an.result === 'object')) return an
+      var res = aiResolve(an)
+      if (!res) return an
+      return Object.assign({}, an, { result: res.r, status: 'salvaged', salvaged: !!res.salvaged })
+    })
+  }

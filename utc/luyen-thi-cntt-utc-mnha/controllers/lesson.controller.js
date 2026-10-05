@@ -845,6 +845,11 @@ exports.showEditLesson = async (req, res, next) => {
             });
         }
 
+        // ★ TRẮC NGHIỆM: form sửa tự luận KHÔNG hiểu JSON đề quiz → chuyển sang form riêng
+        if ((lesson.type || "essay") === "quiz") {
+            return res.redirect(`/admin/quiz/${lesson._id}/edit`);
+        }
+
         // ★ contentHtml CHỈ đọc từ GitHub. Không đọc được → KHÔNG mở form
         //   (nếu mở với ô trống rồi lưu sẽ ghi đè mất đề bài trên GitHub)
         let content = null;
@@ -901,6 +906,11 @@ exports.updateLesson = async (req, res, next) => {
         const scope = await getContentScope(req); // ★ USER KEY
         if (!lesson || !scope.canAccess(lesson)) {
             return res.status(404).json({ error: "Bài học không tồn tại" });
+        }
+
+        // ★ TRẮC NGHIỆM: không cho cập nhật bằng API tự luận (sẽ ghi đè/hỏng JSON đề quiz trên GitHub)
+        if ((lesson.type || "essay") === "quiz") {
+            return res.status(400).json({ error: "Bài trắc nghiệm được sửa ở trang riêng: /admin/quiz/" + lesson._id + "/edit" });
         }
 
         if (title && title.trim() && title.trim() !== lesson.title) {

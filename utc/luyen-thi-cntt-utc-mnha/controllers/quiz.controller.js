@@ -5,8 +5,8 @@
    Student: submit, status, analyze, renderStudentDetail
    Export thêm: toStudentView(quiz) — lesson.controller dùng khi render quiz-lesson.pug
 
-   ⚠️ Mình CHƯA thấy các service của bạn, nên mọi lời gọi tới chúng nằm trong
-   khối ADAPTERS bên dưới. Đối chiếu tên hàm / kiểu trả về thật rồi sửa MỘT CHỖ đó.
+   Đã đối chiếu githubService / syncQueueService thật. Còn chờ đối chiếu: Submission model (syncStatus),
+   quizAnalysisService.analyze (đổi chữ ký ở bước sửa file service).
    ============================================================ */
 
 const Lesson = require('../models/Lesson');
@@ -67,16 +67,30 @@ const A = {
 
   formatAiLabel: (provider, keyName) => aiService.formatAiLabel(provider, keyName),
 
-  // Đẩy JSON bài nộp lên GitHub qua queue; có fallback tự retry nếu queue không có enqueue()
-  queuePush: (job) => {
-    if (typeof syncQueue.enqueue === 'function') return syncQueue.enqueue(job);
-    (async () => {
-      for (let i = 0; i < 3; i++) {
-        try { await A.ghWrite(job.path, job.content); return job.onCommitted(); }
-        catch (e) { await new Promise((r) => setTimeout(r, 1500 * (i + 1))); }
-      }
-      job.onFailed();
-    })();
+  // Đẩy JSON bài nộp lên GitHub. Trả về 'committed' | 'pending' | 'failed'.
+  // 1) Ghi TRỰC TIẾP (await) → xong là có commit ngay, không phụ thuộc queue nền
+  //    (queue in-memory dễ mất việc trên Vercel serverless vì function bị đóng băng sau khi trả response).
+  // 2) Lỗi → đẩy vào syncQueue để retry. syncQueue CHỈ nhận job dạng
+  //    { type:'putJson', filePath, data, commitMessage, onSuccess, onFinalFail }.
+  //    (Bản cũ gửi { path, content, onCommitted, onFailed } → normalizeJob trả null → KHÔNG BAO GIỜ lên GitHub.)
+  pushSubmission: async (path, data, subId) => {
+    const setSync = (v) => Submission.updateOne({ _id: subId }, { $set: { syncStatus: v } });
+    const msg = 'Quiz submission: ' + path;
+    if (!githubService.isConfigured) { await setSync('failed'); return 'failed'; }
+    try {
+      await githubService.writeJsonFile(path, data, msg);
+      await setSync('committed');
+      return 'committed';
+    } catch (e) {
+      console.error('[quiz.submit] GitHub ghi trực tiếp lỗi, chuyển sang queue:', e.message);
+      const jobId = syncQueue.enqueue({
+        type: 'putJson', filePath: path, data, commitMessage: msg,
+        onSuccess: async () => { await setSync('committed'); },
+        onFinalFail: async () => { await setSync('failed'); },
+      });
+      if (!jobId) { await setSync('failed'); return 'failed'; }
+      return 'pending';
+    }
   },
 
   notifyNewLesson: (lesson, subject) => notificationService.notifyNewLesson(lesson, subject),
@@ -124,6 +138,9 @@ function slugify(s) {
 
 const fail = (res, status, message, extra) => res.status(status).json(Object.assign({ success: false, message }, extra || {}));
 const isDefaultAdmin = (u) => !u.userKey;
+// Key "dùng được": chưa tắt, chưa revoke. Viết bằng $ne để khớp cả schema `active` lẫn `isActive`
+// (field thiếu vẫn lọt) — lesson.controller dùng isActive/isRevoked, README dùng active.
+const AI_KEY_USABLE = { active: { $ne: false }, isActive: { $ne: false }, isRevoked: { $ne: true } };
 
 // ============================================================
 // Dựng đề từ text (SERVER PARSE LẠI — không tin JSON của client)
@@ -268,7 +285,7 @@ async function formLists(actor) {
   const [subjects, prompts, aiKeys] = await Promise.all([
     Subject.find(Object.assign({ deletedAt: null, deletedForever: { $ne: true } }, scope)).sort({ name: 1 }).lean(),
     GradingPrompt.find({ kind: 'quiz', active: true }).sort({ name: 1 }).lean(),
-    isDefaultAdmin(actor) ? AIKey.find({ active: true }).sort({ name: 1 }).lean() : [],
+    isDefaultAdmin(actor) ? AIKey.find(AI_KEY_USABLE).sort({ name: 1 }).lean() : [],
   ]);
   return { subjects, prompts, aiKeys: aiKeys.map((k) => Object.assign({}, k, { provider: k.provider || 'gemini' })), canPickAIKey: isDefaultAdmin(actor) };
 }
@@ -337,7 +354,7 @@ async function readCommon(req, body) {
   let analysisAiKeyIds;
   if (isDefaultAdmin(req.user)) {
     const ids = Array.isArray(body.aiKeyIds) ? body.aiKeyIds : [];
-    analysisAiKeyIds = ids.length ? (await AIKey.find({ _id: { $in: ids }, active: true }).select('_id').lean()).map((k) => k._id) : [];
+    analysisAiKeyIds = ids.length ? (await AIKey.find(Object.assign({ _id: { $in: ids } }, AI_KEY_USABLE)).select('_id').lean()).map((k) => k._id) : [];
   }
   return { duration, title, built, promptId, analysisAiKeyIds, audioUrl: audio.url,
     contentHtml: body.contentHtml ? (A.cleanHtml(String(body.contentHtml).slice(0, 20000)) || null) : null };
@@ -447,10 +464,11 @@ exports.submit = async (req, res) => {
     const now = new Date();
     const path = `submissions/${subject.slug}/${lesson.slug}/${req.user._id}-${now.getTime()}.json`;
 
+    // status = trạng thái chấm (như tự luận: 'graded'); syncStatus = trạng thái đẩy lên GitHub
     const sub = await Submission.create({
       userId: req.user._id, lessonId: lesson._id, githubFile: path, type: 'quiz',
       score: result.score, maxScore: result.maxScore, correctCount: result.correctCount, totalCount: result.totalCount,
-      status: 'pending', submittedAt: now, gradedAt: now, analysisCount: 0, teacherComment: null,
+      status: 'graded', syncStatus: 'pending', submittedAt: now, gradedAt: now, analysisCount: 0, teacherComment: null,
     });
 
     const json = {
@@ -458,14 +476,9 @@ exports.submit = async (req, res) => {
       answers, quizSnapshot: quiz, result, gradedAt: now.toISOString(), gradedBy: 'auto',
       teacherComment: null, teacherCommentHistory: [], aiAnalyses: [],
     };
-    A.queuePush({
-      path, content: json, label: 'quiz-submission',
-      onCommitted: () => Submission.updateOne({ _id: sub._id }, { $set: { status: 'committed' } }),
-      onFailed: () => Submission.updateOne({ _id: sub._id }, { $set: { status: 'failed' } }),
-    });
+    const syncStatus = await A.pushSubmission(path, json, sub._id);
 
-    // Trả ngay (không chờ GitHub)
-    res.json({ success: true, submissionId: String(sub._id), status: 'pending', result: withExplanations(result, quiz) });
+    res.json({ success: true, submissionId: String(sub._id), status: syncStatus, syncStatus, result: withExplanations(result, quiz) });
   } catch (e) {
     console.error('[quiz.submit]', e);
     fail(res, 500, 'Lỗi máy chủ khi chấm bài.');
@@ -473,9 +486,9 @@ exports.submit = async (req, res) => {
 };
 
 exports.status = async (req, res) => {
-  const sub = await Submission.findOne({ _id: req.params.id, userId: req.user._id, type: 'quiz' }).select('status analysisCount').lean();
+  const sub = await Submission.findOne({ _id: req.params.id, userId: req.user._id, type: 'quiz' }).select('syncStatus analysisCount').lean();
   if (!sub) return fail(res, 404, 'Không tìm thấy bài nộp.');
-  res.json({ success: true, status: sub.status, analysisCount: sub.analysisCount || 0 });
+  res.json({ success: true, status: sub.syncStatus || 'pending', syncStatus: sub.syncStatus || 'pending', analysisCount: sub.analysisCount || 0 });
 };
 
 // ============================================================
@@ -490,7 +503,7 @@ exports.analyze = async (req, res) => {
   try {
     const sub = await Submission.findOne({ _id: id, userId: req.user._id, type: 'quiz' });
     if (!sub) return fail(res, 404, 'Không tìm thấy bài nộp.');
-    if (sub.status !== 'committed') return fail(res, 409, 'Bài chưa lưu xong lên GitHub, thử lại sau ít giây.');
+    if (sub.syncStatus !== 'committed') return fail(res, 409, 'Bài chưa lưu xong lên GitHub, thử lại sau ít giây.');
     if ((sub.analysisCount || 0) >= MAX_ANALYSES) return fail(res, 429, 'Đã đạt số lần phân tích tối đa.', { limitReached: true });
     if (sub.lastAnalyzedAt && Date.now() - sub.lastAnalyzedAt.getTime() < COOLDOWN_MS) {
       return fail(res, 429, `Vui lòng chờ ${Math.ceil((COOLDOWN_MS - (Date.now() - sub.lastAnalyzedAt.getTime())) / 1000)} giây rồi thử lại.`);
@@ -498,17 +511,45 @@ exports.analyze = async (req, res) => {
 
     const lesson = await Lesson.findById(sub.lessonId).lean();
     if (!lesson) return fail(res, 404, 'Bài học không còn tồn tại.');
-    // Chỉ nhận aiKeyId nằm trong danh sách cho phép của bài
-    let aiKeyId = null;
-    if (req.body && req.body.aiKeyId) {
-      const allowed = (lesson.analysisAiKeyIds || []).map(String);
-      if (!allowed.includes(String(req.body.aiKeyId))) return fail(res, 400, 'AI không được phép cho bài này.');
-      aiKeyId = req.body.aiKeyId;
+
+    // Giống tự luận: client PHẢI chọn AI + model và bấm "Kiểm tra AI" thành công rồi mới gọi API này.
+    // Server vẫn kiểm lại aiKeyId nằm trong danh sách cho phép của bài.
+    const aiKeyId = req.body && req.body.aiKeyId ? String(req.body.aiKeyId) : '';
+    if (!aiKeyId) return fail(res, 400, 'Hãy chọn AI và bấm “Kiểm tra AI” trước khi phân tích.');
+    const allowed = (lesson.analysisAiKeyIds || []).map(String);
+    if (allowed.length) {
+      // Bài có giới hạn danh sách AI → chỉ nhận key trong danh sách
+      if (!allowed.includes(aiKeyId)) return fail(res, 400, 'AI không được phép cho bài này.');
+    } else {
+      // Bài KHÔNG giới hạn (analysisAiKeyIds rỗng) → khớp panel ("rỗng = mọi key đang dùng được"):
+      // chỉ cần key có thật và đang bật. Trước đây nhánh này luôn bị từ chối vì [].includes(...) = false.
+      if (!require('mongoose').Types.ObjectId.isValid(aiKeyId)) return fail(res, 400, 'AI Key không hợp lệ.');
+      const usable = await AIKey.exists(Object.assign({ _id: aiKeyId }, AI_KEY_USABLE));
+      if (!usable) return fail(res, 400, 'AI Key không tồn tại hoặc đã bị tắt.');
     }
+    const model = req.body && typeof req.body.model === 'string' && req.body.model.trim()
+      ? req.body.model.trim().slice(0, 100) : null;
 
     const subject = await Subject.findById(lesson.subjectId).lean();
-    // Service: dựng prompt → gọi AI (timeout, retry parse) → append vào aiAnalyses trên GitHub (đọc mới nhất → gộp → ghi theo SHA)
-    const analysis = await quizAnalysis.analyze({ submission: sub, lesson, subject, student: req.user, aiKeyId });
+
+    // Đọc bài nộp từ GitHub (đề + bài làm + kết quả) để dựng prompt
+    const file = await A.ghRead(sub.githubFile);
+    if (!file || !file.data || !file.data.quizSnapshot) return fail(res, 502, 'Không đọc được bài nộp trên GitHub.');
+    const doc = file.data;
+
+    // Service: dựng prompt → gọi AI → trả về entry (KHÔNG tự ghi GitHub)
+    const entry = await quizAnalysis.analyze({
+      quiz: doc.quizSnapshot, result: doc.result, answers: doc.answers,
+      submission: sub, studentName: req.user.name,
+      lesson, subject, userId: req.user._id, aiKeyId, model,
+    });
+
+    // Ghi vào aiAnalyses: đọc bản mới nhất → thêm → ghi theo SHA (409 thì đọc lại, không mất nhận xét GV ghi cùng lúc)
+    await githubService.updateJsonFile(sub.githubFile, (cur) => {
+      cur.aiAnalyses = (Array.isArray(cur.aiAnalyses) ? cur.aiAnalyses : []).concat([entry]);
+      return cur;
+    }, 'Quiz AI analysis: ' + sub.githubFile);
+    A.ghInvalidate(sub.githubFile);
 
     // Chỉ tăng đếm sau khi GitHub đã ghi OK
     const upd = await Submission.findOneAndUpdate({ _id: sub._id },
@@ -516,7 +557,7 @@ exports.analyze = async (req, res) => {
     const count = upd.analysisCount;
     res.json({
       success: true, analysisCount: count, limitReached: count >= MAX_ANALYSES,
-      analysis: Object.assign({}, analysis, { aiLabel: A.formatAiLabel(analysis.aiProvider || 'gemini', analysis.aiKeyName) }),
+      analysis: Object.assign({}, entry, { aiLabel: A.formatAiLabel(entry.aiProvider || 'gemini', entry.aiKeyName) }),
     });
   } catch (e) {
     console.error('[quiz.analyze]', e);
@@ -542,7 +583,7 @@ exports.renderStudentDetail = async (req, res, next) => {
     const d = await loadDetail(sub);
     if (!d.lesson || !d.doc) return res.status(404).render('error', { message: 'Chưa đọc được dữ liệu bài nộp.' });
     const keyIds = d.lesson.analysisAiKeyIds || [];
-    const ais = keyIds.length ? await AIKey.find({ _id: { $in: keyIds }, active: true }).lean() : [];
+    const ais = keyIds.length ? await AIKey.find(Object.assign({ _id: { $in: keyIds } }, AI_KEY_USABLE)).lean() : [];
     res.render('student/quiz-submission-detail', {
       submission: sub, lesson: d.lesson, subject: d.subject, doc: d.doc, quizConfig,
       formatAiLabel: A.formatAiLabel,

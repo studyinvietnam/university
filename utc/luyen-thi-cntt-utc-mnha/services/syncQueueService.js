@@ -2,7 +2,8 @@
 // SYNC QUEUE - In-memory queue + retry cho GitHub sync
 // ============================================================
 // Hỗ trợ 2 signature:
-//   enqueue(job)     — job = { type, filePath, data, commitMessage, ... }
+//   enqueue(job)     — job = { type, filePath, data, commitMessage, onSuccess, onFinalFail }
+//                      (cũng nhận path/payload/content và onCommitted/onFailed)
 //   enqueueSync(job) — alias của enqueue (backward compat)
 //
 // Job types:
@@ -26,50 +27,29 @@ let _failCount = 0;
 function normalizeJob(job) {
     if (!job) return null;
 
-    // Format 1: { type, filePath, data, commitMessage }
-    if (job.filePath) {
-        return {
-            type: job.type || 'putJson',
-            filePath: job.filePath,
-            data: job.data,
-            commitMessage: job.commitMessage,
-            submissionId: job.submissionId,
-            lessonId: job.lessonId,
-            onSuccess: job.onSuccess,
-            onFinalFail: job.onFinalFail
-        };
+    const filePath = job.filePath || job.path;
+    const data = job.data !== undefined ? job.data
+        : (job.payload !== undefined ? job.payload : job.content);
+    const type = job.type || 'putJson';
+
+    // deleteFile không cần data; putJson bắt buộc có data
+    if (!filePath || (type === 'putJson' && (data === undefined || data === null))) {
+        console.warn('[syncQueue] Job không hợp lệ (thiếu filePath/path hoặc data/payload/content):',
+            { type, filePath, hasData: data !== undefined && data !== null });
+        return null;
     }
 
-    // Format 2 (cũ): { type, path, payload }
-    if (job.path && job.payload) {
-        return {
-            type: job.type || 'putJson',
-            filePath: job.path,
-            data: job.payload,
-            commitMessage: job.commitMessage || `Update ${job.path}`,
-            submissionId: job.submissionId,
-            lessonId: job.lessonId,
-            onSuccess: job.onSuccess,
-            onFinalFail: job.onFinalFail
-        };
-    }
-
-    // Format 3 (cũ): { type, path, data }
-    if (job.path && job.data) {
-        return {
-            type: job.type || 'putJson',
-            filePath: job.path,
-            data: job.data,
-            commitMessage: job.commitMessage || `Update ${job.path}`,
-            submissionId: job.submissionId,
-            lessonId: job.lessonId,
-            onSuccess: job.onSuccess,
-            onFinalFail: job.onFinalFail
-        };
-    }
-
-    console.warn('[syncQueue] Job không hợp lệ (thiếu filePath/path):', job);
-    return null;
+    return {
+        type,
+        filePath,
+        data,
+        commitMessage: job.commitMessage || `Update ${filePath}`,
+        submissionId: job.submissionId,
+        lessonId: job.lessonId,
+        // Chấp nhận cả tên callback của quiz (onCommitted/onFailed) để không còn "nuốt" job im lặng
+        onSuccess: job.onSuccess || job.onCommitted,
+        onFinalFail: job.onFinalFail || job.onFailed
+    };
 }
 
 /**

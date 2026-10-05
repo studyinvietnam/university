@@ -1,0 +1,41 @@
+//- views/partials/quiz-ai-panel.pug
+//- Thanh "Kiểm tra AI" + nút "Phân tích AI" cho trắc nghiệm (giống thanh AI của lesson.pug tự luận).
+//- Dùng: include ../partials/quiz-ai-panel   rồi gọi  +quizAiPanel()
+//- JS đi kèm: /js/quizAiPanel.js  (quizTake.js / quizDetail.js gọi QuizAiPanel.create)
+//- Nút #analyzeBtn luôn khoá cho tới khi: ① kiểm tra AI OK  ② bài đã lưu GitHub (committed)
+mixin quizAiPanel()
+  link(rel="stylesheet", href="/css/quiz-ai-panel.css")
+  .qai-wrap#aiSection
+    .qai-bar
+      .qai-bar-info
+        .qai-icon 🤖
+        div
+          .qai-title Trạng thái AI phân tích
+          .qai-label#aiLabelText
+          .qai-desc#aiDesc Chưa kiểm tra kết nối.
+
+      .qai-selectors
+        .qai-field
+          label(for="aiKeySelect") 🔑 AI Key:
+          select#aiKeySelect
+            option(value="") — Đang tải key… —
+        .qai-field
+          label(for="modelSelect") 🤖 Model:
+          select#modelSelect(disabled)
+            option(value="") — Chọn AI Key trước —
+        button#aiRandomBtn.qai-btn-outline(type="button", title="Chọn ngẫu nhiên model") 🎲
+
+      .qai-right
+        #aiStatusPill.qai-pill
+          span.dot
+          span#aiStatusText Chưa kiểm tra
+        button#aiCheckBtn.qai-btn-check(type="button") 🔄 Kiểm tra AI
+
+    .qai-action
+      h3 🤖 Phân tích AI
+      p AI chỉ ra lỗ hổng kiến thức và giải thích vì sao sai. Điểm đã do server chấm tự động, AI không đổi điểm. Cần bấm “Kiểm tra AI” thành công trước khi phân tích.
+      .qai-action-row
+        button#analyzeBtn.qai-btn-analyze(type="button", disabled) ⏳ Đang lưu bài…
+        span#analyzeMsg.qai-msg
+
+    #analysisList
