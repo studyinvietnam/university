@@ -30,11 +30,8 @@ const lessonSchema = new mongoose.Schema(
             default: ''
         },
 
-        // Nội dung đề bài (HTML)
-        contentHtml: {
-            type: String,
-            default: ''
-        },
+        // ⛔ KHÔNG có contentHtml ở đây: nội dung đề bài (HTML) CHỈ lưu & đọc ở
+        //   file JSON trên GitHub (githubFile) qua services/lessonContentService.js
 
         // Lời giải mẫu
         sampleSolution: {

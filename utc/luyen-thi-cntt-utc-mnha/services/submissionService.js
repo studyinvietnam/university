@@ -9,6 +9,7 @@ const { resolvePrompt, buildPrompt, buildSnapshot } = require('./promptService')
 const { wrapUserContent } = require('./sanitizeService');
 const { gradeSubmission } = require('./aiService');
 const githubService = require('./githubService');
+const lessonContentService = require('./lessonContentService');
 const notificationService = require('./notificationService');
 const { enqueue } = require('./syncQueueService');
 
@@ -47,6 +48,16 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
     if (!lesson) throw new Error('Lesson không tồn tại.');
 
     const subject = await Subject.findById(lesson.subjectId).lean();
+
+    // ★ contentHtml CHỈ ở GitHub: đọc đề bài TRƯỚC khi tạo Submission.
+    //   Không đọc được → ném lỗi, KHÔNG tạo Submission, KHÔNG chấm (tránh chấm với đề rỗng).
+    let lessonContent;
+    try {
+        lessonContent = await lessonContentService.getLessonContent(lesson, subject?.slug);
+    } catch (e) {
+        console.error(`[submissionService] Không đọc được đề bài từ GitHub: ${e.message}`);
+        throw new Error('Không tải được đề bài từ GitHub. Vui lòng thử nộp lại sau ít phút.');
+    }
 
     // ============================================================
     // 2. Tạo Submission TẠM trong MongoDB — giữ answerHtml tạm
@@ -87,7 +98,7 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
             );
         }
 
-        const đề_bài = lesson.contentHtml || lesson.title || '';
+        const đề_bài = lessonContent.contentHtml || lesson.title || '';
         const bài_làm = wrapUserContent('BÀI_LÀM', answerHtml || '');
         const lời_giải_mẫu = lesson.sampleSolution || '';
 
@@ -240,7 +251,7 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
                     lessonDuration: lesson.duration || 20,
 
                     // ★ ĐỀ BÀI (HTML)
-                    lessonContentHtml: lesson.contentHtml || '',
+                    lessonContentHtml: lessonContent.contentHtml || '',
 
                     // ★ LỜI GIẢI MẪU
                     lessonSampleSolution: lesson.sampleSolution || '',

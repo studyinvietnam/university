@@ -14,6 +14,7 @@ Hệ thống web cho phép sinh viên nộp bài tập trực tuyến, tự đ�
 - **Prompt chấm:** Quản lý linh hoạt trong Admin (theo môn / bài / global)
 - **Nguyên tắc chấm:** AI chấm xong là kết quả hiện ngay cho sinh viên — **không có bước giảng viên duyệt**. Giảng viên chỉ viết nhận xét thêm khi muốn (tuỳ chọn), không viết thì thôi.
 - **Hai loại bài:** **tự luận** (AI chấm, như trên) và **trắc nghiệm** (MỚI: server chấm tự động, đề + bài nộp đều JSON trên GitHub; AI chỉ **phân tích lỗ hổng kiến thức** khi sinh viên bấm nút — xem mục "Bài Trắc Nghiệm + Phân Tích AI").
+- **Nội dung đề bài (`contentHtml`) của bài học:** chỉ **lưu & đọc ở GitHub JSON**, **KHÔNG lưu trên MongoDB** — MongoDB chỉ giữ metadata của `Lesson` để database nhẹ (xem mục "Nội Dung Đề Bài `contentHtml` — Chỉ Ở GitHub").
 - **Frontend:** Pug templates + CSS (đẹp cho cả Admin & Student)
 
 ---
@@ -101,6 +102,7 @@ Subject  { _id, name, slug, githubFolder, promptId (optional), deletedAt, delete
            quizPromptId (optional) }   // quizPromptId MỚI: prompt phân tích trắc nghiệm theo môn
 Lesson   { _id, subjectId, title, slug, githubFile, promptId (optional), deletedAt, deletedForever,
            type, quizCounts, analysisAiKeyIds }   // 3 field cuối MỚI (trắc nghiệm): type 'essay'|'quiz', thiếu = essay
+           // ⛔ KHÔNG có contentHtml: đề bài chỉ nằm trong file JSON GitHub (githubFile) — xem mục "Nội Dung Đề Bài contentHtml — Chỉ Ở GitHub"
 Submission { _id, userId, lessonId, githubFile, score, gradedAt, submittedAt, promptSnapshot, teacherComment (null nếu không ai viết),
              aiProvider, aiKeyName,   // 2 field này MỚI: snapshot lúc chấm; bài cũ thiếu = Gemini
              type, maxScore, correctCount, totalCount, analysisCount, lastAnalyzedAt }   // MỚI (trắc nghiệm): type thiếu = essay
@@ -148,7 +150,7 @@ AuditLog {
     /{subject-slug}
        subject.json          ← { name, description, lessons: [...] }
        /lessons
-          {lesson-slug}.json ← { title, contentHtml, attachments, promptId? }
+          {lesson-slug}.json ← { title, contentHtml, attachments, promptId? }   ← NGUỒN DUY NHẤT của contentHtml (Mongo không lưu)
                                (bài trắc nghiệm: { type:'quiz', title, contentHtml?, quiz:{ parts:{ mcq, tf, fill } } } — xem mục Bài Trắc Nghiệm)
   /submissions
     /{subject-slug}/{lesson-slug}/{userId}-{timestamp}.json
@@ -157,11 +159,14 @@ AuditLog {
 ```
 
 > Mọi đề bài / bài nộp / kết quả AI đều **JSON**. Đề bài có thể chứa **HTML nhúng trong JSON** → frontend tự render.
+>
+> **`contentHtml` của bài học chỉ lưu & đọc ở GitHub** — MongoDB tuyệt đối không giữ bản sao (xem mục "Nội Dung Đề Bài `contentHtml` — Chỉ Ở GitHub").
 
 ### Đồng bộ GitHub ↔ MongoDB (quan trọng)
 - Ghi MongoDB trước với trạng thái `pending` → push GitHub → nếu thành công, cập nhật MongoDB thành `committed`; nếu thất bại, giữ `pending` và có job retry định kỳ.
 - Dùng **queue** (vd Bull/BullMQ + Redis, hoặc đơn giản hơn là in-memory queue nếu quy mô nhỏ) để tránh gọi GitHub API dồn dập khi nhiều sinh viên nộp bài cùng lúc — GitHub API có rate limit (~5000 req/giờ với token thường).
 - Khi update file JSON trên GitHub cần **SHA của file cũ** — xử lý race condition (lỗi 409) bằng cách lấy lại SHA mới nhất và retry.
+- **Ngoại lệ — `contentHtml` của bài học:** ghi **GitHub trước, MongoDB sau** (không dùng `pending` vì sẽ phải giữ nội dung trong Mongo). GitHub lỗi → không tạo/cập nhật `Lesson`. Chi tiết ở mục "Nội Dung Đề Bài `contentHtml` — Chỉ Ở GitHub".
 
 ---
 
@@ -1289,6 +1294,181 @@ Chỉ trả về DUY NHẤT một object JSON:
 
 ---
 
+## 🗂️ Nội Dung Đề Bài `contentHtml` — Chỉ Ở GitHub (MỚI — CẦN SỬA CODE + DỌN DATABASE)
+
+> **Mục tiêu:** `Lesson.contentHtml` (HTML đề bài, thường rất dài — nhất là bài tự luận) **chỉ được lưu và chỉ được đọc từ file JSON trên GitHub** (đường dẫn nằm ở `Lesson.githubFile`). **MongoDB KHÔNG lưu field này nữa** → collection `lessons` nhẹ, database nhỏ lại. Áp dụng cho cả bài tự luận lẫn bài trắc nghiệm (cùng model `Lesson`; đề trắc nghiệm vốn đã đọc từ GitHub nên chỉ cần đảm bảo không ghi `contentHtml` vào Mongo).
+
+### Nguyên tắc
+
+1. **Nguồn duy nhất = file JSON trên GitHub** (`/subjects/{subject-slug}/lessons/{lesson-slug}.json` → field `contentHtml`). Không có bản sao, bản nháp, hay cache bền vững nào trong MongoDB.
+2. **`Lesson` trong MongoDB chỉ giữ metadata:** `_id, subjectId, title, slug, githubFile, promptId, type, quizCounts, analysisAiKeyIds, userKey, createdBy, deletedAt, deletedForever…` — **không có `contentHtml`**.
+3. **Mọi nơi cần nội dung đề đều đọc từ GitHub qua MỘT hàm duy nhất** `lessonContentService.getLessonContent(lesson)`:
+   - trang làm bài của sinh viên (`lesson.pug`);
+   - form sửa bài của admin (đổ vào ô nhập `contentHtml`);
+   - biến `{đề_bài}` khi chấm AI (`submissionService`);
+   - Test prompt / Re-grade hàng loạt (`prompt.controller.js`);
+   - trang chi tiết / review bài nộp (hiển thị lại đề).
+4. **Tạo / sửa bài: ghi GitHub TRƯỚC, thành công mới ghi MongoDB** (metadata). GitHub lỗi → báo lỗi, **không** tạo/cập nhật `Lesson`. Đây là **ngoại lệ** của quy tắc "Mongo `pending` trước" ở mục Đồng bộ — vì trạng thái `pending` sẽ buộc phải giữ nội dung trong Mongo. Vì vậy `contentHtml` **không** đi qua queue in-memory (mất khi restart); ghi đồng bộ, gặp 409 thì đọc lại SHA mới nhất và retry.
+5. **Cache + rate limit:** cache RAM ngắn (~60s, key theo `githubFile`), **xoá cache khi admin lưu**. Nên dùng `ETag` / `If-None-Match` khi đọc GitHub (phản hồi `304` không tính vào rate limit). Không đọc GitHub lại ở mỗi lần render danh sách — danh sách bài chỉ cần metadata từ Mongo.
+6. **GitHub lỗi / không đọc được đề:**
+   - Sinh viên: hiện "Không tải được đề bài, vui lòng thử lại" (HTTP 503) và **khoá nút nộp**.
+   - Chấm AI: **không chấm, không tạo `Submission`** với đề rỗng (tránh AI chấm mà không có đề).
+7. Mongo tạo `Lesson` xong nhưng ghi GitHub lần cập nhật sau lỗi → giữ nguyên bản cũ trên GitHub, báo lỗi cho admin; **không** lưu tạm nội dung vào Mongo.
+
+### Mẫu code (đối chiếu tên hàm thật của `githubService.js` trước khi dùng)
+
+```js
+// services/lessonContentService.js  (MỚI)
+const githubService = require('./githubService');   // đã có: đọc JSON kèm SHA, ghi JSON theo SHA
+const cache = new Map();                            // githubFile -> { data, exp }
+const TTL_MS = 60_000;
+
+async function getLessonContent(lesson) {
+  if (!lesson.githubFile) throw new Error('Bài học chưa có githubFile');
+  const hit = cache.get(lesson.githubFile);
+  if (hit && hit.exp > Date.now()) return hit.data;
+  const { json } = await githubService.readJson(lesson.githubFile);   // { title, contentHtml, attachments, ... }
+  cache.set(lesson.githubFile, { data: json, exp: Date.now() + TTL_MS });
+  return json;
+}
+
+async function saveLessonContent(githubFile, json) {
+  await githubService.writeJsonWithSha(githubFile, json);             // 409 → đọc lại SHA, retry
+  cache.delete(githubFile);
+}
+
+module.exports = { getLessonContent, saveLessonContent };
+```
+
+```js
+// controllers/lesson.controller.js — tạo bài tự luận (rút gọn)
+await lessonContentService.saveLessonContent(githubFile, { title, contentHtml, attachments }); // 1) GitHub trước
+const lesson = await Lesson.create({                                                            // 2) rồi mới Mongo
+  subjectId, title, slug, githubFile, promptId, createdBy: actor._id, userKey: subject.userKey
+  // ⛔ KHÔNG có contentHtml ở đây
+});
+```
+
+```js
+// Trang làm bài của sinh viên
+const content = await lessonContentService.getLessonContent(lesson);
+res.render('student/lesson', { lesson, content });   // pug: div!= content.contentHtml
+```
+
+### Các phần phải sửa
+
+| File | Việc phải sửa |
+|---|---|
+| `models/Lesson.js` | **Xoá field `contentHtml`** khỏi schema (nếu có). Từ giờ Mongoose (strict mode) tự bỏ qua nếu code nào lỡ gán `contentHtml` |
+| `services/lessonContentService.js` | **Tạo mới** — `getLessonContent`, `saveLessonContent`, cache + xoá cache khi lưu (xem mẫu trên) |
+| `services/githubService.js` | Đảm bảo có hàm đọc JSON (kèm SHA/ETag) và ghi JSON theo SHA có retry 409 (README đã yêu cầu sẵn); chỉ bổ sung nếu thiếu |
+| `controllers/lesson.controller.js` | **create / update:** bỏ `contentHtml` khỏi `Lesson.create` / `$set`; ghi GitHub trước rồi mới ghi Mongo. **show (SV):** đọc đề bằng `getLessonContent`. **edit form (admin):** đọc từ GitHub để đổ vào ô nhập. **list:** không cần đọc nội dung. Xoá mọi `.select('+contentHtml')` / `lesson.contentHtml` |
+| `views/admin/lesson-form.pug` | Ô `contentHtml` vẫn giữ, nhưng giá trị lấy từ biến `content.contentHtml` (controller truyền từ GitHub), không phải `lesson.contentHtml` |
+| `views/student/lesson.pug` | `!= lesson.contentHtml` → `!= content.contentHtml`. Thêm khối báo lỗi "Không tải được đề bài" + khoá nút nộp khi controller báo lỗi GitHub |
+| `controllers/submission.controller.js` | Nộp bài: đọc đề từ GitHub trước khi chấm; trang chi tiết / review: truyền `content` vào view |
+| `services/submissionService.js` | Biến `{đề_bài}` lấy từ `getLessonContent(lesson).contentHtml`; không đọc được → ném lỗi, **không** tạo `Submission` |
+| `views/admin/submission_review.pug`, `views/student/submission-detail.pug` | Hiển thị đề bài từ biến `content` do controller truyền (không đọc `lesson.contentHtml`) |
+| `controllers/prompt.controller.js` | Test prompt và Re-grade hàng loạt: lấy đề từ GitHub (có cache) thay vì từ Mongo |
+| `services/syncQueueService.js` | Job tạo/sửa bài **không mang `contentHtml` vào Mongo**; bỏ đoạn ghi ngược nội dung về `Lesson` (nếu có). `contentHtml` không đi qua queue |
+| `controllers/quiz.controller.js` | Chỉ kiểm tra: mô tả chung (`contentHtml?`) của bài trắc nghiệm vẫn chỉ nằm trong JSON GitHub, không `Lesson.create/$set` field này |
+| Mọi file khác | Chạy `grep -rn "contentHtml" --include=*.js --include=*.pug .` rồi duyệt từng kết quả: chỗ **đọc** `lesson.contentHtml` từ Mongo → đổi sang GitHub; chỗ **ghi** → xoá. Chú ý cả dashboard/thống kê/export có `populate` hoặc `lean()` lấy cả `contentHtml` |
+| `README.txt` | Tài liệu này (đã cập nhật) |
+
+> ⚠️ **Thứ tự triển khai bắt buộc:** ① backup → ② deploy code mới → ③ kiểm tra GitHub đủ nội dung → ④ mới xoá `contentHtml` trong Mongo. Xoá trước khi deploy thì code cũ (vẫn đọc từ Mongo) sẽ hiện đề bài trống.
+
+### Lệnh xoá toàn bộ `contentHtml` của `lessons` trong MongoDB
+
+> Tên collection mặc định của Mongoose cho model `Lesson` là `lessons` (kiểm tra bằng `show collections`). Thay `<ten_database>` bằng tên database trong `MONGO_URI`.
+
+**Bước 1 — Backup (xoá là không hoàn tác được):**
+
+```bash
+mongodump --uri="$MONGO_URI" --collection=lessons --out=./backup-lessons-$(date +%F)
+# khôi phục nếu cần: mongorestore --uri="$MONGO_URI" --nsInclude="<ten_database>.lessons" ./backup-lessons-<ngày>
+```
+
+**Bước 2 — Deploy code mới** (các file ở bảng trên).
+
+**Bước 3 — Kiểm tra GitHub đã có đủ nội dung** (chỉ báo cáo, không sửa gì). Lưu thành `scripts/verifyLessonContent.js`, chạy `node scripts/verifyLessonContent.js`:
+
+```js
+require('dotenv').config();
+const mongoose = require('mongoose');
+const Lesson = require('../models/Lesson');
+const lessonContent = require('../services/lessonContentService');
+
+(async () => {
+  await mongoose.connect(process.env.MONGO_URI);
+  // Dùng collection gốc vì schema mới không còn contentHtml
+  const rows = await Lesson.collection
+    .find({ contentHtml: { $exists: true, $ne: '' } }, { projection: { _id: 1, title: 1, githubFile: 1 } })
+    .toArray();
+  let missing = 0;
+  for (const l of rows) {
+    try {
+      const json = await lessonContent.getLessonContent(l);
+      if (!json.contentHtml || !String(json.contentHtml).trim()) { missing++; console.log('THIẾU contentHtml trên GitHub:', l._id, l.title, l.githubFile); }
+    } catch (e) { missing++; console.log('KHÔNG ĐỌC ĐƯỢC GitHub:', l._id, l.title, l.githubFile, e.message); }
+  }
+  console.log(`Đã kiểm tra ${rows.length} bài, có vấn đề: ${missing}`);
+  await mongoose.disconnect();
+})();
+```
+
+→ Còn bài nào "THIẾU" / "KHÔNG ĐỌC ĐƯỢC": sửa file trên GitHub (hoặc chép `contentHtml` từ Mongo/backup sang GitHub) **rồi mới** sang bước 4. Bài trắc nghiệm có `contentHtml` tuỳ chọn nên có thể báo thiếu nếu GitHub để trống — xem từng bài.
+
+**Bước 4 — Đếm & ước lượng dung lượng sẽ giải phóng** (mongosh):
+
+```js
+use <ten_database>
+
+db.lessons.countDocuments({ contentHtml: { $exists: true } })
+
+db.lessons.aggregate([
+  { $match: { contentHtml: { $exists: true } } },
+  { $group: { _id: null, soBai: { $sum: 1 },
+              bytes: { $sum: { $strLenBytes: { $ifNull: ["$contentHtml", ""] } } } } }
+])
+```
+
+**Bước 5 — XOÁ `contentHtml` của tất cả lessons** (mongosh):
+
+```js
+db.lessons.updateMany(
+  { contentHtml: { $exists: true } },
+  { $unset: { contentHtml: "" } }
+)
+```
+
+Nếu muốn chạy bằng Node/Mongoose: **không dùng `Lesson.updateMany(...)`** (schema mới không còn `contentHtml` nên strict mode có thể bỏ qua `$unset`); dùng collection gốc:
+
+```js
+await Lesson.collection.updateMany({ contentHtml: { $exists: true } }, { $unset: { contentHtml: "" } });
+```
+
+**Bước 6 — Kiểm tra lại (phải ra `0`):**
+
+```js
+db.lessons.countDocuments({ contentHtml: { $exists: true } })
+```
+
+**Bước 7 — Thu hồi dung lượng đĩa (tuỳ chọn):** MongoDB giữ lại phần trống để tái sử dụng nên dung lượng hiển thị có thể chưa giảm ngay. Với MongoDB tự host có thể chạy `db.runCommand({ compact: "lessons" })` (nên làm ngoài giờ cao điểm); một số gói Atlas dùng chung có thể không cho chạy lệnh này — khi đó dung lượng vẫn được tái sử dụng bên trong.
+
+**Kiểm tra thêm (nếu code cũ từng chép đề sang nơi khác):**
+
+```js
+db.submissions.countDocuments({ contentHtml: { $exists: true } })   // nếu > 0 → xem lại có cần giữ không, hoặc $unset tương tự
+```
+
+### Việc cần đối chiếu khi triển khai
+
+- [ ] Đối chiếu tên hàm thật của `githubService` (đọc JSON, ghi theo SHA) trước khi viết `lessonContentService`.
+- [ ] Nếu admin sửa đề trực tiếp trên GitHub: cache ~60s nên SV có thể thấy bản cũ tối đa ~60s (chấp nhận được; hoặc thêm webhook GitHub để xoá cache — xem "Hướng Phát Triển").
+- [ ] Bài tạo xong ở GitHub nhưng ghi Mongo lỗi → file mồ côi trên GitHub; ghi log và cho phép tạo lại cùng `githubFile` (idempotent).
+- [ ] Mất khả năng tìm kiếm theo nội dung đề trong Mongo (không còn text trong DB) — nếu cần tìm, tìm theo `title`.
+
+---
+
 ## 🛠️ Trang Admin (Tổng quan)
 
 ### 1. Dashboard
@@ -1301,7 +1481,7 @@ Chỉ trả về DUY NHẤT một object JSON:
 
 ### 3. Quản lý Bài học
 - Tạo / Xem / Sửa / Xoá tạm / Xoá vĩnh viễn.
-- Đề bài nhập JSON (chứa HTML) → đẩy lên GitHub.
+- Đề bài nhập JSON (chứa HTML) → đẩy lên GitHub (**không lưu `contentHtml` vào MongoDB**; mở form sửa thì đọc lại từ GitHub).
 - Gán **prompt chấm** cho bài (dropdown, override prompt môn).
 - Tạo bài → sinh notification `new_lesson` cho student.
 - **Hai nút tạo bài**: "Tạo bài tự luận" (form cũ) và "Tạo bài trắc nghiệm" (MỚI, `quiz-form.pug`: dán text đề 3 phần, xem trước đáp án đúng, prompt mẫu nhờ AI tạo đề).
@@ -1334,7 +1514,7 @@ Chỉ trả về DUY NHẤT một object JSON:
 ## 🎓 Trang Student
 
 - 📖 Danh sách môn + bài tập.
-- ✍️ Mở bài → render HTML đề bài.
+- ✍️ Mở bài → render HTML đề bài (**đọc từ GitHub**, không đọc từ MongoDB).
 - 📤 Nộp → AI chấm (dùng prompt đã cấu hình) → lưu GitHub → hiện kết quả.
 - 📝 Bài trắc nghiệm (MỚI): nộp → server chấm ngay, hiện đáp án đúng + giải thích → lưu JSON lên GitHub → hiện nút "🤖 Phân tích AI" (xem mục Bài Trắc Nghiệm).
 - 📜 Lịch sử: bài nào, điểm, AI nhận xét, nhận xét giảng viên (nếu có), prompt đã dùng, lúc nào.
@@ -1361,7 +1541,7 @@ Chỉ trả về DUY NHẤT một object JSON:
 - **Vào GitHub** sửa file JSON tương ứng.
 - Thông báo hiển thị:
   > ❗ *"Vui lòng sửa bài trên GitHub trực tiếp. Hệ thống sẽ tự đồng bộ sau."*
-- Bài mới (chưa publish) → admin có thể sửa trên web → **embed lại code** → push GitHub.
+- Bài mới (chưa publish) → admin có thể sửa trên web → **embed lại code** → push GitHub (**ghi thẳng GitHub**, không giữ bản nháp `contentHtml` trong MongoDB; mở lại form sửa thì đọc từ GitHub).
 - **Ngoại lệ — bài trắc nghiệm:** sửa được ngay trên web (nhập lại text theo format, server parse rồi push GitHub) vì bài nộp đã giữ `quizSnapshot` nên sửa đề không đổi bài đã nộp. Xem mục Bài Trắc Nghiệm.
 
 ---
@@ -1373,6 +1553,9 @@ Student nhập bài
       │
       ▼
 Server xác định prompt (lesson → subject → global → fallback)
+      │
+      ▼
+Đọc đề bài (contentHtml) từ GitHub (cache ngắn) — không đọc được → dừng, báo lỗi, KHÔNG chấm
       │
       ▼
 Render prompt với {đề_bài}, {bài_làm} (đã sanitize), {rubric}, {max_score}...
@@ -1476,6 +1659,7 @@ project/
 │   └── userConnect.controller.js ← MỚI (danh sách / thêm theo email / xoá kết nối)
 ├── services/
 │   ├── githubService.js
+│   ├── lessonContentService.js ← MỚI (đọc/ghi contentHtml của bài học ở GitHub, cache ngắn)
 │   ├── aiService.js           ← timeout, chọn model, chấm 1 bài & so sánh nhiều model, parse an toàn
 │   ├── mailService.js
 │   ├── cryptoService.js
@@ -1581,6 +1765,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - [x] CRUD Môn (soft/hard delete)
 - [x] CRUD Bài (soft/hard delete) + notification bài mới
 - [x] Đề bài & bài nộp JSON trên GitHub
+- [ ] `Lesson.contentHtml` **chỉ ở GitHub**: bỏ field khỏi `models/Lesson.js`, tạo `lessonContentService.js`, sửa `lesson.controller` / `submission.controller` / `submissionService` / `prompt.controller` / `syncQueueService` + view liên quan, rồi chạy lệnh `$unset` xoá `contentHtml` trong MongoDB (xem mục "Nội Dung Đề Bài `contentHtml` — Chỉ Ở GitHub")
 - [x] Đồng bộ GitHub–MongoDB qua queue, có retry
 - [x] AI chấm tự động → notification `graded`
 - [x] AI: timeout, retry parse lỗi, xoay key khi hết quota
@@ -1645,7 +1830,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ## 📝 Ghi Chú
 
 - **Nội dung (đề bài, bài nộp, kết quả, promptSnapshot)** đều JSON trên GitHub → version control, rollback dễ.
-- **MongoDB lưu ID + metadata** → nhẹ, truy vấn nhanh.
+- **MongoDB lưu ID + metadata** → nhẹ, truy vấn nhanh. `Lesson` **không** chứa `contentHtml` (đề bài chỉ ở GitHub).
 - **AI key** mã hoá AES-256-GCM, master key ngoài DB, không log, có xoay vòng.
 - **Prompt chấm** hoàn toàn do admin cấu hình, có versioning → đổi độ chặt không cần code, vẫn truy vết được đã chấm bằng gì.
 - **Notification** dùng polling, tối ưu bằng cách dừng khi tab ẩn.

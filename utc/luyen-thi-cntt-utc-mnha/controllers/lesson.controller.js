@@ -8,7 +8,7 @@ const Lesson = require("../models/Lesson");
 const Submission = require("../models/Submission");
 const GradingPrompt = require("../models/GradingPrompt");
 const githubService = require("../services/githubService");
-const syncQueueService = require("../services/syncQueueService");
+const lessonContentService = require("../services/lessonContentService");
 const { resolvePrompt, findUnknownPlaceholders } = require("../services/promptService");
 const { sanitizeExplanationHtml } = require("../services/sanitizeService");
 const { getContentScope } = require("../services/userKeyService");
@@ -478,7 +478,7 @@ async function renderQuizLessonPage(req, res, lesson, subject) {
         lesson: {
             _id: lesson._id,
             title: json.title || lesson.title,
-            contentHtml: sanitizeExplanationHtml(json.contentHtml || lesson.contentHtml || ""),
+            contentHtml: sanitizeExplanationHtml(json.contentHtml || ""),
             duration: Number(lesson.duration) || 20,
             type: "quiz",
         },
@@ -516,16 +516,22 @@ async function renderLessonPage(req, res, lesson) {
         sampleSolution: "",
     };
 
+    // ★ contentHtml CHỈ đọc từ GitHub. Không đọc được → báo lỗi, KHÔNG cho làm bài với đề rỗng
     try {
-        const json = await readLessonFromGithub(filePath);
-        if (json && typeof json === "object") {
-            lessonContent = { ...lessonContent, ...json };
-        }
+        const json = await lessonContentService.getLessonContent(lesson, subject?.slug);
+        lessonContent = { ...lessonContent, ...json };
     } catch (err) {
         console.warn("[lesson] Không đọc được file GitHub:", err.message);
+        return res.status(503).render("error", {
+            title: "Chưa mở được bài",
+            message: "Không tải được đề bài. Vui lòng thử lại sau ít phút.",
+            user,
+            statusCode: 503,
+            stack: null,
+        });
     }
 
-    const finalContentHtml = lessonContent.contentHtml || lesson.contentHtml || "";
+    const finalContentHtml = lessonContent.contentHtml || "";
     const finalSampleSolution = lessonContent.sampleSolution || lesson.sampleSolution || "";
 
     const lastSubmission = await Submission.findOne({
@@ -676,6 +682,7 @@ exports.showCreateLesson = async (req, res, next) => {
             title: "Thêm Bài học",
             user: req.user,
             lesson: null,
+            content: null,
             subjects,
             prompts,
             aiKeys: withAiLabels(aiKeys),
@@ -692,7 +699,7 @@ exports.showCreateLesson = async (req, res, next) => {
 };
 
 /* ============================================================
- * 7. CREATE LESSON  ✅ ĐÃ SỬA: dùng syncQueueService.enqueue
+ * 7. CREATE LESSON  ✅ contentHtml: ghi GitHub trước, Mongo sau
  * ============================================================ */
 exports.createLesson = async (req, res, next) => {
     try {
@@ -737,56 +744,60 @@ exports.createLesson = async (req, res, next) => {
             slug = `${slug}-${Date.now().toString(36)}`;
         }
 
+        // ★ contentHtml CHỈ lưu ở GitHub → ghi GitHub TRƯỚC, thành công mới ghi MongoDB.
+        //   GitHub lỗi → KHÔNG tạo bài (không có bản nháp contentHtml trong Mongo).
+        const lessonId = new mongoose.Types.ObjectId();
+        const trimmedTitle = title.trim();
+        const resolvedGithubFile =
+            (scope.isDefaultAdmin && githubFile) || `subjects/${subject.slug}/lessons/${slug}.json`;
+        const now = new Date();
+
+        try {
+            await lessonContentService.saveLessonContent(
+                resolvedGithubFile,
+                {
+                    lessonId: String(lessonId),
+                    title: trimmedTitle,
+                    slug,
+                    description: description || "",
+                    contentHtml: contentHtml || "",
+                    sampleSolution: sampleSolution || "",
+                    duration: Number(duration) || 20,
+                    model: model ? String(model).trim() : null,
+                    isPublished: true,
+                    createdAt: now,
+                    updatedAt: now,
+                },
+                `[Lesson] Create: ${trimmedTitle}`
+            );
+        } catch (e) {
+            console.error("[lesson] Ghi GitHub lỗi, KHÔNG tạo bài:", e.message);
+            return res.status(502).json({
+                error: `Không lưu được đề bài lên GitHub nên bài chưa được tạo. Vui lòng thử lại. (${e.message})`,
+            });
+        }
+
         const lesson = await Lesson.create({
+            _id: lessonId,
             subjectId,
-            title: title.trim(),
+            title: trimmedTitle,
             slug,
             description: description || "",
-            contentHtml: contentHtml || "",
+            // ⛔ KHÔNG lưu contentHtml vào MongoDB
             sampleSolution: sampleSolution || "",
             promptId: promptId && mongoose.Types.ObjectId.isValid(promptId) ? promptId : null,
             // ★ USER KEY: userKey kế thừa từ MÔN, không nhận từ body
             userKey: subject.userKey || null,
-            // ★ USER KEY: chỉ admin default được tự đặt đường dẫn GitHub; admin user_key
-            //   luôn dùng đường dẫn tự sinh (tránh ghi đè file của tổ chức khác)
-            githubFile: (scope.isDefaultAdmin && githubFile) || `subjects/${subject.slug}/lessons/${slug}.json`,
+            githubFile: resolvedGithubFile,
             duration: Number(duration) || 20,
             // ★ USER KEY: chỉ admin default được gán AI key cho bài
             aiKeyId: scope.isDefaultAdmin && aiKeyId && mongoose.Types.ObjectId.isValid(aiKeyId) ? aiKeyId : null,
             model: model ? String(model).trim() : null,
-            createdBy: currentUserId(req),      // ★ FIX: lấy từ session an toàn
-            updatedBy: currentUserId(req),      // ★ FIX
+            createdBy: currentUserId(req),
+            updatedBy: currentUserId(req),
             isDeleted: false,
             deletedAt: null,
         });
-
-        // ★ Đẩy lên GitHub qua queue
-        try {
-            syncQueueService.enqueue({
-                type: 'putJson',
-                filePath: lesson.githubFile,
-                commitMessage: `[Lesson] Create: ${lesson.title}`,
-                lessonId: String(lesson._id),
-                data: {
-                    lessonId: String(lesson._id),
-                    title: lesson.title,
-                    slug: lesson.slug,
-                    description: lesson.description || '',
-                    contentHtml: lesson.contentHtml || '',
-                    sampleSolution: lesson.sampleSolution || '',
-                    duration: lesson.duration || 20,
-                    model: lesson.model || null,
-                    isPublished: lesson.isPublished !== false,
-                    createdAt: lesson.createdAt || new Date(),
-                    updatedAt: new Date()
-                },
-                onSuccess: async (result) => {
-                    console.log(`📤 [lesson] Đã đẩy lên GitHub: ${result.url}`);
-                }
-            });
-        } catch (e) {
-            console.warn("[lesson] Enqueue fail:", e.message);
-        }
 
         if (req.accepts("html") && !req.xhr) {
             req.flash?.("success", `Đã tạo bài "${lesson.title}"`);
@@ -834,10 +845,26 @@ exports.showEditLesson = async (req, res, next) => {
             });
         }
 
+        // ★ contentHtml CHỈ đọc từ GitHub. Không đọc được → KHÔNG mở form
+        //   (nếu mở với ô trống rồi lưu sẽ ghi đè mất đề bài trên GitHub)
+        let content = null;
+        try {
+            const subjectDoc = await Subject.findById(lesson.subjectId).select("slug").lean();
+            content = await lessonContentService.getLessonContent(lesson, subjectDoc?.slug);
+        } catch (err) {
+            console.warn("[lesson] Không đọc được đề bài từ GitHub để sửa:", err.message);
+            return res.status(503).render("error", {
+                title: "Chưa mở được form sửa",
+                message: "Không tải được đề bài từ GitHub. Vui lòng thử lại sau.",
+                user: req.user, statusCode: 503, stack: null,
+            });
+        }
+
         res.render("admin/lesson-form", {
             title: "Sửa Bài học",
             user: req.user,
             lesson,
+            content,
             subjects,
             prompts,
             aiKeys: withAiLabels(aiKeys),
@@ -854,7 +881,7 @@ exports.showEditLesson = async (req, res, next) => {
 };
 
 /* ============================================================
- * 9. UPDATE LESSON  ✅ ĐÃ SỬA: fallback githubFile + dùng enqueue
+ * 9. UPDATE LESSON  ✅ contentHtml: ghi GitHub trước, Mongo sau
  * ============================================================ */
 exports.updateLesson = async (req, res, next) => {
     try {
@@ -894,7 +921,6 @@ exports.updateLesson = async (req, res, next) => {
             lesson.userKey = newSubject.userKey || null;
         }
         if (typeof description === "string") lesson.description = description;
-        if (typeof contentHtml === "string") lesson.contentHtml = contentHtml;
         if (typeof sampleSolution === "string") lesson.sampleSolution = sampleSolution;
         // ★ USER KEY: chỉ admin default được đổi đường dẫn GitHub
         if (scope.isDefaultAdmin && typeof githubFile === "string" && githubFile) lesson.githubFile = githubFile;
@@ -923,38 +949,40 @@ exports.updateLesson = async (req, res, next) => {
         }
 
         lesson.updatedBy = currentUserId(req);  // ★ FIX: lấy từ session an toàn
-        await lesson.save();
 
-        // ★ Đẩy lên GitHub qua queue
-        try {
-            if (lesson.githubFile) {
-                syncQueueService.enqueue({
-                    type: 'putJson',
-                    filePath: lesson.githubFile,
-                    commitMessage: `[Lesson] Update: ${lesson.title}`,
-                    lessonId: String(lesson._id),
-                    data: {
-                        lessonId: String(lesson._id),
-                        title: lesson.title,
-                        slug: lesson.slug,
-                        description: lesson.description || '',
-                        contentHtml: lesson.contentHtml || '',
-                        sampleSolution: lesson.sampleSolution || '',
-                        duration: lesson.duration || 20,
-                        model: lesson.model || null,
-                        isPublished: lesson.isPublished !== false,
-                        updatedAt: new Date()
-                    },
-                    onSuccess: async (result) => {
-                        console.log(`📤 [lesson] Đã cập nhật GitHub: ${result.url}`);
-                    }
+        // ★ contentHtml CHỈ lưu ở GitHub → ghi GitHub TRƯỚC, thành công mới lưu MongoDB.
+        //   GitHub lỗi → KHÔNG lưu gì (lesson chưa .save()).
+        if (lesson.githubFile) {
+            const patch = {
+                lessonId: String(lesson._id),
+                title: lesson.title,
+                slug: lesson.slug,
+                description: lesson.description || "",
+                sampleSolution: lesson.sampleSolution || "",
+                duration: lesson.duration || 20,
+                model: lesson.model || null,
+                isPublished: lesson.isPublished !== false,
+                updatedAt: new Date(),
+            };
+            if (typeof contentHtml === "string") patch.contentHtml = contentHtml;
+
+            try {
+                await lessonContentService.saveLessonContent(
+                    lesson.githubFile,
+                    patch,
+                    `[Lesson] Update: ${lesson.title}`
+                );
+            } catch (e) {
+                console.error("[lesson] Ghi GitHub lỗi, KHÔNG lưu cập nhật:", e.message);
+                return res.status(502).json({
+                    error: `Không lưu được đề bài lên GitHub nên chưa cập nhật. Vui lòng thử lại. (${e.message})`,
                 });
-            } else {
-                console.warn(`[lesson] Bỏ qua enqueue — lesson không có githubFile`);
             }
-        } catch (e) {
-            console.warn("[lesson] Enqueue fail:", e.message);
+        } else if (typeof contentHtml === "string" && contentHtml.trim()) {
+            return res.status(400).json({ error: "Bài học chưa có githubFile nên không lưu được nội dung đề bài." });
         }
+
+        await lesson.save();
 
         if (req.accepts("html") && !req.xhr) {
             req.flash?.("success", "Đã cập nhật bài học");

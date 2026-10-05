@@ -5,6 +5,7 @@ const Subject = require('../models/Subject');
 const submissionService = require('../services/submissionService');
 const notificationService = require('../services/notificationService');
 const githubService = require('../services/githubService');
+const lessonContentService = require('../services/lessonContentService');
 
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
@@ -64,7 +65,7 @@ function wantsJson(req) {
 
 // Lấy dữ liệu nặng từ GitHub và gộp vào submission (chỉ điền chỗ Mongo còn thiếu).
 // Dùng chung cho trang chi tiết (student) và trang review (admin).
-async function hydrateFromGithub(submission, tag = 'hydrateFromGithub') {
+async function hydrateSubmissionData(submission, tag = 'hydrateFromGithub') {
     if (
         submission.syncStatus !== 'committed' ||
         !submission.githubFile ||
@@ -137,6 +138,27 @@ async function hydrateFromGithub(submission, tag = 'hydrateFromGithub') {
     return submission;
 }
 
+// ★ contentHtml của bài học KHÔNG còn ở MongoDB. Ưu tiên bản đề đã chụp trong JSON
+//   bài nộp (lessonContentHtml, do hydrateSubmissionData điền); nếu chưa có
+//   (bài chưa committed / JSON cũ) → đọc file đề bài của bài học trên GitHub.
+async function fillLessonContent(submission, tag) {
+    const lesson = submission && submission.lessonId;
+    if (!lesson || typeof lesson !== 'object' || lesson.contentHtml || !githubService.isConfigured) return;
+    try {
+        const content = await lessonContentService.getLessonContent(lesson, submission.subjectId?.slug);
+        lesson.contentHtml = content.contentHtml || '';
+    } catch (e) {
+        console.warn(`[${tag}] Không đọc được đề bài từ GitHub: ${e.message}`);
+        // Không throw → vẫn render trang, chỉ thiếu khối "Đề bài"
+    }
+}
+
+async function hydrateFromGithub(submission, tag = 'hydrateFromGithub') {
+    await hydrateSubmissionData(submission, tag);
+    await fillLessonContent(submission, tag);
+    return submission;
+}
+
 // ★ USER KEY: admin default thấy hết; admin user_key chỉ thấy bài nộp của
 //   bài học thuộc tổ chức mình. Không đủ quyền → caller trả 404 (không lộ tồn tại).
 async function adminCanSeeSubmission(req, submission) {
@@ -160,7 +182,7 @@ function renderSubmissionNotFound(res) {
 
 function loadSubmissionFull(id) {
     return Submission.findById(id)
-        .populate('lessonId', 'title description contentHtml sampleSolution subject slug duration userKey')
+        .populate('lessonId', 'title description sampleSolution subject subjectId slug duration userKey githubFile')
         .populate('subjectId', 'name code slug')
         .populate('userId', 'name email')
         .lean();
