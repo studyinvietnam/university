@@ -2,7 +2,7 @@
 // ============================================================
 // contentHtml của bài học CHỈ nằm ở file JSON trên GitHub
 // (Lesson.githubFile). MongoDB KHÔNG lưu field này.
-//   - getLessonContent(lesson, subjectSlug) : đọc từ GitHub (cache ~60s)
+//   - getLessonContent(lesson, subjectSlug, {fresh}) : đọc từ GitHub (cache ~60s; fresh=true → bỏ qua cache)
 //   - saveLessonContent(filePath, patch, msg): ghi/merge vào GitHub (đồng bộ,
 //       KHÔNG qua queue) rồi xoá cache
 // ============================================================
@@ -32,12 +32,18 @@ function lessonFilePath(lesson, subjectSlug) {
     return `subjects/${s}/lessons/${l}.json`;
 }
 
-async function getLessonContent(lesson, subjectSlug) {
+// options.fresh = true → bỏ qua cache RAM, đọc thẳng GitHub (dùng cho form sửa của admin).
+// Lý do: trên Vercel (serverless) mỗi instance có Map cache riêng, nên lưu ở instance A
+// không xoá được cache của instance B → form sửa có thể hiện bản cũ rồi ghi đè mất bản mới.
+async function getLessonContent(lesson, subjectSlug, options = {}) {
     if (!githubService.isConfigured) throw new Error('GitHub chưa được cấu hình.');
     const filePath = lessonFilePath(lesson, subjectSlug);
+    const fresh = !!(options && options.fresh);
 
-    const hit = cache.get(filePath);
-    if (hit && hit.exp > Date.now()) return hit.data;
+    if (!fresh) {
+        const hit = cache.get(filePath);
+        if (hit && hit.exp > Date.now()) return hit.data;
+    }
 
     const read = pickFn(['readJsonFile', 'getJSON']);
     if (!read) throw new Error('githubService không có method readJsonFile/getJSON');

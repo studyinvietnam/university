@@ -850,7 +850,8 @@ exports.showEditLesson = async (req, res, next) => {
         let content = null;
         try {
             const subjectDoc = await Subject.findById(lesson.subjectId).select("slug").lean();
-            content = await lessonContentService.getLessonContent(lesson, subjectDoc?.slug);
+            // ★ FIX Vercel: form sửa LUÔN đọc tươi từ GitHub (bỏ qua cache RAM theo instance)
+            content = await lessonContentService.getLessonContent(lesson, subjectDoc?.slug, { fresh: true });
         } catch (err) {
             console.warn("[lesson] Không đọc được đề bài từ GitHub để sửa:", err.message);
             return res.status(503).render("error", {
