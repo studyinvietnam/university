@@ -83,6 +83,20 @@
             .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
+    // Giải mã entity HTML (&lt;b&gt; → <b>) trước khi chèn vào DOM.
+    // Cần thiết khi server đã escape sẵn (VD: toStudentView escape c.text / explanationHtml).
+    // Chỉ giải mã 1 lớp để không phá nội dung người dùng nhập có chứa "&" hợp lệ.
+    function decodeHtml(s) {
+        if (s == null) return "";
+        return String(s)
+            .replace(/&lt;/gi, "<")
+            .replace(/&gt;/gi, ">")
+            .replace(/&quot;/gi, '"')
+            .replace(/&#0*39;/g, "'")
+            .replace(/&#x0*27;/gi, "'")
+            .replace(/&nbsp;/gi, " ")
+            .replace(/&amp;/gi, "&"); // LUÔN để cuối cùng
+    }
     function isAnswered(q) {
         var a = state.answers[q.id];
         if (q.part === "mcq") return Array.isArray(a) && a.length > 0;
@@ -102,7 +116,7 @@
     function countAnswered() { return questions.filter(isAnswered).length; }
 
     // Khung "Dữ kiện dùng chung" của câu hỏi chùm — hiện TRƯỚC câu hỏi.
-    // c.text là HTML ngắn đã được server sanitize (in đậm, in nghiêng…) nên chèn trực tiếp.
+    // c.text do server gửi (đã sanitize + escape HTML) → decode lại để <b>, <i>… hiển thị đúng.
     function clusterBox(q) {
         var c = q.cluster;
         if (!c) return "";
@@ -110,7 +124,7 @@
         var label = r ? (r[0] === r[1] ? "câu " + r[0] : "câu " + r[0] + "–" + r[1]) : "";
         return '<div class="cluster-box">' +
             '<div class="cluster-label">📖 Dữ kiện dùng chung' + (label ? " cho " + label : "") + "</div>" +
-            (c.text ? '<div class="cluster-text">' + c.text + "</div>" : "") +
+            (c.text ? '<div class="cluster-text">' + decodeHtml(c.text) + "</div>" : "") +
             (c.image ? '<img class="cluster-image" src="' + esc(c.image) + '" alt="Hình minh hoạ chùm" loading="lazy" referrerpolicy="no-referrer">' : "") +
             "</div>";
     }
@@ -592,7 +606,7 @@
                 var cls = !hasKey ? "" : (typeof mineSt !== "boolean" ? "" : (mineSt === rightTf ? " correct-option" : " wrong-option"));
                 var mineTxt = typeof mineSt === "boolean" ? (mineSt ? "Đúng" : "Sai") : "bỏ trống";
                 var rightTxt = hasKey ? (rightTf ? "Đúng" : "Sai") : "";
-                var sx = sit.explanationHtml ? '<div class="explanation"><strong>💡</strong><span>' + sit.explanationHtml + "</span></div>" : "";
+                var sx = sit.explanationHtml ? '<div class="explanation"><strong>💡</strong><span>' + decodeHtml(sit.explanationHtml) + "</span></div>" : "";
                 return '<div class="review-option' + cls + '" style="flex-wrap:wrap"><span class="option-letter">' + tfLabel(si) + "</span><span>" + esc(st.text) + "</span>" +
                     '<strong class="your-answer-tag">Bạn chọn: ' + mineTxt + "</strong>" +
                     (rightTxt ? '<strong class="answer-tag">Đáp án: ' + rightTxt + "</strong>" : "") + sx + "</div>";
@@ -605,9 +619,9 @@
                 '<div class="review-option correct-option"><span>Đáp án đúng:</span><b>' + esc(ans) + "</b></div></div>";
         }
 
-        // explanationHtml đã được server sanitize (sanitize-html) trước khi gửi xuống
+        // explanationHtml đã được server sanitize (sanitize-html) + escape → decode lại để render đúng <b>, <i>…
         var expl = it.explanationHtml
-            ? '<div class="explanation"><strong>💡 Giải thích:</strong><span>' + it.explanationHtml + "</span></div>" : "";
+            ? '<div class="explanation"><strong>💡 Giải thích:</strong><span>' + decodeHtml(it.explanationHtml) + "</span></div>" : "";
 
         return '<article class="review-card ' + (ok ? "review-correct" : "review-wrong") + '" id="review-' + esc(q.id) + '">' +
             '<div class="review-question-head"><div><span class="review-number">Câu ' + (i + 1) + " · " + PART_TITLES[q.part] + "</span><h4>" +
@@ -637,14 +651,14 @@
     }
 
     // Kết quả nộp bài (items) không kèm giải thích → lấy từ trang bài nộp trong database
-    // (/quiz-submissions/:id đã sanitize + khôi phục thẻ <b>, <i>… an toàn) rồi chèn vào từng thẻ đáp án.
+    // (/quiz-submissions/:id đã sanitize + escape HTML an toàn) rồi chèn vào từng thẻ đáp án.
     function loadExplanations(id, tries) {
         if (!id) return;
         fetch("/quiz-submissions/" + encodeURIComponent(id), { cache: "no-store", credentials: "same-origin", headers: { Accept: "text/html" } })
             .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
             .then(function (html) {
                 var doc = new DOMParser().parseFromString(html, "text/html");   // inert: không chạy script
-                function expBody(root, selfOnly) {
+                function expBody(root) {
                     var kids = root ? root.children : [];
                     for (var i = 0; i < kids.length; i++) {
                         var k = kids[i];
@@ -668,12 +682,13 @@
                             var sSrc = doc.getElementById("review-" + st.id);
                             if (!o || !sSrc || o.querySelector(".explanation")) return;
                             var h = expBody(sSrc);
-                            if (h) o.insertAdjacentHTML("beforeend", '<div class="explanation"><strong>💡</strong><span>' + h + "</span></div>");
+                            // h đã bị escape ở server → decode lại trước khi chèn
+                            if (h) o.insertAdjacentHTML("beforeend", '<div class="explanation"><strong>💡</strong><span>' + decodeHtml(h) + "</span></div>");
                         });
                     }
                     if (!Array.prototype.some.call(card.children, function (c) { return c.classList.contains("explanation"); })) {
                         var hq = expBody(src);
-                        if (hq) card.insertAdjacentHTML("beforeend", '<div class="explanation"><strong>💡 Giải thích:</strong><span>' + hq + "</span></div>");
+                        if (hq) card.insertAdjacentHTML("beforeend", '<div class="explanation"><strong>💡 Giải thích:</strong><span>' + decodeHtml(hq) + "</span></div>");
                     }
                 });
                 if (!found) throw new Error("chưa có dữ liệu");
