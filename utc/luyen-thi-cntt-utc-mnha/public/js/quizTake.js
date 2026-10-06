@@ -89,6 +89,8 @@
     function decodeHtml(s) {
         if (s == null) return "";
         return String(s)
+            // escape 2+ lớp (&amp;amp;lt; …) → về 1 lớp (&lt;) rồi mới decode, tránh hiện nguyên chữ "&lt;b&gt;"
+            .replace(/&(?:amp;)+(lt|gt|quot|#0*39|#x0*27);/gi, "&$1;")
             .replace(/&lt;/gi, "<")
             .replace(/&gt;/gi, ">")
             .replace(/&quot;/gi, '"')

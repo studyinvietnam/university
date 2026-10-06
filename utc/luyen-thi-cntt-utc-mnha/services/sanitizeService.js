@@ -102,7 +102,9 @@ try {
 
 const EXPLANATION_ALLOWED_TAGS = [
     'b', 'i', 'u', 'strong', 'em', 'br', 'p', 'ul', 'ol', 'li',
-    'code', 'pre', 'sub', 'sup', 'span', 'a'
+    'code', 'pre', 'sub', 'sup', 'span', 'a',
+    // bảng (câu hỏi chùm có bảng số liệu)
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption'
 ];
 
 function escapeHtml(text) {
@@ -120,6 +122,7 @@ function escapeHtml(text) {
  */
 function sanitizeExplanationHtml(raw, opts = {}) {
     if (raw == null || raw === '') return '';
+    // Chùm có bảng thường dài hơn 3000 ký tự → gọi với { maxLength: MAX_CLUSTER_TEXT } (hoặc dùng sanitizeClusterHtml)
     const maxLength = opts.maxLength || 3000;
     const input = String(raw).slice(0, maxLength);
 
@@ -129,7 +132,9 @@ function sanitizeExplanationHtml(raw, opts = {}) {
         allowedTags: EXPLANATION_ALLOWED_TAGS,
         allowedAttributes: {
             a: ['href', 'rel', 'target'],
-            span: [] // không cho style/class/on*
+            span: [], // không cho style/class/on*
+            th: ['colspan', 'rowspan'],
+            td: ['colspan', 'rowspan']
         },
         allowedSchemes: ['https'],
         allowedSchemesAppliedToAttributes: ['href'],
@@ -142,6 +147,14 @@ function sanitizeExplanationHtml(raw, opts = {}) {
             })
         }
     }).trim();
+}
+
+/**
+ * Làm sạch nội dung CHÙM (có thể chứa bảng, dài hơn giải thích).
+ * Cùng allowlist với giải thích (đã gồm table/thead/tbody/tr/th/td/caption).
+ */
+function sanitizeClusterHtml(raw, opts = {}) {
+    return sanitizeExplanationHtml(raw, { maxLength: opts.maxLength || 10000 });
 }
 
 /**
@@ -174,6 +187,7 @@ module.exports = {
     escapeDelimiters,
     // trắc nghiệm
     sanitizeExplanationHtml,
+    sanitizeClusterHtml,
     wrapQuizAnswers,
     escapeHtml
 };
