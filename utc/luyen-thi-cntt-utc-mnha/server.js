@@ -495,6 +495,12 @@ if (quizRoutes) {
 
 app.use("/admin", adminRoutes);
 
+// POST nhầm vào trang đích của từng vai trò (vd: form không có action, redirect 307/308).
+// Đặt SAU các router nên không đè lên route POST thật; chỉ bắt khi không route nào khớp.
+// 303 → trình duyệt đổi sang GET.
+app.post("/subjects", (req, res) => res.redirect(303, "/subjects"));            // student
+app.post("/admin/dashboard", (req, res) => res.redirect(303, "/admin/dashboard")); // admin
+
 // ============================================================
 // HELPER: Render error page
 // ============================================================
