@@ -369,46 +369,17 @@ app.get("/", (req, res, next) => {
 });
 
 // ============================================================
-// ★ TẠM THỜI: kiểm tra phiên bản đang chạy (xoá sau khi sửa xong lỗi 404 /pages)
-// Mở: https://<ten-mien>/__version
+// ★ TẠM THỜI: /__echo — xem Express thực sự nhận URL nào sau rewrite của Vercel
+// (không có dữ liệu nhạy cảm). XOÁ sau khi sửa xong lỗi 404 /pages.
 // ============================================================
-
-app.get("/__version", (req, res) => {
-    let hasPagesRoute = "unknown";
-    try {
-        const stack = (app.router && app.router.stack) || (app._router && app._router.stack) || [];
-        hasPagesRoute = stack.some((layer) => layer.route && layer.route.path === "/pages");
-    } catch (_) {}
-
+app.get("/__echo", (req, res) => {
     res.json({
-        commit: process.env.VERCEL_GIT_COMMIT_SHA || "local",
-        branch: process.env.VERCEL_GIT_COMMIT_REF || "local",
-        env: process.env.VERCEL_ENV || process.env.NODE_ENV || "development",
-        hasPagesRoute,
-        time: new Date().toISOString(),
-    });
-});
-
-// ★ TẠM THỜI: render thử pages.pug và trả lỗi thật (nếu có) dạng JSON.
-// Mở: https://<ten-mien>/__debug-pages  (xoá sau khi sửa xong)
-app.get("/__debug-pages", (req, res) => {
-    const fs = require("fs");
-    const viewsDir = app.get("views");
-    let viewFiles = "unreadable";
-    try { viewFiles = fs.readdirSync(viewsDir).slice(0, 80); } catch (e) { viewFiles = "ERR: " + e.message; }
-
-    res.render("pages", { title: "debug" }, (err, html) => {
-        res.json({
-            originalUrl: req.originalUrl,
-            sessionUser: req.session && req.session.user ? req.session.user : null,
-            viewsDir,
-            viewFiles,
-            renderOk: !err,
-            error: err
-                ? { name: err.name, message: String(err.message).slice(0, 1500) }
-                : null,
-            htmlLength: html ? html.length : 0,
-        });
+        method: req.method,
+        url: req.url,
+        originalUrl: req.originalUrl,
+        path: req.path,
+        matchedPath: req.headers["x-matched-path"] || null,
+        host: req.headers.host,
     });
 });
 
@@ -419,6 +390,8 @@ app.get("/__debug-pages", (req, res) => {
 app.get("/pages", (req, res, next) => {
     try {
         const user = req.session?.user;
+        res.set("X-Route", "pages");
+        console.log("[/pages] hit — user:", user ? `${user.role}/${user.status}` : "none");
 
         if (!user) {
             return res.redirect("/auth/login");
@@ -611,11 +584,17 @@ app.use((req, res, next) => {
         console.warn("------------------------------------------------------------");
         console.warn("404 NOT FOUND");
         console.warn("Method:", req.method);
-        console.warn("URL:", req.originalUrl);
+        console.warn("URL:", req.originalUrl, "| req.url:", req.url, "| x-matched-path:", req.headers["x-matched-path"] || "-");
         console.warn("IP:", req.ip);
         console.warn("User:", req.session?.user?.email || "Guest");
         console.warn("------------------------------------------------------------");
         console.warn("");
+
+        res.set("X-Route", "404");
+        res.set(
+            "X-Debug-404",
+            `${req.method} url=${req.url} original=${req.originalUrl} path=${req.path} matched=${req.headers["x-matched-path"] || ""}`
+        );
 
         return renderErrorPage(
             req,
