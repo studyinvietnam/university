@@ -369,29 +369,12 @@ app.get("/", (req, res, next) => {
 });
 
 // ============================================================
-// ★ TẠM THỜI: /__echo — xem Express thực sự nhận URL nào sau rewrite của Vercel
-// (không có dữ liệu nhạy cảm). XOÁ sau khi sửa xong lỗi 404 /pages.
-// ============================================================
-app.get("/__echo", (req, res) => {
-    res.json({
-        method: req.method,
-        url: req.url,
-        originalUrl: req.originalUrl,
-        path: req.path,
-        matchedPath: req.headers["x-matched-path"] || null,
-        host: req.headers.host,
-    });
-});
-
-// ============================================================
 // PENDING PAGE
 // ============================================================
 
 app.get("/pages", (req, res, next) => {
     try {
         const user = req.session?.user;
-        res.set("X-Route", "pages");
-        console.log("[/pages] hit — user:", user ? `${user.role}/${user.status}` : "none");
 
         if (!user) {
             return res.redirect("/auth/login");
@@ -416,6 +399,9 @@ app.get("/pages", (req, res, next) => {
         next(error);
     }
 });
+
+// POST /pages (vd: form không có action, hoặc redirect 307/308) → 303 để trình duyệt chuyển sang GET
+app.post("/pages", (req, res) => res.redirect(303, "/pages"));
 
 // ============================================================
 // ROUTES
@@ -584,17 +570,11 @@ app.use((req, res, next) => {
         console.warn("------------------------------------------------------------");
         console.warn("404 NOT FOUND");
         console.warn("Method:", req.method);
-        console.warn("URL:", req.originalUrl, "| req.url:", req.url, "| x-matched-path:", req.headers["x-matched-path"] || "-");
+        console.warn("URL:", req.originalUrl);
         console.warn("IP:", req.ip);
         console.warn("User:", req.session?.user?.email || "Guest");
         console.warn("------------------------------------------------------------");
         console.warn("");
-
-        res.set("X-Route", "404");
-        res.set(
-            "X-Debug-404",
-            `${req.method} url=${req.url} original=${req.originalUrl} path=${req.path} matched=${req.headers["x-matched-path"] || ""}`
-        );
 
         return renderErrorPage(
             req,
