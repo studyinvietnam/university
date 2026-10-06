@@ -238,6 +238,33 @@ app.use((req, res, next) => {
 });
 
 // ============================================================
+// ★ FLASH MESSAGE (không cần thêm package)
+// ------------------------------------------------------------
+// Trước đây req.flash KHÔNG tồn tại (không có connect-flash) nên mọi
+// `req.flash?.("success", ...)` trong controller đều bị bỏ qua âm thầm.
+// Dùng: req.flash("success", "msg") để ghi; req.flash("success") để đọc
+// (đọc xong tự xoá). Lưu trong session nên sống qua redirect.
+// PHẢI đứng SAU middleware session.
+// ============================================================
+app.use((req, res, next) => {
+    if (!req.session) return next();
+
+    req.flash = function (type, msg) {
+        if (type && msg !== undefined) {
+            req.session.flash = req.session.flash || {};
+            (req.session.flash[type] = req.session.flash[type] || []).push(msg);
+            return req.session.flash[type].length;
+        }
+        const bucket = req.session.flash && req.session.flash[type];
+        if (!bucket) return [];
+        delete req.session.flash[type];
+        return bucket;
+    };
+
+    next();
+});
+
+// ============================================================
 // REFRESH SESSION USER TỪ DB MỖI REQUEST
 // ============================================================
 

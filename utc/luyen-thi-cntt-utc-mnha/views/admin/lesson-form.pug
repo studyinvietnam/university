@@ -27,6 +27,9 @@ block content
                 else
                     | Thêm bài học
 
+            //- ★ Flash động: đỏ khi lỗi, xanh khi lưu được (điền bằng JS bên dưới)
+            div(id="formAlert", role="alert", class="hidden mb-6 p-4 rounded-xl border text-sm")
+
             form(
                 action=(lesson ? `/admin/lessons/${lesson._id}/edit` : '/admin/lessons')
                 method="POST"
@@ -330,4 +333,82 @@ block content
                 modelSelect.disabled = false;
                 if (!modelSelect.value) syncFromKey();
             }
+        })();
+
+    //- ★ Gửi form bằng fetch: chống bấm 2 lần + hiện flash đỏ/xanh, KHÔNG mất nội dung đã nhập khi lỗi
+    script.
+        (function () {
+            var form = document.getElementById('lessonForm');
+            var box = document.getElementById('formAlert');
+            if (!form || !box) return;
+
+            var GREEN = ['bg-green-50', 'border-green-200', 'text-green-800'];
+            var RED = ['bg-red-50', 'border-red-200', 'text-red-800'];
+            var isEdit = /\/edit$/.test(form.getAttribute('action') || '');
+
+            function show(type, msg) {
+                box.classList.remove.apply(box.classList, GREEN.concat(RED));
+                box.classList.add.apply(box.classList, type === 'ok' ? GREEN : RED);
+                box.textContent = (type === 'ok' ? '✅ ' : '⚠️ ') + msg;
+                box.classList.remove('hidden');
+                box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function readJson(res) {
+                return res.text().then(function (t) {
+                    var data = null;
+                    try { data = JSON.parse(t); } catch (e) {}
+                    return { res: res, data: data };
+                });
+            }
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (form.dataset.busy === '1') return; // chống bấm 2 lần
+                if (!form.checkValidity()) { form.reportValidity(); return; }
+
+                var btn = form.querySelector('button[type=submit]');
+                var oldText = btn ? btn.textContent : '';
+                form.dataset.busy = '1';
+                if (btn) { btn.disabled = true; btn.textContent = 'Đang lưu...'; }
+                box.classList.add('hidden');
+
+                function fail(msg) {
+                    form.dataset.busy = '0';
+                    if (btn) { btn.disabled = false; btn.textContent = oldText; }
+                    show('err', msg);
+                }
+
+                fetch(form.getAttribute('action'), {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest', // server trả JSON thay vì redirect
+                        'Accept': 'application/json'
+                    },
+                    body: new URLSearchParams(new FormData(form)).toString()
+                })
+                .then(readJson)
+                .then(function (r) {
+                    if (r.res.ok && r.data && r.data.ok) {
+                        if (btn) btn.textContent = 'Đã lưu ✓'; // giữ khoá nút → không tạo trùng
+                        show('ok', isEdit ? 'Đã cập nhật bài học thành công. Đang quay về danh sách...'
+                                          : 'Đã tạo bài học thành công. Đang quay về danh sách...');
+                        setTimeout(function () { window.location.href = '/admin/lessons'; }, 1200);
+                        return;
+                    }
+                    var msg = r.data && (r.data.error || r.data.message);
+                    if (!msg) {
+                        if (r.res.redirected || r.res.ok) msg = 'Phản hồi không hợp lệ (có thể phiên đăng nhập đã hết hạn). Hãy tải lại trang rồi kiểm tra danh sách bài trước khi lưu lại.';
+                        else if (r.res.status === 413) msg = 'Dữ liệu gửi lên quá lớn (413).';
+                        else if (r.res.status === 504) msg = 'Máy chủ phản hồi quá lâu (504). Kiểm tra danh sách bài trước khi lưu lại, có thể bài đã được lưu.';
+                        else msg = 'Lỗi máy chủ (' + r.res.status + ').';
+                    }
+                    fail(msg);
+                })
+                .catch(function () {
+                    fail('Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại (nội dung bạn nhập vẫn được giữ).');
+                });
+            });
         })();
