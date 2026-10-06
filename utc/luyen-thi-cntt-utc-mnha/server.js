@@ -7,7 +7,8 @@ const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
 const session = require("express-session");
-const MongoStore = require("connect-mongo").default;
+const connectMongo = require("connect-mongo");
+const MongoStore = connectMongo.default || connectMongo;
 const cors = require("cors");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
@@ -64,7 +65,8 @@ function logError(type, error, extra = {}) {
 
 process.on("uncaughtException", (error) => {
     logError("UNCAUGHT EXCEPTION", error);
-    process.exit(1);
+    // Trên Vercel không tự thoát: để platform tự quản lý vòng đời function
+    if (!process.env.VERCEL) process.exit(1);
 });
 
 process.on("unhandledRejection", (reason) => {
@@ -121,7 +123,11 @@ function connectDB() {
 
     if (!dbConnectionPromise) {
         dbConnectionPromise = mongoose
-            .connect(MONGODB_URI)
+            .connect(MONGODB_URI, {
+                serverSelectionTimeoutMS: 10000, // báo lỗi rõ ràng thay vì treo 30s
+                socketTimeoutMS: 45000,
+                maxPoolSize: 5,                  // serverless: pool nhỏ, tránh cạn kết nối Atlas
+            })
             .then(() => {
                 console.log(`[${new Date().toISOString()}] MongoDB connected`);
             })
@@ -182,32 +188,54 @@ app.use(async (req, res, next) => {
 // SESSION
 // ============================================================
 
-app.use(
-    session({
+// ★ FIX: trước đây MongoStore.create({ mongoUrl }) chạy ngay lúc load module
+//   → mở thêm 1 kết nối MongoDB riêng (và crash nếu MONGODB_URI chưa có).
+//   Giờ session chỉ được tạo SAU khi mongoose đã kết nối, và dùng lại
+//   chính client của mongoose → chỉ 1 kết nối, và tự thử lại nếu lần đầu lỗi.
+let sessionMiddleware = null;
+
+function buildSessionMiddleware() {
+    const storeOptions = {
+        collectionName: "sessions",
+        autoRemove: "native",
+    };
+
+    if (typeof mongoose.connection.getClient === "function") {
+        storeOptions.client = mongoose.connection.getClient();
+    } else {
+        storeOptions.mongoUrl = MONGODB_URI;
+    }
+
+    return session({
         secret: process.env.SESSION_SECRET || "change-this-session-secret",
         resave: false,
         saveUninitialized: false,
 
         // ★ proxy: true — tin X-Forwarded-Proto để set cookie secure đúng trên Vercel
-        //    (Vercel terminate TLS ở edge, Express chỉ biết qua header này khi trust proxy).
-        //    Thiếu → session có thể không được set trên vài edge case → mất login giữa
-        //    các request → form sửa quiz bị đá về login hoặc 403.
         proxy: true,
 
-        store: MongoStore.create({
-            mongoUrl: MONGODB_URI,
-            collectionName: "sessions",
-            autoRemove: "native",
-        }),
+        store: MongoStore.create(storeOptions),
 
         cookie: {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",          // ★ explicit — tránh edge case ở proxy
+            sameSite: "lax",
             maxAge: 1000 * 60 * 60 * 24,
         },
-    })
-);
+    });
+}
+
+app.use((req, res, next) => {
+    try {
+        if (!sessionMiddleware) {
+            sessionMiddleware = buildSessionMiddleware();
+        }
+        return sessionMiddleware(req, res, next);
+    } catch (error) {
+        sessionMiddleware = null; // thử tạo lại ở request sau
+        return next(error);
+    }
+});
 
 // ============================================================
 // REFRESH SESSION USER TỪ DB MỖI REQUEST
@@ -808,4 +836,5 @@ if (require.main === module) {
     startServer();
 }
 
+app.connectDB = connectDB;
 module.exports = app;
