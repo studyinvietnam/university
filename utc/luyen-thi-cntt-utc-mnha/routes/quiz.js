@@ -6,31 +6,86 @@ const { requireAuth } = require('../middleware/auth');
 const { requireRole, studentOrAdmin } = require('../middleware/role');
 const rateLimit = require('express-rate-limit');
 
-const submitLimit = rateLimit({ windowMs: 60 * 1000, max: 6 });
-const parseLimit  = rateLimit({ windowMs: 60 * 1000, max: 30 });
-// Phân tích AI: tối đa 6 lượt/phút/IP (cooldown + giới hạn số lần/bài do controller kiểm tra thêm)
-const analyzeLimit = rateLimit({ windowMs: 60 * 1000, max: 6 });
+// ============================================================
+// Rate limit — dùng được cả localhost lẫn Vercel
+// ------------------------------------------------------------
+// VẤN ĐỀ 1: express-rate-limit v7+ mặc định THROW ValidationError khi
+//   `trust proxy` chưa set, VÀ request có header `X-Forwarded-For` (Vercel LUÔN có).
+//
+// VẤN ĐỀ 2: express-rate-limit v7.5+ bắt custom keyGenerator trả IP phải
+//   chuẩn hoá qua helper `ipKeyGenerator` (tránh IPv6 bypass). Nếu không,
+//   throw ERR_ERL_KEY_GEN_IPV6 ngay lúc rateLimit() được gọi → crash server.
+//
+// FIX: dùng helper `ipKeyGenerator` nếu lib có; đồng thời tắt các validation
+//   ta đã tự xử lý (trustProxy / xForwardedFor / ip / keyGeneratorIpFallback).
+// ============================================================
 
-// Admin
-router.get('/admin/quiz/new',       requireAuth, requireRole('admin'), ctrl.newForm);
-router.get('/admin/quiz/:lessonId/edit', requireAuth, requireRole('admin'), ctrl.editForm);
-router.post('/admin/quiz/parse',    requireAuth, requireRole('admin'), parseLimit, ctrl.parsePreview);
-router.post('/admin/quiz',          requireAuth, requireRole('admin'), ctrl.create);
-router.post('/admin/quiz/:lessonId', requireAuth, requireRole('admin'), ctrl.update);
+// v7.5+ export ipKeyGenerator; version cũ không có → null
+const ipKeyGenerator =
+  typeof rateLimit.ipKeyGenerator === 'function' ? rateLimit.ipKeyGenerator : null;
 
-// Student
-// Trang làm bài /lessons/:lessonId/quiz do lesson.controller (renderQuizLessonPage) xử lý, không khai báo ở đây.
+function clientIp(req) {
+  // Ưu tiên IP thật từ X-Forwarded-For (Vercel/Cloudflare luôn set header này)
+  const xff = req.headers['x-forwarded-for'];
+  let ip = '';
+  if (typeof xff === 'string' && xff) {
+    ip = xff.split(',')[0].trim();
+  }
+  if (!ip) ip = req.ip || (req.socket && req.socket.remoteAddress) || '';
+  if (!ip) return 'unknown';
 
-// API (client-side)
-router.post('/api/quiz/:lessonId/submit',              requireAuth, studentOrAdmin, submitLimit, ctrl.submit);
-router.get('/api/quiz/submissions/:id/status',         requireAuth, studentOrAdmin, ctrl.status);
-router.post('/api/quiz/submissions/:id/analyze',       requireAuth, studentOrAdmin, analyzeLimit, ctrl.analyze);
+  // Nếu lib có helper → chuẩn hoá (gộp IPv6 /64 subnet tránh bypass)
+  if (ipKeyGenerator) {
+    try { return ipKeyGenerator(ip); } catch { /* fall through */ }
+  }
+  return ip;
+}
 
-// Trang chi tiết (dùng chung route /submissions/:id, controller submission sẽ rẽ nhánh)
-router.get('/quiz-submissions/:id',        requireAuth, ctrl.renderStudentDetail);
+const rlOpts = {
+  windowMs: 60 * 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: clientIp,
+  validate: {
+    // Ta tự lấy IP → tắt các validation lib tự dò để tránh false-positive
+    trustProxy: false,
+    xForwardedForHeader: false,
+    ip: false,
+    // ★ Bắt buộc: nếu không thêm dòng này, lib v7.5+ sẽ throw
+    //   ERR_ERL_KEY_GEN_IPV6 khi keyGenerator không gọi ipKeyGenerator.
+    keyGeneratorIpFallback: false,
+  },
+};
 
-// Admin review quiz
-router.get('/admin/quiz-submissions/:id/review', requireAuth, requireRole('admin'), ctrl.reviewPage);
+const submitLimit  = rateLimit({ ...rlOpts, max: 6 });
+const parseLimit   = rateLimit({ ...rlOpts, max: 30 });
+const analyzeLimit = rateLimit({ ...rlOpts, max: 6 });
+
+// ============================================================
+// ⚠️ THỨ TỰ ROUTE — cụ thể TRƯỚC, có :param SAU.
+//    /admin/quiz/parse phải đứng trước /admin/quiz/:lessonId,
+//    nếu không "parse" bị nuốt thành lessonId rồi đi vào update.
+// ============================================================
+
+// --- ADMIN: form (GET) ---
+router.get('/admin/quiz/new',             requireAuth, requireRole('admin'), ctrl.newForm);
+router.get('/admin/quiz/:lessonId/edit',  requireAuth, requireRole('admin'), ctrl.editForm);
+
+// --- ADMIN: POST (parse TRƯỚC :lessonId) ---
+router.post('/admin/quiz/parse',          requireAuth, requireRole('admin'), parseLimit, ctrl.parsePreview);
+router.post('/admin/quiz',                requireAuth, requireRole('admin'), ctrl.create);
+router.post('/admin/quiz/:lessonId',      requireAuth, requireRole('admin'), ctrl.update);
+
+// --- ADMIN: review quiz ---
+router.get ('/admin/quiz-submissions/:id/review', requireAuth, requireRole('admin'), ctrl.reviewPage);
 router.post('/admin/quiz-submissions/:id/review', requireAuth, requireRole('admin'), ctrl.saveQuizTeacherComment);
+
+// --- STUDENT: API ---
+router.post('/api/quiz/:lessonId/submit',           requireAuth, studentOrAdmin, submitLimit, ctrl.submit);
+router.get ('/api/quiz/submissions/:id/status',     requireAuth, studentOrAdmin, ctrl.status);
+router.post('/api/quiz/submissions/:id/analyze',    requireAuth, studentOrAdmin, analyzeLimit, ctrl.analyze);
+
+// --- Trang chi tiết (student) ---
+router.get('/quiz-submissions/:id',       requireAuth, ctrl.renderStudentDetail);
 
 module.exports = router;

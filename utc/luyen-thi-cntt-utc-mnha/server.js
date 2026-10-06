@@ -157,8 +157,13 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(cookieParser());
 
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+// ★ 2mb quá nhỏ: form quiz gửi rawTexts {mcq,tf,fill} tối đa 200k ký tự/phần
+//    + parts (bản parse) + contentHtml (20k) + tiếng Việt 3 byte/ký tự UTF-8
+//    → dễ vượt 2MB → 413 → client thấy "không lưu được".
+//    Vercel cap request body ở 4.5MB ở tầng edge; đặt 10mb để server không
+//    tự chặn trước (local vẫn dùng được), Vercel sẽ trả 413 riêng nếu >4.5MB.
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 // ★ FIX: đợi MongoDB sẵn sàng trước khi vào route — quan trọng cho lần
@@ -183,6 +188,12 @@ app.use(
         resave: false,
         saveUninitialized: false,
 
+        // ★ proxy: true — tin X-Forwarded-Proto để set cookie secure đúng trên Vercel
+        //    (Vercel terminate TLS ở edge, Express chỉ biết qua header này khi trust proxy).
+        //    Thiếu → session có thể không được set trên vài edge case → mất login giữa
+        //    các request → form sửa quiz bị đá về login hoặc 403.
+        proxy: true,
+
         store: MongoStore.create({
             mongoUrl: MONGODB_URI,
             collectionName: "sessions",
@@ -192,6 +203,7 @@ app.use(
         cookie: {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",          // ★ explicit — tránh edge case ở proxy
             maxAge: 1000 * 60 * 60 * 24,
         },
     })

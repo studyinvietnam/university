@@ -39,7 +39,6 @@
             .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    // ---------- Số thập phân: chấp nhận cả "0.25" lẫn "0,25" ----------
     function toNum(v, def) {
         var s = String(v == null ? "" : v).trim().replace(",", ".");
         if (s === "") return def;
@@ -61,8 +60,6 @@
         return "";
     }
 
-    // ---------- Audio: nhận link raw GitHub (hoặc github.com/.../blob|raw/...) → trả link raw ----------
-    // Mirror services/quizAudioService.js (server kiểm tra lại, đây chỉ để báo lỗi sớm + nghe thử).
     function normalizeAudio(input) {
         var s = String(input || "").trim();
         if (!s) return { url: "" };
@@ -87,7 +84,7 @@
         warn.textContent = r.error || "";
         warn.hidden = !r.error;
         if (r.url && !r.error) {
-            if (rewrite && inp.value.trim() !== r.url) inp.value = r.url;   // hiện luôn link raw đã chuẩn hoá
+            if (rewrite && inp.value.trim() !== r.url) inp.value = r.url;
             if (prev.getAttribute("src") !== r.url) prev.src = r.url;
             prev.hidden = false;
         } else {
@@ -104,7 +101,6 @@
         return null;
     }
 
-    // ---------- Phần Đúng/Sai: mỗi câu có NHIỀU Ý (+) … => Đúng/Sai … ++) giải thích) ----------
     function parseTf(text) {
         var errors = [], questions = [];
         var t = String(text || "").replace(/\r/g, "").trim();
@@ -201,7 +197,6 @@
                 openCl = null;
                 questions.push(cur); open = "text"; return;
             }
-            // ----- Câu hỏi chùm: "*)/từ-đến/ nội dung" (chỉ phần 1 và 3) -----
             if (!escaped && s.indexOf("*)") === 0) {
                 var cm = /^\*\)\s*\/\s*(\d+)\s*-\s*(\d+)\s*\/\s*(.*)$/.exec(s);
                 open = null; openCl = null; cur = null;
@@ -214,7 +209,6 @@
                 openCl = { from: cFrom, to: cTo, text: cm[3].trim(), image: "", line: L.n, imgLine: 0, bad: cBad };
                 clDecl.push(openCl); return;
             }
-            // đang gom nội dung chùm (chưa gặp "- câu hỏi" đầu tiên của chùm)
             if (openCl && !cur) {
                 if (!escaped && /^(\+\+\)|\+\)|=>)/.test(s)) return err(L.n, "Dòng này nằm trong nội dung chùm; “+)”, “=>”, “++)” chỉ dùng sau dòng “- câu hỏi”.");
                 if (!escaped && /^https?:\/\/\S+$/.test(s)) {
@@ -242,7 +236,6 @@
                 }
                 cur.image = s; cur.imgLine = L.n; open = null; return;
             }
-            // dòng thường
             if (!cur) { if (part === "fill") { note.push(s); return; } return err(L.n, "Dòng nằm ngoài câu hỏi."); }
             if (open === "text") cur.text += "\n" + s;
             else if (open === "expl") cur.explanation += "\n" + s;
@@ -301,7 +294,6 @@
             }
             out.push(item);
         });
-        // Chùm: câu đầu chùm giữ nội dung (q.cluster), các câu sau đánh dấu joinPrev
         clDecl.forEach(function (c) {
             if (c.bad) return;
             var tag = "Chùm /" + c.from + "-" + c.to + "/";
@@ -323,7 +315,7 @@
     function serializePart(part, list) {
         return list.map(function (q, i) {
             var o = [];
-            if (part !== "tf" && q.cluster) {   // đầu chùm: *)/từ-đến/ nội dung (+ ảnh chùm)
+            if (part !== "tf" && q.cluster) {
                 var to = i + 1;
                 while (to < list.length && list[to].joinPrev) to++;
                 var ctext = String(q.cluster.text || "").trim();
@@ -390,7 +382,6 @@
             '<img class="qc-imgprev" referrerpolicy="no-referrer" alt=""' + (okImg ? ' src="' + esc(q.image) + '"' : " hidden") + "></div>";
     }
 
-    // Câu hỏi chùm (chỉ phần 1 và 3): khung nội dung chùm ở câu đầu chùm, các câu sau "thuộc chùm ở trên"
     function clusterBlock(part, q, i) {
         if (part === "tf") return "";
         var list = state[part], prev = i > 0 ? list[i - 1] : null;
@@ -486,9 +477,6 @@
             : "Chưa có câu hỏi";
     }
 
-    // ============================================================
-    // THÔNG BÁO
-    // ============================================================
     function showErrors(list) {
         var box = $("qfErrors");
         if (!list || !list.length) { box.hidden = true; box.innerHTML = ""; return; }
@@ -505,9 +493,6 @@
         box.hidden = !msg;
     }
 
-    // ============================================================
-    // SỰ KIỆN TRÊN THẺ (uỷ quyền)
-    // ============================================================
     function ctx(target) {
         var card = target.closest(".qc");
         if (!card) return null;
@@ -543,7 +528,6 @@
         if (/^(ppq-|fMax$|tolerance$)/.test(e.target.id || "")) refreshMeta();
     });
 
-    // Ô audio: kiểm tra khi gõ, đổi sang link raw khi rời ô / dán xong
     if ($("fAudio")) {
         $("fAudio").addEventListener("input", function () { refreshAudio(false); });
         $("fAudio").addEventListener("change", function () { refreshAudio(true); });
@@ -585,7 +569,6 @@
         if (act === "del") {
             if (!confirm("Xoá câu " + (c.i + 1) + "?")) return;
             var gone = list.splice(c.i, 1)[0];
-            // xoá câu đầu chùm → chùm chuyển sang câu kế tiếp (nếu câu đó đang thuộc chùm)
             if (gone && gone.cluster && list[c.i] && list[c.i].joinPrev) { list[c.i].cluster = gone.cluster; list[c.i].joinPrev = false; }
         } else if (act === "up" && c.i > 0) {
             list.splice(c.i - 1, 0, list.splice(c.i, 1)[0]);
@@ -618,9 +601,6 @@
         renderPart(c.part);
     });
 
-    // ============================================================
-    // CHUYỂN TEXT ↔ CÂU HỎI
-    // ============================================================
     $("btnParse").addEventListener("click", function () {
         var errs = [], done = 0;
         PARTS.forEach(function (k) {
@@ -646,7 +626,6 @@
         $("syncHint").textContent = "✓ Đã xuất câu hỏi ra text (có thể copy / sửa rồi chuyển lại)";
     });
 
-    // Prompt mẫu
     var promptBox = $("promptBox");
     if (promptBox && CFG.authoringPrompt) promptBox.textContent = CFG.authoringPrompt;
     $("btnTogglePrompt").addEventListener("click", function () { promptBox.hidden = !promptBox.hidden; });
@@ -657,9 +636,6 @@
         }).catch(function () { msg.textContent = "Không sao chép được — bấm “Xem / ẩn prompt” rồi copy tay."; });
     });
 
-    // ============================================================
-    // KIỂM TRA + LƯU
-    // ============================================================
     function validateAll() {
         var errs = [];
         document.querySelectorAll(".qc").forEach(function (c) { c.classList.remove("qc-bad"); c.querySelector(".qc-err").textContent = ""; });
@@ -686,7 +662,6 @@
             var list = state[k];
             if (!list.length) return;
             total += list.length;
-            // chùm: câu đánh dấu "thuộc chùm" mà câu trước không thuộc chùm nào (vd sau khi đổi thứ tự câu)
             if (k !== "tf") list.forEach(function (q, qi) {
                 if (q.joinPrev && !(qi > 0 && (list[qi - 1].cluster || list[qi - 1].joinPrev))) {
                     errs.push({ part: k, q: qi + 1, msg: "Câu này được đánh dấu thuộc chùm nhưng câu trước không thuộc chùm nào (kiểm tra lại thứ tự câu)." });
@@ -695,7 +670,6 @@
             if (!(partPoints(k) > 0)) errs.push({ part: k, msg: "“Điểm / câu” phải là số lớn hơn 0 (VD 0.1, 0.2, 0.25, 1)." });
             if (k === "fill" && toNum($("tolerance").value, 0) < 0) errs.push({ part: k, msg: "Sai số cho phép không được âm." });
 
-            // serialize → parse lại để bắt đúng các lỗi mà server sẽ bắt
             var r = parsePart(k, serializePart(k, list));
             r.errors.forEach(function (x) {
                 var qi = x.qi;
@@ -710,7 +684,40 @@
         return errs;
     }
 
+    // ============================================================
+    // ★ FIX: collectBody — tự động sync textarea → state trước khi gửi
+    // ------------------------------------------------------------
+    // Lỗi cũ: admin sửa text ở ô dán đề ("paste-mcq/tf/fill") nhưng quên bấm
+    //         nút "Chuyển" trước khi bấm "Lưu" → state không cập nhật → client
+    //         serialize ra TEXT CŨ → backend ghi file y hệt → GitHub có commit
+    //         nhưng nội dung không đổi.
+    //
+    // Fix: trước khi gửi, nếu textarea khác text lúc mở form (CFG.raw[k]) →
+    //      parse lại textarea; nếu không lỗi thì dùng kết quả làm state mới.
+    //      (Không sync nếu textarea giống CFG.raw → giữ nguyên state đã sửa
+    //       qua cards, tránh ghi đè nhầm.)
+    // ============================================================
+    function syncTextareasToState() {
+        PARTS.forEach(function (k) {
+            var ta = $("paste-" + k);
+            if (!ta) return;
+            var initial = (CFG.raw && CFG.raw[k]) || "";
+            var current = ta.value;
+            if (!current.trim()) return;
+            if (current.trim() === initial.trim()) return;   // textarea không đổi → không đụng state
+            var r = parsePart(k, current);
+            if (r.errors.length) return;                     // có lỗi → để validateAll bắt, không sync
+            state[k] = r.questions;
+            if (k === "fill" && r.note && $("fillNote") && !$("fillNote").value.trim()) {
+                $("fillNote").value = r.note.slice(0, 300);
+            }
+        });
+    }
+
     function collectBody() {
+        // ★ SYNC: bắt kịp thay đổi admin gõ ở ô dán text mà không bấm "Chuyển"
+        syncTextareasToState();
+
         var body = {
             subjectId: $("fSubject").value,
             title: $("fTitle").value.trim(),
@@ -766,14 +773,10 @@
         }
     });
 
-    // ============================================================
-    // KHỞI TẠO
-    // ============================================================
     var parts = CFG.parts || {};
     PARTS.forEach(function (k) {
         var p = parts[k];
         state[k] = (p && Array.isArray(p.questions)) ? p.questions.map(function (q) { return fromSaved(k, q); }) : [];
-        // chùm đã lưu: câu đầu chùm giữ nội dung, các câu sau đánh dấu joinPrev
         if (p && Array.isArray(p.clusters)) {
             p.clusters.forEach(function (cl) {
                 (cl.questionIds || []).forEach(function (id, n) {

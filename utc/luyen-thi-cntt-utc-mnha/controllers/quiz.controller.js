@@ -4,10 +4,9 @@
    Admin : newForm, editForm, parsePreview, create, update, reviewPage, saveQuizTeacherComment
    Student: submit, status, analyze, renderStudentDetail
    Export thêm: toStudentView(quiz) — lesson.controller dùng khi render quiz-lesson.pug
-
-   Đã đối chiếu githubService / syncQueueService thật. Còn chờ đối chiếu: Submission model (syncStatus),
-   quizAnalysisService.analyze (đổi chữ ký ở bước sửa file service).
    ============================================================ */
+
+const mongoose = require('mongoose');
 
 const Lesson = require('../models/Lesson');
 const Subject = require('../models/Subject');
@@ -29,50 +28,37 @@ const quizConfig = require('../config/quizConfig');
 const { normalizeAudioUrl } = require('../services/quizAudioService');
 
 // ============================================================
-// ADAPTERS — chỉnh cho khớp code thật của bạn
+// ADAPTERS
 // ============================================================
 const A = {
-  // → { data, sha } | null (không có file)
   ghRead: (path) => githubService.readJsonFileWithSha(path),
-  // sha = undefined → tạo mới. Phải ném lỗi có err.status === 409 khi SHA cũ.
   ghWrite: async (path, data, sha) => {
     if (!sha) return githubService.writeJsonFile(path, data, 'Quiz: ' + path);
     try {
       return await githubService.writeJsonFileIfSha(path, data, sha, 'Quiz: ' + path);
     } catch (e) {
-      if (e && e.code === 'SHA_CONFLICT') e.status = 409;   // controller bắt err.status === 409
+      if (e && e.code === 'SHA_CONFLICT') e.status = 409;
       throw e;
     }
   },
   ghInvalidate: (path) => { if (typeof githubService.invalidate === 'function') githubService.invalidate(path); },
 
-  // → { errors: [{ line, msg }], questions: [...] } theo đúng JSON đề trong README
   parsePart: (part, text, opts) => {
-    const r = quizParser.parsePart(text, part, opts);   // service export: parsePart(rawText, part, { scoring })
-    return { errors: r.errors || [], questions: r.questions || [], note: r.note || null };
+    const r = quizParser.parsePart(text, part, opts);
+    return { errors: r.errors || [], questions: r.questions || [], clusters: r.clusters || [], note: r.note || null };
   },
-  serializePart: (part, questions, note) => quizParser.serializePart(questions, part, note),
+  serializePart: (part, questions, note, clusters) => quizParser.serializePart(questions, part, note, clusters),
 
   grade: (quiz, answers) => quizGrader.grade(quiz, answers),
 
-  // HTML ngắn (giải thích / mô tả) → sanitize-html allowlist
   cleanHtml: (html) => sanitizeService.sanitizeExplanationHtml(html),
 
-  // Phạm vi user_key. Trả về điều kiện Mongo gộp vào query Subject/Lesson của admin.
   adminScope: async (actor) => (await userKeyService.getContentScope(actor)).query || {},
-  // Student có được làm bài này không (userKey gốc + connectedUserKeys)
   studentCanAccess: (user, lesson) => userKeyService.canAccess(user, lesson),
-  // Admin này có quyền với bài này không (default admin: mọi bài; user_key admin: bài mình tạo)
   adminCanAccess: (actor, lesson) => !actor.userKey || String(lesson.createdBy) === String(actor._id),
 
   formatAiLabel: (provider, keyName) => aiService.formatAiLabel(provider, keyName),
 
-  // Đẩy JSON bài nộp lên GitHub. Trả về 'committed' | 'pending' | 'failed'.
-  // 1) Ghi TRỰC TIẾP (await) → xong là có commit ngay, không phụ thuộc queue nền
-  //    (queue in-memory dễ mất việc trên Vercel serverless vì function bị đóng băng sau khi trả response).
-  // 2) Lỗi → đẩy vào syncQueue để retry. syncQueue CHỈ nhận job dạng
-  //    { type:'putJson', filePath, data, commitMessage, onSuccess, onFinalFail }.
-  //    (Bản cũ gửi { path, content, onCommitted, onFailed } → normalizeJob trả null → KHÔNG BAO GIỜ lên GitHub.)
   pushSubmission: async (path, data, subId) => {
     const setSync = (v) => Submission.updateOne({ _id: subId }, { $set: { syncStatus: v } });
     const msg = 'Quiz submission: ' + path;
@@ -100,10 +86,38 @@ const A = {
   }),
 };
 
-async function audit(req, action, targetType, targetId, detail) {
+// ============================================================
+// ★ FIX: audit() — khớp schema AuditLog.js thật
+// ------------------------------------------------------------
+// Schema thật dùng: actor / action / entity / entityId / description / metadata.
+// Trước đây ghi: adminId / action / targetType / targetId / detail / userKey
+// → AuditLog.create() ném ValidationError "entity: Path 'entity' is required".
+//
+// Chữ ký hàm GIỮ NGUYÊN (action, entityName, entityId, detail) để không phải
+// sửa các chỗ gọi audit() — chỉ đổi cách map sang field của schema:
+//   - actor      ← req.user._id
+//   - entity     ← entityName (String: 'Lesson' | 'Submission' | ...)
+//   - entityId   ← entityId (ObjectId)
+//   - metadata   ← detail (nếu là object) — để tra cứu thêm
+//   - description← detail (nếu là string) — để đọc nhanh trong danh sách log
+// ============================================================
+async function audit(req, action, entityName, entityId, detail) {
   try {
-    await AuditLog.create({ adminId: req.user._id, action, targetType, targetId, detail, userKey: req.user.userKey || null });
-  } catch (e) { console.warn('[quiz] audit:', e.message); }
+    const meta = (detail && typeof detail === 'object') ? detail : {};
+    const desc = typeof detail === 'string' ? detail : '';
+    await AuditLog.create({
+      actor: req.user && req.user._id ? req.user._id : null,
+      action: String(action),
+      entity: String(entityName || 'Unknown'),
+      entityId: entityId && mongoose.Types.ObjectId.isValid(entityId) ? entityId : null,
+      description: desc,
+      metadata: meta,
+      ipAddress: req.ip || '',
+      userAgent: (req.get && req.get('user-agent')) || '',
+    });
+  } catch (e) {
+    console.warn('[quiz] audit:', e.message);
+  }
 }
 
 // ============================================================
@@ -117,7 +131,6 @@ const DEFAULT_DURATION = quizConfig.DEFAULT_DURATION || 20;
 const DURATION_MIN = 1;
 const DURATION_MAX = 600;
 
-// Số thập phân: nhận cả "0.25" lẫn "0,25"
 function toNum(v, def) {
   const s = String(v == null ? '' : v).trim().replace(',', '.');
   if (s === '') return def;
@@ -138,12 +151,10 @@ function slugify(s) {
 
 const fail = (res, status, message, extra) => res.status(status).json(Object.assign({ success: false, message }, extra || {}));
 const isDefaultAdmin = (u) => !u.userKey;
-// Key "dùng được": chưa tắt, chưa revoke. Viết bằng $ne để khớp cả schema `active` lẫn `isActive`
-// (field thiếu vẫn lọt) — lesson.controller dùng isActive/isRevoked, README dùng active.
 const AI_KEY_USABLE = { active: { $ne: false }, isActive: { $ne: false }, isRevoked: { $ne: true } };
 
 // ============================================================
-// Dựng đề từ text (SERVER PARSE LẠI — không tin JSON của client)
+// Dựng đề từ text
 // ============================================================
 function buildQuiz(body) {
   const errors = [];
@@ -162,7 +173,6 @@ function buildQuiz(body) {
 
     const opts = {};
     if (part === 'tf') {
-      // Cách chia điểm: 'equal' (chia đều các ý) | 'thptqg'. Form gửi field scoring_tf.
       const sc = String(body.scoring_tf || body.tfScoring || quizConfig.TF_DEFAULT_SCORING || 'equal');
       if (!(quizConfig.TF_SCORING || ['equal', 'thptqg']).includes(sc)) { errors.push({ part, msg: 'Cách chia điểm phần Đúng/Sai không hợp lệ.' }); continue; }
       opts.scoring = sc;
@@ -178,7 +188,6 @@ function buildQuiz(body) {
     const questions = r.questions.map((q, i) => {
       const id = `${part}-${i + 1}`;
       if (part === 'tf') {
-        // giải thích nằm ở từng ý (không có ở cấp câu) → sanitize từng cái
         return Object.assign({}, q, {
           id,
           statements: (q.statements || []).map((st) => Object.assign({}, st, {
@@ -188,12 +197,14 @@ function buildQuiz(body) {
       }
       return Object.assign({}, q, { id, explanationHtml: q.explanationHtml ? (A.cleanHtml(q.explanationHtml) || null) : null });
     });
-    // tf: pointsPerQuestion = điểm tối đa của CẢ CÂU (mọi ý); scoring = cách chia điểm giữa các ý
     parts[part] = { pointsPerQuestion: round4(ppq), questions };
     if (part === 'tf') parts.tf.scoring = opts.scoring;
     if (part === 'fill') {
       parts.fill.tolerance = opts.tolerance;
       parts.fill.note = opts.note || (r.note ? String(r.note).slice(0, 300) : '');
+    }
+    if (part !== 'tf' && r.clusters && r.clusters.length) {
+      parts[part].clusters = r.clusters;
     }
     total += questions.length;
   }
@@ -207,11 +218,10 @@ function buildQuiz(body) {
 }
 
 // ============================================================
-// Dữ liệu gửi xuống sinh viên: COPY theo allowlist — KHÔNG có correct / answers / explanationHtml
+// Dữ liệu gửi xuống sinh viên
 // ============================================================
 function toStudentView(quiz) {
   const out = { maxScore: quiz.maxScore, parts: {} };
-  // Audio (tuỳ chọn): chuẩn hoá lại lần nữa khi hiển thị, chỉ nhận link hợp lệ
   const audio = normalizeAudioUrl(quiz.audioUrl);
   if (audio.url) out.audioUrl = audio.url;
   for (const k of PARTS) {
@@ -222,18 +232,30 @@ function toStudentView(quiz) {
       questions: p.questions.map((q) => {
         const v = { id: q.id, text: q.text, image: q.image || null };
         if (k === 'mcq') { v.options = (q.options || []).map((o) => ({ key: o.key, text: o.text })); v.multi = !!q.multi; }
-        // tf: chỉ gửi id + nội dung từng ý — KHÔNG có correct / explanationHtml
         if (k === 'tf') v.statements = (q.statements || []).map((st) => ({ id: st.id, text: st.text }));
         return v;
       }),
     };
     if (k === 'tf') out.parts[k].scoring = p.scoring || quizConfig.TF_DEFAULT_SCORING || 'equal';
     if (k === 'fill') out.parts[k].note = p.note || '';
+    if (k !== 'tf') {
+      if (p.clusters && p.clusters.length) {
+        out.parts[k].clusters = p.clusters.map((c) => ({
+          id: c.id, from: c.from, to: c.to,
+          text: sanitizeService.sanitizeExplanationHtml(c.text || ''),
+          image: c.image || null, questionIds: c.questionIds || [],
+        }));
+        const byQ = {};
+        out.parts[k].clusters.forEach((c) => (c.questionIds || []).forEach((qid) => { byQ[qid] = c.id; }));
+        out.parts[k].questions.forEach((v) => { v.clusterId = byQ[v.id] || null; });
+      } else {
+        out.parts[k].questions.forEach((v) => { v.clusterId = null; });
+      }
+    }
   }
   return out;
 }
 
-// Lọc bài làm: chỉ nhận id có trong đề, đúng kiểu, giới hạn độ dài
 function sanitizeAnswers(quiz, raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
   const out = {};
@@ -242,7 +264,6 @@ function sanitizeAnswers(quiz, raw) {
     if (!p) continue;
     for (const q of p.questions) {
       if (k === 'tf') {
-        // bài làm phần đúng/sai nằm theo id của TỪNG Ý (vd "tf-1-a": true)
         for (const st of q.statements || []) {
           if (typeof src[st.id] === 'boolean') out[st.id] = src[st.id];
         }
@@ -262,13 +283,11 @@ function sanitizeAnswers(quiz, raw) {
   return out;
 }
 
-// Kết quả trả ngay cho sinh viên: thêm giải thích đã sanitize (lấy từ đề, không lưu vào result)
 function withExplanations(result, quiz) {
   const expl = {};
   for (const k of PARTS) {
     ((quiz.parts[k] || {}).questions || []).forEach((q) => {
       expl[q.id] = q.explanationHtml || null;
-      // tf: giải thích riêng của từng ý (item.id = id của ý)
       (q.statements || []).forEach((st) => { expl[st.id] = st.explanationHtml || null; });
     });
   }
@@ -309,7 +328,10 @@ exports.editForm = async (req, res, next) => {
 
     const parts = (file.data.quiz && file.data.quiz.parts) || {};
     const rawTexts = {};
-    PARTS.forEach((k) => { rawTexts[k] = parts[k] ? A.serializePart(k, parts[k].questions) : ''; });
+    PARTS.forEach((k) => {
+      if (!parts[k]) { rawTexts[k] = ''; return; }
+      rawTexts[k] = A.serializePart(k, parts[k].questions, parts[k].note, parts[k].clusters);
+    });
 
     const lists = await formLists(req.user);
     const submissionCount = await Submission.countDocuments({ lessonId: lesson._id, type: 'quiz' });
@@ -319,7 +341,6 @@ exports.editForm = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// Xem trước / kiểm tra, KHÔNG lưu (route cần rate-limit)
 exports.parsePreview = (req, res) => {
   const built = buildQuiz(req.body || {});
   if (built.errors) return fail(res, 400, 'Đề chưa hợp lệ.', { errors: built.errors });
@@ -339,7 +360,6 @@ async function readCommon(req, body) {
   const built = buildQuiz(body);
   if (built.errors) return { errors: built.errors };
 
-  // Audio (tuỳ chọn): link GitHub raw/blob → chuẩn hoá; để trống = bài không có audio
   const audio = normalizeAudioUrl(body.audioUrl);
   if (audio.error) return { error: audio.error };
 
@@ -350,7 +370,6 @@ async function readCommon(req, body) {
     promptId = p._id;
   }
 
-  // Chỉ admin default được gán AI cho phép phân tích (server bỏ qua với admin user_key)
   let analysisAiKeyIds;
   if (isDefaultAdmin(req.user)) {
     const ids = Array.isArray(body.aiKeyIds) ? body.aiKeyIds : [];
@@ -383,7 +402,7 @@ exports.create = async (req, res) => {
       subjectId: subject._id, title: c.title, slug, githubFile, type: 'quiz',
       quizCounts: c.built.counts, duration: c.duration, promptId: c.promptId,
       analysisAiKeyIds: c.analysisAiKeyIds || [],
-      userKey: subject.userKey || null,          // kế thừa từ môn
+      userKey: subject.userKey || null,
       createdBy: req.user._id, isPublished: true,
     });
 
@@ -408,7 +427,6 @@ exports.update = async (req, res) => {
 
     const file = await A.ghRead(lesson.githubFile);
     if (!file) return fail(res, 404, 'Không đọc được đề trên GitHub.');
-    // Ai đó vừa sửa đề (trên GitHub hoặc tab khác) → không tự ghi đè
     if (body.sha && body.sha !== file.sha) return fail(res, 409, 'Đề đã bị đổi, vui lòng tải lại trang.');
 
     if (c.audioUrl) c.built.quiz.audioUrl = c.audioUrl;
@@ -436,14 +454,13 @@ exports.update = async (req, res) => {
 };
 
 // ============================================================
-// STUDENT — nộp bài (server chấm, KHÔNG dùng AI)
+// STUDENT — nộp bài
 // ============================================================
 async function loadStudentLesson(req) {
   const lesson = await Lesson.findOne({
     _id: req.params.lessonId, type: 'quiz', isPublished: true, deletedAt: null, deletedForever: { $ne: true },
   });
   if (!lesson) return null;
-  // Admin cũng được làm bài: default admin làm mọi bài, admin user_key chỉ bài mình tạo
   if (req.user.role === 'admin') return A.adminCanAccess(req.user, lesson) ? lesson : null;
   return (await A.studentCanAccess(req.user, lesson)) ? lesson : null;
 }
@@ -454,7 +471,7 @@ exports.submit = async (req, res) => {
     const lesson = await loadStudentLesson(req);
     if (!lesson) return fail(res, 404, 'Không tìm thấy bài.');
 
-    const file = await A.ghRead(lesson.githubFile);            // đọc LẠI đề từ GitHub
+    const file = await A.ghRead(lesson.githubFile);
     if (!file || !file.data.quiz) return fail(res, 500, 'Không đọc được đề.');
     const quiz = file.data.quiz;
     const answers = sanitizeAnswers(quiz, req.body && req.body.answers);
@@ -464,7 +481,6 @@ exports.submit = async (req, res) => {
     const now = new Date();
     const path = `submissions/${subject.slug}/${lesson.slug}/${req.user._id}-${now.getTime()}.json`;
 
-    // status = trạng thái chấm (như tự luận: 'graded'); syncStatus = trạng thái đẩy lên GitHub
     const sub = await Submission.create({
       userId: req.user._id, lessonId: lesson._id, githubFile: path, type: 'quiz',
       score: result.score, maxScore: result.maxScore, correctCount: result.correctCount, totalCount: result.totalCount,
@@ -492,9 +508,9 @@ exports.status = async (req, res) => {
 };
 
 // ============================================================
-// STUDENT — Phân tích AI (chỉ chủ bài, bài đã committed)
+// STUDENT — Phân tích AI
 // ============================================================
-const analyzing = new Set();   // chống bấm đồng thời cùng một bài
+const analyzing = new Set();
 
 exports.analyze = async (req, res) => {
   const id = String(req.params.id);
@@ -512,18 +528,13 @@ exports.analyze = async (req, res) => {
     const lesson = await Lesson.findById(sub.lessonId).lean();
     if (!lesson) return fail(res, 404, 'Bài học không còn tồn tại.');
 
-    // Giống tự luận: client PHẢI chọn AI + model và bấm "Kiểm tra AI" thành công rồi mới gọi API này.
-    // Server vẫn kiểm lại aiKeyId nằm trong danh sách cho phép của bài.
     const aiKeyId = req.body && req.body.aiKeyId ? String(req.body.aiKeyId) : '';
     if (!aiKeyId) return fail(res, 400, 'Hãy chọn AI và bấm “Kiểm tra AI” trước khi phân tích.');
     const allowed = (lesson.analysisAiKeyIds || []).map(String);
     if (allowed.length) {
-      // Bài có giới hạn danh sách AI → chỉ nhận key trong danh sách
       if (!allowed.includes(aiKeyId)) return fail(res, 400, 'AI không được phép cho bài này.');
     } else {
-      // Bài KHÔNG giới hạn (analysisAiKeyIds rỗng) → khớp panel ("rỗng = mọi key đang dùng được"):
-      // chỉ cần key có thật và đang bật. Trước đây nhánh này luôn bị từ chối vì [].includes(...) = false.
-      if (!require('mongoose').Types.ObjectId.isValid(aiKeyId)) return fail(res, 400, 'AI Key không hợp lệ.');
+      if (!mongoose.Types.ObjectId.isValid(aiKeyId)) return fail(res, 400, 'AI Key không hợp lệ.');
       const usable = await AIKey.exists(Object.assign({ _id: aiKeyId }, AI_KEY_USABLE));
       if (!usable) return fail(res, 400, 'AI Key không tồn tại hoặc đã bị tắt.');
     }
@@ -532,26 +543,22 @@ exports.analyze = async (req, res) => {
 
     const subject = await Subject.findById(lesson.subjectId).lean();
 
-    // Đọc bài nộp từ GitHub (đề + bài làm + kết quả) để dựng prompt
     const file = await A.ghRead(sub.githubFile);
     if (!file || !file.data || !file.data.quizSnapshot) return fail(res, 502, 'Không đọc được bài nộp trên GitHub.');
     const doc = file.data;
 
-    // Service: dựng prompt → gọi AI → trả về entry (KHÔNG tự ghi GitHub)
     const entry = await quizAnalysis.analyze({
       quiz: doc.quizSnapshot, result: doc.result, answers: doc.answers,
       submission: sub, studentName: req.user.name,
       lesson, subject, userId: req.user._id, aiKeyId, model,
     });
 
-    // Ghi vào aiAnalyses: đọc bản mới nhất → thêm → ghi theo SHA (409 thì đọc lại, không mất nhận xét GV ghi cùng lúc)
     await githubService.updateJsonFile(sub.githubFile, (cur) => {
       cur.aiAnalyses = (Array.isArray(cur.aiAnalyses) ? cur.aiAnalyses : []).concat([entry]);
       return cur;
     }, 'Quiz AI analysis: ' + sub.githubFile);
     A.ghInvalidate(sub.githubFile);
 
-    // Chỉ tăng đếm sau khi GitHub đã ghi OK
     const upd = await Submission.findOneAndUpdate({ _id: sub._id },
       { $inc: { analysisCount: 1 }, $set: { lastAnalyzedAt: new Date() } }, { new: true });
     const count = upd.analysisCount;
@@ -568,7 +575,7 @@ exports.analyze = async (req, res) => {
 };
 
 // ============================================================
-// Trang chi tiết bài nộp (student) + trang review (admin)
+// Trang chi tiết (student) + review (admin)
 // ============================================================
 async function loadDetail(sub) {
   const [lesson, doc] = await Promise.all([Lesson.findById(sub.lessonId).lean(), A.ghRead(sub.githubFile)]);
@@ -604,7 +611,6 @@ exports.reviewPage = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// Nhận xét giảng viên — hàm riêng, KHÔNG sửa saveTeacherComment của tự luận
 exports.saveQuizTeacherComment = async (req, res) => {
   try {
     const content = String((req.body && req.body.content) || '').trim();
@@ -619,7 +625,6 @@ exports.saveQuizTeacherComment = async (req, res) => {
     const entry = { content, commentedBy: req.user._id, commentedByName: req.user.name || 'Giảng viên', commentedAt: new Date().toISOString() };
     const hadComment = !!sub.teacherComment;
 
-    // đọc mới nhất → gộp → ghi theo SHA; 409 thì đọc lại gộp lại (phân tích AI có thể ghi cùng lúc)
     for (let attempt = 0; attempt < 3; attempt++) {
       const file = await A.ghRead(sub.githubFile);
       if (!file) return fail(res, 404, 'Không đọc được bài nộp trên GitHub.');
@@ -646,19 +651,4 @@ exports.saveQuizTeacherComment = async (req, res) => {
 };
 
 exports.toStudentView = toStudentView;
-exports._internal = { buildQuiz, sanitizeAnswers, parseDuration, toNum };   // để viết test
-
-/* ------------------------------------------------------------
-   routes/quiz.js (gợi ý) — requireAdmin / requireStudent / rateLimit của bạn
-   router.get ('/admin/quiz/new',                        requireAdmin, c.newForm);
-   router.post('/admin/quiz/parse',                      requireAdmin, rateLimit, c.parsePreview);
-   router.post('/admin/quiz',                            requireAdmin, c.create);
-   router.get ('/admin/quiz/:lessonId/edit',             requireAdmin, c.editForm);
-   router.post('/admin/quiz/:lessonId',                  requireAdmin, c.update);
-   router.get ('/admin/quiz-submissions/:id/review',     requireAdmin, c.reviewPage);
-   router.post('/admin/quiz-submissions/:id/review',     requireAdmin, c.saveQuizTeacherComment);
-   router.post('/api/quiz/:lessonId/submit',             requireStudent, rateLimit, c.submit);
-   router.get ('/api/quiz/submissions/:id/status',       requireStudent, c.status);
-   router.post('/api/quiz/submissions/:id/analyze',      requireStudent, rateLimit, c.analyze);
-   ⚠️ Route /admin/quiz/parse và /admin/quiz/new khai báo TRƯỚC /admin/quiz/:lessonId.
-   ------------------------------------------------------------ */
+exports._internal = { buildQuiz, sanitizeAnswers, parseDuration, toNum };
