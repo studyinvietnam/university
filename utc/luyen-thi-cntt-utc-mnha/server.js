@@ -369,6 +369,27 @@ app.get("/", (req, res, next) => {
 });
 
 // ============================================================
+// ★ TẠM THỜI: kiểm tra phiên bản đang chạy (xoá sau khi sửa xong lỗi 404 /pages)
+// Mở: https://<ten-mien>/__version
+// ============================================================
+
+app.get("/__version", (req, res) => {
+    let hasPagesRoute = "unknown";
+    try {
+        const stack = (app.router && app.router.stack) || (app._router && app._router.stack) || [];
+        hasPagesRoute = stack.some((layer) => layer.route && layer.route.path === "/pages");
+    } catch (_) {}
+
+    res.json({
+        commit: process.env.VERCEL_GIT_COMMIT_SHA || "local",
+        branch: process.env.VERCEL_GIT_COMMIT_REF || "local",
+        env: process.env.VERCEL_ENV || process.env.NODE_ENV || "development",
+        hasPagesRoute,
+        time: new Date().toISOString(),
+    });
+});
+
+// ============================================================
 // PENDING PAGE
 // ============================================================
 
