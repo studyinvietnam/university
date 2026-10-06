@@ -24,11 +24,17 @@ block content
             //- ADMIN: cho phép khôi phục hoặc xoá vĩnh viễn ngay tại đây
             //- ============================================================
             if isAdminView
+                //- ★ Flash động (xanh = được, đỏ = lỗi)
+                div(id="actionAlert", role="alert", class="hidden mt-6 p-4 rounded-xl border text-sm text-left")
+
                 div(class="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8")
 
                     form(
                         action=`/admin/lessons/${lesson._id}/restore`
                         method="POST"
+                        data-ajax-action="1"
+                        data-success="Đã khôi phục bài học. Đang quay về danh sách..."
+                        data-redirect="/admin/lessons"
                     )
                         button(
                             type="submit"
@@ -40,7 +46,10 @@ block content
                     form(
                         action=`/admin/lessons/${lesson._id}/hard-delete`
                         method="POST"
-                        onsubmit="return confirm('XOÁ VĨNH VIỄN không thể hoàn tác. Chắc chắn?')"
+                        data-ajax-action="1"
+                        data-confirm="XOÁ VĨNH VIỄN không thể hoàn tác. Chắc chắn?"
+                        data-success="Đã xoá vĩnh viễn bài học. Đang quay về thùng rác..."
+                        data-redirect="/admin/lessons?deleted=1"
                     )
                         button(
                             type="submit"
@@ -69,3 +78,93 @@ block content
                 )
                     i(data-lucide="arrow-left", class="w-4 h-4")
                     | Quay lại danh sách bài học
+
+    //- ★ Xoá / khôi phục / xoá vĩnh viễn bằng fetch: hiện flash NGAY (không cần tải lại trang),
+    //-   không dính chuỗi redirect sau POST, chống bấm 2 lần.
+    script.
+        (function () {
+            var box = document.getElementById('actionAlert');
+            if (!box) return;
+
+            var GREEN = ['bg-green-50', 'border-green-200', 'text-green-800'];
+            var RED = ['bg-red-50', 'border-red-200', 'text-red-800'];
+
+            function show(type, msg) {
+                box.classList.remove.apply(box.classList, GREEN.concat(RED));
+                box.classList.add.apply(box.classList, type === 'ok' ? GREEN : RED);
+                box.textContent = (type === 'ok' ? '✅ ' : '⚠️ ') + msg;
+                box.classList.remove('hidden');
+                box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function readJson(res) {
+                return res.text().then(function (t) {
+                    var data = null;
+                    try { data = JSON.parse(t); } catch (e) {}
+                    return { res: res, data: data };
+                });
+            }
+
+            document.addEventListener('submit', function (e) {
+                var form = e.target && e.target.closest ? e.target.closest('form[data-ajax-action]') : null;
+                if (!form) return;
+                e.preventDefault();
+                if (form.dataset.busy === '1') return;
+
+                var q = form.getAttribute('data-confirm');
+                if (q && !window.confirm(q)) return;
+
+                var btn = form.querySelector('button[type=submit]');
+                form.dataset.busy = '1';
+                if (btn) btn.disabled = true;
+                box.classList.add('hidden');
+
+                function fail(msg) {
+                    form.dataset.busy = '0';
+                    if (btn) btn.disabled = false;
+                    show('err', msg);
+                }
+
+                fetch(form.getAttribute('action'), {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                })
+                .then(readJson)
+                .then(function (r) {
+                    if (r.res.ok && r.data && r.data.ok) {
+                        show('ok', form.getAttribute('data-success') || 'Thao tác thành công.');
+
+                        var redirect = form.getAttribute('data-redirect');
+                        if (redirect) { // trang đơn lẻ: chuyển trang sau 1,2 giây
+                            setTimeout(function () { window.location.href = redirect; }, 1200);
+                            return;
+                        }
+
+                        // trang danh sách: gỡ thẻ bài khỏi danh sách, hết bài thì tải lại để hiện trạng thái trống
+                        var card = form.closest('[data-lesson-card]');
+                        if (card) {
+                            card.style.transition = 'opacity .25s';
+                            card.style.opacity = '0';
+                            setTimeout(function () {
+                                card.remove();
+                                if (!document.querySelector('[data-lesson-card]')) {
+                                    setTimeout(function () { window.location.reload(); }, 900);
+                                }
+                            }, 260);
+                        }
+                        return;
+                    }
+                    var msg = r.data && (r.data.error || r.data.message);
+                    if (!msg) {
+                        if (r.res.redirected || r.res.ok) msg = 'Phản hồi không hợp lệ (có thể phiên đăng nhập đã hết hạn). Hãy tải lại trang để kiểm tra.';
+                        else if (r.res.status === 504) msg = 'Máy chủ phản hồi quá lâu (504). Hãy tải lại trang để kiểm tra kết quả.';
+                        else msg = 'Lỗi máy chủ (' + r.res.status + ').';
+                    }
+                    fail(msg);
+                })
+                .catch(function () {
+                    fail('Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.');
+                });
+            });
+        })();

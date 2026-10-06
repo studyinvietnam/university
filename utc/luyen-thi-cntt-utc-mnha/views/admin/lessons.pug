@@ -55,6 +55,9 @@ block content
             div(class="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm")
                 = error
 
+        //- ★ Flash động cho xoá / khôi phục / xoá vĩnh viễn (xanh = được, đỏ = lỗi)
+        div(id="actionAlert", role="alert", class="hidden mb-6 p-4 rounded-xl border text-sm")
+
         //- ============================================================
         //- FILTER
         //- ============================================================
@@ -110,7 +113,7 @@ block content
                     - const isQuiz = (lesson.type || 'essay') === 'quiz'
                     - const qc = lesson.quizCounts || {}
                     - const quizTotal = (qc.mcq || 0) + (qc.tf || 0) + (qc.fill || 0)
-                    div(class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition")
+                    div(class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition", data-lesson-card="1")
 
                         div(class="flex flex-col lg:flex-row lg:items-start justify-between gap-4")
 
@@ -216,7 +219,9 @@ block content
                                     form(
                                         action=`/admin/lessons/${lesson._id}/delete`
                                         method="POST"
-                                        onsubmit="return confirm('Bạn có chắc muốn xoá bài học này? Có thể khôi phục sau.')"
+                                        data-ajax-action="1"
+                                        data-confirm="Bạn có chắc muốn xoá bài học này? Có thể khôi phục sau."
+                                        data-success="Đã chuyển bài vào thùng rác"
                                     )
                                         button(
                                             type="submit"
@@ -229,6 +234,8 @@ block content
                                     form(
                                         action=`/admin/lessons/${lesson._id}/restore`
                                         method="POST"
+                                        data-ajax-action="1"
+                                        data-success="Đã khôi phục bài học"
                                     )
                                         button(
                                             type="submit"
@@ -241,7 +248,9 @@ block content
                                     form(
                                         action=`/admin/lessons/${lesson._id}/hard-delete`
                                         method="POST"
-                                        onsubmit="return confirm('XOÁ VĨNH VIỄN không thể hoàn tác. Chắc chắn?')"
+                                        data-ajax-action="1"
+                                        data-confirm="XOÁ VĨNH VIỄN không thể hoàn tác. Chắc chắn?"
+                                        data-success="Đã xoá vĩnh viễn bài học"
                                     )
                                         button(
                                             type="submit"
@@ -287,3 +296,93 @@ block content
                         )
                             i(data-lucide="list-checks", class="w-4 h-4")
                             | Tạo bài trắc nghiệm
+
+    //- ★ Xoá / khôi phục / xoá vĩnh viễn bằng fetch: hiện flash NGAY (không cần tải lại trang),
+    //-   không dính chuỗi redirect sau POST, chống bấm 2 lần.
+    script.
+        (function () {
+            var box = document.getElementById('actionAlert');
+            if (!box) return;
+
+            var GREEN = ['bg-green-50', 'border-green-200', 'text-green-800'];
+            var RED = ['bg-red-50', 'border-red-200', 'text-red-800'];
+
+            function show(type, msg) {
+                box.classList.remove.apply(box.classList, GREEN.concat(RED));
+                box.classList.add.apply(box.classList, type === 'ok' ? GREEN : RED);
+                box.textContent = (type === 'ok' ? '✅ ' : '⚠️ ') + msg;
+                box.classList.remove('hidden');
+                box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function readJson(res) {
+                return res.text().then(function (t) {
+                    var data = null;
+                    try { data = JSON.parse(t); } catch (e) {}
+                    return { res: res, data: data };
+                });
+            }
+
+            document.addEventListener('submit', function (e) {
+                var form = e.target && e.target.closest ? e.target.closest('form[data-ajax-action]') : null;
+                if (!form) return;
+                e.preventDefault();
+                if (form.dataset.busy === '1') return;
+
+                var q = form.getAttribute('data-confirm');
+                if (q && !window.confirm(q)) return;
+
+                var btn = form.querySelector('button[type=submit]');
+                form.dataset.busy = '1';
+                if (btn) btn.disabled = true;
+                box.classList.add('hidden');
+
+                function fail(msg) {
+                    form.dataset.busy = '0';
+                    if (btn) btn.disabled = false;
+                    show('err', msg);
+                }
+
+                fetch(form.getAttribute('action'), {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                })
+                .then(readJson)
+                .then(function (r) {
+                    if (r.res.ok && r.data && r.data.ok) {
+                        show('ok', form.getAttribute('data-success') || 'Thao tác thành công.');
+
+                        var redirect = form.getAttribute('data-redirect');
+                        if (redirect) { // trang đơn lẻ: chuyển trang sau 1,2 giây
+                            setTimeout(function () { window.location.href = redirect; }, 1200);
+                            return;
+                        }
+
+                        // trang danh sách: gỡ thẻ bài khỏi danh sách, hết bài thì tải lại để hiện trạng thái trống
+                        var card = form.closest('[data-lesson-card]');
+                        if (card) {
+                            card.style.transition = 'opacity .25s';
+                            card.style.opacity = '0';
+                            setTimeout(function () {
+                                card.remove();
+                                if (!document.querySelector('[data-lesson-card]')) {
+                                    setTimeout(function () { window.location.reload(); }, 900);
+                                }
+                            }, 260);
+                        }
+                        return;
+                    }
+                    var msg = r.data && (r.data.error || r.data.message);
+                    if (!msg) {
+                        if (r.res.redirected || r.res.ok) msg = 'Phản hồi không hợp lệ (có thể phiên đăng nhập đã hết hạn). Hãy tải lại trang để kiểm tra.';
+                        else if (r.res.status === 504) msg = 'Máy chủ phản hồi quá lâu (504). Hãy tải lại trang để kiểm tra kết quả.';
+                        else msg = 'Lỗi máy chủ (' + r.res.status + ').';
+                    }
+                    fail(msg);
+                })
+                .catch(function () {
+                    fail('Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.');
+                });
+            });
+        })();
