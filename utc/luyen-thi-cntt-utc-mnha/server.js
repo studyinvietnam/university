@@ -389,6 +389,29 @@ app.get("/__version", (req, res) => {
     });
 });
 
+// ★ TẠM THỜI: render thử pages.pug và trả lỗi thật (nếu có) dạng JSON.
+// Mở: https://<ten-mien>/__debug-pages  (xoá sau khi sửa xong)
+app.get("/__debug-pages", (req, res) => {
+    const fs = require("fs");
+    const viewsDir = app.get("views");
+    let viewFiles = "unreadable";
+    try { viewFiles = fs.readdirSync(viewsDir).slice(0, 80); } catch (e) { viewFiles = "ERR: " + e.message; }
+
+    res.render("pages", { title: "debug" }, (err, html) => {
+        res.json({
+            originalUrl: req.originalUrl,
+            sessionUser: req.session && req.session.user ? req.session.user : null,
+            viewsDir,
+            viewFiles,
+            renderOk: !err,
+            error: err
+                ? { name: err.name, message: String(err.message).slice(0, 1500) }
+                : null,
+            htmlLength: html ? html.length : 0,
+        });
+    });
+});
+
 // ============================================================
 // PENDING PAGE
 // ============================================================
