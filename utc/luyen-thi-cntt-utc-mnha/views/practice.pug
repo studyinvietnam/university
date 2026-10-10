@@ -11,10 +11,21 @@ block content
                 p(class="text-gray-500 mt-1")
                     | Chọn 1 bài để làm và nộp. AI sẽ chấm tự động.
 
-        //- Filter môn
-        if subjects && subjects.length
-            div(class="bg-white border border-gray-200 rounded-xl p-4 mb-6")
-                form(action="/practice", method="GET", class="flex flex-col sm:flex-row gap-3")
+        //- Tìm kiếm + lọc môn
+        div(class="bg-white border border-gray-200 rounded-xl p-4 mb-6")
+            form(action="/practice", method="GET", class="flex flex-col sm:flex-row gap-3")
+                div(class="relative flex-1")
+                    i(data-lucide="search", class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none")
+                    input(
+                        type="search"
+                        name="q"
+                        value=(filters && filters.q) || ""
+                        placeholder="Tìm bài tập theo tên hoặc mô tả..."
+                        autocomplete="off"
+                        class="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                    )
+
+                if subjects && subjects.length
                     select(
                         name="subject"
                         class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
@@ -27,11 +38,18 @@ block content
                             )
                                 = s.name
 
-                    button(
-                        type="submit"
-                        class="px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+                button(
+                    type="submit"
+                    class="px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+                )
+                    | Tìm
+
+                if filters && (filters.q || filters.subject)
+                    a(
+                        href="/practice"
+                        class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 text-center"
                     )
-                        | Lọc
+                        | Xoá lọc
 
         //- Danh sách bài
         if lessons && lessons.length
@@ -76,7 +94,13 @@ block content
             .bg-white.border.border-gray-200.rounded-2xl.py-16.text-center
                 .w-14.h-14.rounded-full.bg-gray-100.text-gray-400.flex.items-center.justify-center.mx-auto
                     i(data-lucide="inbox", class="w-6 h-6")
-                h2(class="font-semibold text-gray-900 mt-4")
-                    | Chưa có bài học
-                p(class="text-sm text-gray-500 mt-1")
-                    | Hãy quay lại sau.
+                if filters && filters.q
+                    h2(class="font-semibold text-gray-900 mt-4")
+                        | Không tìm thấy bài nào
+                    p(class="text-sm text-gray-500 mt-1")
+                        | Không có kết quả cho "#{filters.q}". Thử từ khoá khác nhé.
+                else
+                    h2(class="font-semibold text-gray-900 mt-4")
+                        | Chưa có bài học
+                    p(class="text-sm text-gray-500 mt-1")
+                        | Hãy quay lại sau.

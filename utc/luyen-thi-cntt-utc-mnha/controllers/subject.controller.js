@@ -7,6 +7,8 @@ const { paginate } = require('./pagination.controller');
 const { getContentScope } = require('../services/userKeyService');
 // ★ GitHub là nguồn sự thật của bài học: đồng bộ trước khi đếm / liệt kê
 const githubSync = require('../services/githubSyncService');
+// ★ Tìm kiếm (không phân biệt hoa/thường + dấu tiếng Việt)
+const { getSearchTerm, buildSearchClause, withSearch } = require('../utils/search');
 
 // ============================================================
 // HELPERS
@@ -133,14 +135,21 @@ exports.getSubjects = async (req, res, next) => {
         //   student → userKey ∈ [null (nếu default), tổ chức gốc, tổ chức đã kết nối]
         const scope = await getContentScope(req);
 
+        // ★ Ô tìm kiếm: ?q= theo tên / mã / mô tả môn
+        const q = getSearchTerm(req);
+        const searchClause = buildSearchClause(q, ['name', 'code', 'description']);
+
         const { items: subjects, pagination } = await paginate(
             Subject,
-            {
-                isPublished: true,
-                deletedAt: null,
-                deletedForever: { $ne: true },
-                ...scope.filter,
-            },
+            withSearch(
+                {
+                    isPublished: true,
+                    deletedAt: null,
+                    deletedForever: { $ne: true },
+                    ...scope.filter,
+                },
+                searchClause
+            ),
             req,
             {
                 limit: 9,
@@ -155,6 +164,7 @@ exports.getSubjects = async (req, res, next) => {
             title: 'Môn học',
             user: req.user,
             subjects,
+            filters: { q },
             ...pagination,
         });
     } catch (error) {
@@ -199,13 +209,20 @@ exports.getSubject = async (req, res, next) => {
 
         await githubSync.syncKinds(['lessons']);
 
+        // ★ Ô tìm kiếm: ?q= theo tên / mô tả bài học
+        const q = getSearchTerm(req);
+        const searchClause = buildSearchClause(q, ['title', 'description']);
+
         const { items: lessons, pagination } = await paginate(
             Lesson,
-            {
-                subjectId: subject._id,
-                isDeleted: false,
-                ...scope.filter, // ★ USER KEY: phòng thủ thêm ở cấp bài học
-            },
+            withSearch(
+                {
+                    subjectId: subject._id,
+                    isDeleted: false,
+                    ...scope.filter, // ★ USER KEY: phòng thủ thêm ở cấp bài học
+                },
+                searchClause
+            ),
             req,
             {
                 limit: 10,
@@ -220,6 +237,7 @@ exports.getSubject = async (req, res, next) => {
             user: req.user,
             subject,
             lessons,
+            filters: { q },
             ...pagination,
         });
     } catch (error) {

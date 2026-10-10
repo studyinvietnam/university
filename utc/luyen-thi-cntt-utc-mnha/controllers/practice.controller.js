@@ -7,6 +7,8 @@ const { paginate } = require('./pagination.controller');
 // ★ USER KEY
 const { getContentScope } = require('../services/userKeyService');
 const githubSync = require('../services/githubSyncService');
+// ★ Tìm kiếm (không phân biệt hoa/thường + dấu tiếng Việt)
+const { getSearchTerm, buildSearchClause, withSearch } = require('../utils/search');
 
 // ============================================================
 // LIST PRACTICE — cả admin + student đều vào
@@ -24,6 +26,7 @@ exports.listPractice = async (req, res, next) => {
         const user = req.user;
         const isAdmin = user?.role === 'admin';
         const subjectFilter = String(req.query.subject || '').trim() || null;
+        const q = getSearchTerm(req); // ★ ô tìm kiếm ?q=
 
         const scope = await getContentScope(req);
         await githubSync.syncKinds(['lessons']);   // ★ bài học lấy từ GitHub
@@ -59,7 +62,10 @@ exports.listPractice = async (req, res, next) => {
         if (!isAdmin) lessonQuery.isPublished = true;
 
         // Danh sách bài chia trang 9 bài/trang
-        const { items: lessons, pagination } = await paginate(Lesson, lessonQuery, req, {
+        // ★ Tìm theo tên / mô tả bài (gộp $and để không đè bộ lọc userKey)
+        const searchClause = buildSearchClause(q, ['title', 'description']);
+
+        const { items: lessons, pagination } = await paginate(Lesson, withSearch(lessonQuery, searchClause), req, {
             limit: 9,
             sort: { order: 1, createdAt: -1 }
         });
@@ -103,7 +109,7 @@ exports.listPractice = async (req, res, next) => {
             subjects,
             lessons: lessonsWithSubject,
             submittedMap,
-            filters: { subject: subjectFilter || '' },
+            filters: { subject: subjectFilter || '', q },
             ...pagination
         });
     } catch (error) {
