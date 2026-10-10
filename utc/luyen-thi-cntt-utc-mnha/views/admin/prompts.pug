@@ -157,7 +157,7 @@ block content
                             if prompt.createdAt
                                 | Tạo: #{new Date(prompt.createdAt).toLocaleString('vi-VN')}
                             if prompt.createdBy && prompt.createdBy.name
-                                if user && String(prompt.createdBy._id) === String(user._id)
+                                if user && prompt.createdBy && String(prompt.createdBy._id || prompt.createdBy) === String(user._id)
                                     |  · bởi bạn
                                 else
                                     |  · bởi #{prompt.createdBy.name}

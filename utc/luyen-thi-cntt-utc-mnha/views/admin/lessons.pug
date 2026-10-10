@@ -203,7 +203,7 @@ block content
                                         if lesson.createdAt
                                             div
                                                 | #{new Date(lesson.createdAt).toLocaleString('vi-VN')}
-                                        if lesson.updatedBy && String(lesson.updatedBy._id || lesson.updatedBy) !== String(lesson.createdBy._id || lesson.createdBy)
+                                        if lesson.updatedBy && String(lesson.updatedBy._id || lesson.updatedBy) !== String((lesson.createdBy && (lesson.createdBy._id || lesson.createdBy)) || '')
                                             div
                                                 | Cập nhật bởi: #{displayUser(lesson.updatedBy)}
                                         if lesson.updatedAt && String(lesson.updatedAt) !== String(lesson.createdAt)
