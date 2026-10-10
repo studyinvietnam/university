@@ -168,7 +168,13 @@ app.use(cookieParser());
 //    → dễ vượt 2MB → 413 → client thấy "không lưu được".
 //    Vercel cap request body ở 4.5MB ở tầng edge; đặt 10mb để server không
 //    tự chặn trước (local vẫn dùng được), Vercel sẽ trả 413 riêng nếu >4.5MB.
-app.use(express.json({ limit: "10mb" }));
+// ★ Giữ body gốc (rawBody) cho webhook GitHub — cần để kiểm tra chữ ký HMAC.
+app.use(express.json({
+    limit: "10mb",
+    verify: (req, _res, buf) => {
+        if (req.originalUrl && req.originalUrl.startsWith("/webhooks/github")) req.rawBody = buf;
+    },
+}));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -183,6 +189,10 @@ app.use(async (req, res, next) => {
         next(error);
     }
 });
+
+// ★ WEBHOOK GitHub (push) → cập nhật lessons/prompts/submissions đọc từ GitHub.
+//   Đặt TRƯỚC session/auth: GitHub không có cookie, chỉ xác thực bằng chữ ký HMAC.
+app.use("/webhooks/github", require("./routes/githubWebhook"));
 
 // ============================================================
 // SESSION

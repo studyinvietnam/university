@@ -1,4 +1,5 @@
 // config/github.js
+const crypto = require('crypto');
 const { Octokit } = require('@octokit/rest');
 
 /**
@@ -27,8 +28,18 @@ const octokit = new Octokit({
  */
 const PATHS = {
     subjectsRoot: 'subjects',
-    submissionsRoot: 'submissions'
+    submissionsRoot: 'submissions',
+    promptsRoot: 'prompts'
 };
+
+/**
+ * Tên file JSON NGẪU NHIÊN (20 ký tự hex, ~2^80 khả năng).
+ * Dùng cho prompt + bài nộp; việc "không trùng" được đảm bảo thêm ở
+ * githubService.uniqueJsonPath() (kiểm tra cây thư mục + API trước khi dùng).
+ */
+function randomJsonName() {
+    return `${crypto.randomBytes(10).toString('hex')}.json`;
+}
 
 /**
  * Path helpers
@@ -49,6 +60,7 @@ function submissionFile(subjectSlug, lessonSlug, userId, timestamp) {
 }
 
 module.exports = {
+    randomJsonName,
     octokit,
     owner,
     repo,

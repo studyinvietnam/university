@@ -57,6 +57,7 @@ async function getLessonContent(lesson, subjectSlug, options = {}) {
 }
 
 // Merge `patch` vào JSON hiện có (giữ nguyên attachments/field khác); chưa có file → tạo mới.
+// Trả về { path, sha, commitSha } của lần ghi (sha dùng để lưu Lesson.githubSha).
 async function saveLessonContent(filePath, patch, commitMessage) {
     if (!githubService.isConfigured) throw new Error('GitHub chưa được cấu hình.');
     if (!filePath) throw new Error('Thiếu đường dẫn GitHub (githubFile).');
@@ -66,23 +67,65 @@ async function saveLessonContent(filePath, patch, commitMessage) {
         ...patch
     });
 
+    let result;
     try {
-        await githubService.updateJsonFile(filePath, merge, commitMessage);
+        result = await githubService.updateJsonFile(filePath, merge, commitMessage);
     } catch (err) {
         if (!isNotFound(err)) throw err;
         // File chưa tồn tại → tạo mới.
-        // ⚠️ ĐỐI CHIẾU: đổi danh sách tên hàm dưới đây cho khớp githubService.js thật
         const create = pickFn(['putJsonFile', 'putJson', 'createJsonFile', 'writeJsonFile', 'upsertJsonFile']);
         if (!create) {
             throw new Error(`File ${filePath} chưa có trên GitHub và githubService không có hàm tạo file mới.`);
         }
-        await create.call(githubService, filePath, merge(null), commitMessage);
+        result = await create.call(githubService, filePath, merge(null), commitMessage);
     }
     cache.delete(filePath);
+    return result;
+}
+
+// Chỉ SỬA file đã có (merge `patch`). File không tồn tại → trả về null, KHÔNG tạo file rỗng
+// (dùng cho xoá mềm / khôi phục / gán prompt: tránh sinh ra file "mồ côi" chỉ có vài field).
+async function patchLessonFile(filePath, patch, commitMessage) {
+    if (!githubService.isConfigured) throw new Error('GitHub chưa được cấu hình.');
+    if (!filePath) return null;
+    try {
+        const result = await githubService.updateJsonFile(
+            filePath,
+            (data) => ({ ...(data && typeof data === 'object' ? data : {}), ...patch }),
+            commitMessage
+        );
+        cache.delete(filePath);
+        return result;
+    } catch (err) {
+        if (isNotFound(err)) {
+            console.warn(`[lessonContent] File không còn trên GitHub, bỏ qua ghi: ${filePath}`);
+            return null;
+        }
+        throw err;
+    }
+}
+
+// Chuyển file sang đường dẫn mới (vd đổi môn của bài học): đọc file cũ, ghi file mới
+// (đã merge `patch`), rồi xoá file cũ. Ghi file mới thất bại → file cũ còn nguyên.
+async function moveLessonFile(oldPath, newPath, patch, commitMessage) {
+    if (!githubService.isConfigured) throw new Error('GitHub chưa được cấu hình.');
+    if (oldPath === newPath) return saveLessonContent(newPath, patch, commitMessage);
+
+    if (await githubService.fileExists(newPath)) {
+        throw new Error(`Đã có file ${newPath} trên GitHub (trùng tên bài trong môn mới).`);
+    }
+    const current = await githubService.readJsonFile(oldPath);
+    if (!current) throw new Error(`File cũ không tồn tại trên GitHub: ${oldPath}`);
+
+    const result = await githubService.writeJsonFile(newPath, { ...current, ...patch }, commitMessage);
+    await githubService.deleteFile(oldPath, `${commitMessage} (chuyển file)`);
+    cache.delete(oldPath);
+    cache.delete(newPath);
+    return result;
 }
 
 function clearCache(filePath) {
     if (filePath) cache.delete(filePath); else cache.clear();
 }
 
-module.exports = { lessonFilePath, getLessonContent, saveLessonContent, clearCache };
+module.exports = { lessonFilePath, getLessonContent, saveLessonContent, patchLessonFile, moveLessonFile, clearCache };

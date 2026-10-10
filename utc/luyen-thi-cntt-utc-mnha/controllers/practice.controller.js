@@ -6,6 +6,7 @@ const Submission = require('../models/Submission');
 const { paginate } = require('./pagination.controller');
 // ★ USER KEY
 const { getContentScope } = require('../services/userKeyService');
+const githubSync = require('../services/githubSyncService');
 
 // ============================================================
 // LIST PRACTICE — cả admin + student đều vào
@@ -25,6 +26,7 @@ exports.listPractice = async (req, res, next) => {
         const subjectFilter = String(req.query.subject || '').trim() || null;
 
         const scope = await getContentScope(req);
+        await githubSync.syncKinds(['lessons']);   // ★ bài học lấy từ GitHub
 
         // --- Môn học hiển thị được ---
         const subjectQuery = {

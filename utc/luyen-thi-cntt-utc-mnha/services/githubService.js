@@ -14,7 +14,8 @@ const {
     isConfigured,
     subjectFile,
     lessonFile,
-    submissionFile
+    submissionFile,
+    randomJsonName
 } = require('../config/github');
 
 const MAX_RETRY = 3;
@@ -68,6 +69,74 @@ async function decodeContent(data, path) {
     throw new Error(`Không đọc được nội dung file: ${path}`);
 }
 
+
+// ============================================================
+// CÂY THƯ MỤC REPO (1 request lấy toàn bộ đường dẫn + SHA)
+// ------------------------------------------------------------
+// Dùng để biết trên GitHub hiện có BAO NHIÊU file / file nào, rồi mới đọc
+// những file cần thiết (xem services/githubSyncService.js).
+// Cache ngắn theo instance; mọi thao tác ghi/xoá của app đều xoá cache này.
+// ============================================================
+const TREE_TTL_MS = 15 * 1000;
+let _tree = null;          // { at, files: Map(path -> blobSha), truncated }
+let _treePromise = null;
+
+async function getRepoTree({ force = false } = {}) {
+    assertConfigured();
+    if (!force && _tree && Date.now() - _tree.at < TREE_TTL_MS) return _tree;
+    if (_treePromise) return _treePromise;
+
+    _treePromise = (async () => {
+        // tree_sha nhận cả tên nhánh → 1 request, không cần gọi getBranch trước
+        const res = await octokit.git.getTree({
+            owner, repo, tree_sha: branch, recursive: '1'
+        });
+        const files = new Map();
+        for (const t of res.data.tree || []) {
+            if (t.type === 'blob') files.set(t.path, t.sha);
+        }
+        if (res.data.truncated) {
+            console.warn('⚠️ [githubService] Cây thư mục bị cắt (repo quá lớn) — bỏ qua bước xoá đồng bộ.');
+        }
+        _tree = { at: Date.now(), files, truncated: Boolean(res.data.truncated) };
+        return _tree;
+    })();
+
+    try {
+        return await _treePromise;
+    } finally {
+        _treePromise = null;
+    }
+}
+
+function invalidateTree() {
+    _tree = null;
+}
+
+/**
+ * Sinh đường dẫn `dir/<tên-ngẫu-nhiên>.json` CHƯA tồn tại trên GitHub.
+ * Kiểm tra cả cây thư mục (cache) lẫn API trực tiếp; trùng thì sinh lại.
+ */
+async function uniqueJsonPath(dir) {
+    assertConfigured();
+    const clean = String(dir || '').replace(/^\/+|\/+$/g, '');
+
+    let known = null;
+    try {
+        known = (await getRepoTree()).files;
+    } catch (e) {
+        console.warn('[githubService] Không lấy được cây thư mục để kiểm tra trùng tên:', e.message);
+    }
+
+    for (let i = 0; i < 8; i++) {
+        const candidate = `${clean}/${randomJsonName()}`;
+        if (known && known.has(candidate)) continue;
+        if (await getFileSha(candidate)) continue;
+        return candidate;
+    }
+    throw new Error('Không tạo được tên file ngẫu nhiên không trùng trên GitHub.');
+}
+
 /**
  * Lấy SHA của file (null nếu chưa tồn tại).
  */
@@ -111,6 +180,7 @@ async function writeJsonFile(path, data, commitMessage = 'Update JSON') {
             }
         });
 
+        invalidateTree();
         return {
             path,
             sha: res.data.content.sha,
@@ -196,6 +266,7 @@ async function writeJsonFileIfSha(path, data, expectedSha, commitMessage = 'Upda
                 email: 'bot@luyen-thi-cntt.local'
             }
         });
+        invalidateTree();
         return {
             path,
             sha: res.data.content.sha,
@@ -254,6 +325,7 @@ async function updateJsonFile(path, updater, commitMessage = 'Update JSON') {
             }
         });
 
+        invalidateTree();
         return {
             path,
             sha: put.data.content.sha,
@@ -291,6 +363,7 @@ async function writeBinaryFile(path, buffer, commitMessage = 'Update file') {
             }
         });
 
+        invalidateTree();
         return {
             path,
             sha: res.data.content.sha,
@@ -345,6 +418,7 @@ async function deleteFile(path, commitMessage = 'Delete file') {
             sha
         });
 
+        invalidateTree();
         return {
             path,
             deleted: true,
@@ -395,6 +469,11 @@ module.exports = {
     fileExists,
     getFileSha,
     invalidate,
+
+    // Cây thư mục + tên file ngẫu nhiên không trùng
+    getRepoTree,
+    invalidateTree,
+    uniqueJsonPath,
 
     // Path helpers
     submissionPath,

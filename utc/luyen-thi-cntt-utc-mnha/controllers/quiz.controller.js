@@ -60,18 +60,18 @@ const A = {
   formatAiLabel: (provider, keyName) => aiService.formatAiLabel(provider, keyName),
 
   pushSubmission: async (path, data, subId) => {
-    const setSync = (v) => Submission.updateOne({ _id: subId }, { $set: { syncStatus: v } });
+    const setSync = (v, extra) => Submission.updateOne({ _id: subId }, { $set: Object.assign({ syncStatus: v }, extra || {}) });
     const msg = 'Quiz submission: ' + path;
     if (!githubService.isConfigured) { await setSync('failed'); return 'failed'; }
     try {
-      await githubService.writeJsonFile(path, data, msg);
-      await setSync('committed');
+      const written = await githubService.writeJsonFile(path, data, msg);
+      await setSync('committed', { githubSha: written && written.sha ? written.sha : null, syncedAt: new Date() });
       return 'committed';
     } catch (e) {
       console.error('[quiz.submit] GitHub ghi trực tiếp lỗi, chuyển sang queue:', e.message);
       const jobId = syncQueue.enqueue({
         type: 'putJson', filePath: path, data, commitMessage: msg,
-        onSuccess: async () => { await setSync('committed'); },
+        onSuccess: async (r) => { await setSync('committed', { githubSha: r && r.sha ? r.sha : null, syncedAt: new Date() }); },
         onFinalFail: async () => { await setSync('failed'); },
       });
       if (!jobId) { await setSync('failed'); return 'failed'; }
@@ -396,9 +396,22 @@ exports.create = async (req, res) => {
     if (await A.ghRead(githubFile)) return fail(res, 409, 'Đã có file trùng đường dẫn trên GitHub. Đổi tiêu đề / slug.');
 
     if (c.audioUrl) c.built.quiz.audioUrl = c.audioUrl;
-    await A.ghWrite(githubFile, { type: 'quiz', title: c.title, contentHtml: c.contentHtml, quiz: c.built.quiz });
+
+    // ★ GitHub là nguồn sự thật: file JSON chứa ĐỦ thông tin để dựng lại bài chỉ từ GitHub
+    const lessonId = new mongoose.Types.ObjectId();
+    const nowIso = new Date().toISOString();
+    const written = await A.ghWrite(githubFile, {
+      type: 'quiz', lessonId: String(lessonId), title: c.title, slug, subjectSlug: subject.slug,
+      duration: c.duration, promptId: c.promptId ? String(c.promptId) : null,
+      analysisAiKeyIds: (c.analysisAiKeyIds || []).map(String),
+      isPublished: true, isDeleted: false,
+      createdBy: { id: String(req.user._id), name: req.user.name || '', email: req.user.email || '' },
+      createdAt: nowIso, updatedAt: nowIso,
+      contentHtml: c.contentHtml, quiz: c.built.quiz,
+    });
 
     const lesson = await Lesson.create({
+      _id: lessonId, githubSha: written && written.sha ? written.sha : null,
       subjectId: subject._id, title: c.title, slug, githubFile, type: 'quiz',
       quizCounts: c.built.counts, duration: c.duration, promptId: c.promptId,
       analysisAiKeyIds: c.analysisAiKeyIds || [],
@@ -431,7 +444,21 @@ exports.update = async (req, res) => {
 
     if (c.audioUrl) c.built.quiz.audioUrl = c.audioUrl;
     try {
-      await A.ghWrite(lesson.githubFile, { type: 'quiz', title: c.title, contentHtml: c.contentHtml, quiz: c.built.quiz }, file.sha);
+      // ★ Giữ nguyên các field metadata sẵn có trong file (createdBy, createdAt, isDeleted…), chỉ ghi đè phần đổi
+      const subj = await Subject.findById(lesson.subjectId).select('slug').lean();
+      const prev = file.data || {};
+      const analysisIds = c.analysisAiKeyIds || lesson.analysisAiKeyIds || [];
+      const written = await A.ghWrite(lesson.githubFile, Object.assign({}, prev, {
+        type: 'quiz', lessonId: String(lesson._id), title: c.title, slug: lesson.slug,
+        subjectSlug: subj ? subj.slug : (prev.subjectSlug || null),
+        duration: c.duration, promptId: c.promptId ? String(c.promptId) : null,
+        analysisAiKeyIds: analysisIds.map(String),
+        isPublished: lesson.isPublished !== false, isDeleted: lesson.deletedAt ? true : (prev.isDeleted === true),
+        createdAt: prev.createdAt || (lesson.createdAt ? new Date(lesson.createdAt).toISOString() : new Date().toISOString()),
+        updatedAt: new Date().toISOString(),
+        contentHtml: c.contentHtml, quiz: c.built.quiz,
+      }), file.sha);
+      lesson.githubSha = written && written.sha ? written.sha : lesson.githubSha;
     } catch (e) {
       if (e && e.status === 409) return fail(res, 409, 'Đề đã bị đổi, vui lòng tải lại trang.');
       throw e;
@@ -479,16 +506,20 @@ exports.submit = async (req, res) => {
     const result = A.grade(quiz, answers);
     const subject = await Subject.findById(lesson.subjectId).select('slug').lean();
     const now = new Date();
-    const path = `submissions/${subject.slug}/${lesson.slug}/${req.user._id}-${now.getTime()}.json`;
+    // ★ Tên file NGẪU NHIÊN, không trùng file nào trên GitHub
+    const path = await githubService.uniqueJsonPath(`submissions/${subject.slug}/${lesson.slug}`);
+    const subId = new mongoose.Types.ObjectId();
 
     const sub = await Submission.create({
+      _id: subId,
       userId: req.user._id, lessonId: lesson._id, githubFile: path, type: 'quiz',
       score: result.score, maxScore: result.maxScore, correctCount: result.correctCount, totalCount: result.totalCount,
       status: 'graded', syncStatus: 'pending', submittedAt: now, gradedAt: now, analysisCount: 0, teacherComment: null,
     });
 
     const json = {
-      type: 'quiz', userId: String(req.user._id), lessonId: String(lesson._id), submittedAt: now.toISOString(),
+      type: 'quiz', submissionId: String(subId), userId: String(req.user._id), lessonId: String(lesson._id),
+      lessonTitle: lesson.title || null, subjectSlug: subject.slug, lessonSlug: lesson.slug, submittedAt: now.toISOString(),
       answers, quizSnapshot: quiz, result, gradedAt: now.toISOString(), gradedBy: 'auto',
       teacherComment: null, teacherCommentHistory: [], aiAnalyses: [],
     };

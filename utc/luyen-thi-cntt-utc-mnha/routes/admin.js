@@ -12,6 +12,7 @@ const layoutController = require("../controllers/layout.controller");
 const layoutService = require("../services/layoutService");
 
 const userKeyService = require("../services/userKeyService");
+const githubSync = require("../services/githubSyncService");
 const { attachUser, isDefaultAdmin } = require("../middleware/auth");
 const { adminOnly, requireDefaultAdmin, ownContentFilter } = require("../middleware/role");
 
@@ -122,6 +123,44 @@ router.post("/subjects/:id/edit", subjectController.updateSubject);
 router.post("/subjects/:id/delete", subjectController.deleteSubject);
 router.post("/subjects/:id/restore", subjectController.restoreSubject);
 router.post("/subjects/:id/hard-delete", subjectController.hardDeleteSubject);
+
+
+// ============================================================
+// ĐỒNG BỘ GITHUB → MONGODB (bài học, prompt, lịch sử bài nộp)
+// ------------------------------------------------------------
+// GitHub là nguồn sự thật. Các trang danh sách tự đồng bộ nhẹ (tối thiểu 15s/lần);
+// nút này ép ĐỌC LẠI toàn bộ file JSON — dùng khi vừa sửa/xoá file trực tiếp trên GitHub.
+// Chỉ admin hệ thống (default) vì đồng bộ chạm dữ liệu của mọi tổ chức.
+// ============================================================
+const SYNC_BACK_OK = [/^\/admin\/lessons(\?.*)?$/, /^\/admin\/prompts(\?.*)?$/, /^\/admin\/submissions(\?.*)?$/];
+
+router.post("/sync-github", requireDefaultAdmin, async (req, res) => {
+    const back = String(req.body?.back || "");
+    const target = SYNC_BACK_OK.some((re) => re.test(back)) ? back : "/admin/lessons";
+    const sep = target.includes("?") ? "&" : "?";
+
+    try {
+        const results = await githubSync.syncKinds(["lessons", "prompts", "submissions"], { force: true });
+        const failed = results.find((r) => r && r.error);
+        if (failed) {
+            return res.redirect(`${target}${sep}error=` + encodeURIComponent("Đồng bộ GitHub lỗi: " + failed.error));
+        }
+        const sum = (k) => results.find((r) => r && r.kind === k) || {};
+        const part = (k, label) => {
+            const r = sum(k);
+            return `${label}: ${r.files ?? 0} file (+${r.imported || 0} mới, ~${r.updated || 0} cập nhật, -${r.removed || 0} xoá${r.pending ? `, còn ${r.pending} file chờ lần sau` : ""})`;
+        };
+        const msg = "Đã đồng bộ từ GitHub — " + [
+            part("lessons", "Bài học"), part("prompts", "Prompt"), part("submissions", "Bài nộp")
+        ].join(" · ");
+
+        req.flash?.("success", msg);
+        return res.redirect(`${target}${sep}success=` + encodeURIComponent(msg));
+    } catch (err) {
+        console.error("sync-github error:", err);
+        return res.redirect(`${target}${sep}error=` + encodeURIComponent("Đồng bộ GitHub lỗi: " + err.message));
+    }
+});
 
 
 // ============================================================

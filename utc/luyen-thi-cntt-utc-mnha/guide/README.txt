@@ -1842,3 +1842,14 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ---
 
 > 💡 *Tài liệu tổng thể. Khi triển khai có thể chia module: Auth, Admin, Subject, Lesson, Submission, AI, GitHub Sync, Notification, Crypto, Prompt, Dispute, Audit.*
+
+---
+
+## 🔄 GitHub là NGUỒN SỰ THẬT (bài học · prompt · lịch sử)
+
+- `subjects/{môn}/lessons/{file}.json` → bài học | `prompts/{tên-ngẫu-nhiên}.json` → prompt | `submissions/{môn}/{bài}/{tên-ngẫu-nhiên}.json` → bài nộp.
+- Mỗi lần mở trang danh sách (tối thiểu 15s/lần): `services/githubSyncService.js` gọi 1 request lấy cây thư mục repo, đọc file mới/đã đổi (so SHA), tách thông tin ghi vào MongoDB; bản ghi mà file đã mất trên GitHub thì bị xoá khỏi MongoDB.
+- Tạo/sửa/xoá trực tiếp trên GitHub đều hiện lên web. Tạo/sửa/xoá từ web thì GHI GITHUB TRƯỚC, Mongo sau.
+- Prompt và bài nộp: tên file ngẫu nhiên (`githubService.uniqueJsonPath`) đã kiểm tra không trùng.
+- Admin hệ thống có nút "Đồng bộ GitHub" (POST /admin/sync-github) để ép đọc lại toàn bộ file.
+- Danh sách đề/bài học: mới → cũ.

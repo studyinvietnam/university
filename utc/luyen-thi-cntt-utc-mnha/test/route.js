@@ -1,0 +1,21 @@
+const h = require('./harness'); const Module = require('module'); const crypto = require('crypto'); const assert = require('assert');
+let handler; const orig = Module._resolveFilename;
+Module._resolveFilename = function (r, ...a) { return r === 'express' ? '/virtual/express.js' : orig.call(this, r, ...a); };
+require.cache['/virtual/express.js'] = { id: 'x', filename: '/virtual/express.js', loaded: true, exports: { Router: () => ({ post: (p, fn) => { handler = fn; } }) } };
+const store = require(h.ROOT + '/services/githubStore'); let applied = null; store.applyPush = async (b) => { applied = b; return { ok: true, imported: 1 }; };
+require(h.ROOT + '/routes/githubWebhook');
+const call = async (headers, rawBody, body) => { const out = {}; const res = { status(c) { out.code = c; return this; }, json(j) { out.body = j; out.code = out.code || 200; return this; } };
+  await handler({ get: (k) => headers[k.toLowerCase()], rawBody, body }, res); return out; };
+(async () => {
+  const raw = Buffer.from(JSON.stringify({ ref: 'refs/heads/main', commits: [] })); const sig = (sec) => 'sha256=' + crypto.createHmac('sha256', sec).update(raw).digest('hex');
+  delete process.env.GITHUB_WEBHOOK_SECRET; assert.strictEqual((await call({}, raw, {})).code, 503);
+  process.env.GITHUB_WEBHOOK_SECRET = 's3'; 
+  assert.strictEqual((await call({ 'x-github-event': 'push' }, raw, {})).code, 401, 'thiếu chữ ký');
+  assert.strictEqual((await call({ 'x-hub-signature-256': sig('sai'), 'x-github-event': 'push' }, raw, {})).code, 401, 'sai secret');
+  assert.strictEqual((await call({ 'x-hub-signature-256': 'sha256=abc', 'x-github-event': 'push' }, raw, {})).code, 401, 'sai độ dài');
+  assert.deepStrictEqual((await call({ 'x-hub-signature-256': sig('s3'), 'x-github-event': 'ping' }, raw, {})).body, { ok: true, pong: true });
+  const r = await call({ 'x-hub-signature-256': sig('s3'), 'x-github-event': 'push' }, raw, { ref: 'refs/heads/main', commits: [] });
+  assert.strictEqual(r.code, 200); assert.ok(applied);
+  assert.strictEqual((await call({ 'x-hub-signature-256': sig('s3'), 'x-github-event': 'issues' }, raw, {})).code, 202);
+  console.log('route webhook: tất cả test đạt');
+})().catch((e) => { console.error(e); process.exit(1); });

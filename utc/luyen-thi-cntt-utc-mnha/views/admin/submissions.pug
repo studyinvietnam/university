@@ -96,6 +96,9 @@ block content
                                             = (submission.lessonId && submission.lessonId.title) || '—'
                                         p(class="text-xs text-gray-500")
                                             = (submission.subjectId && submission.subjectId.name) || ''
+                                        if submission.githubFile
+                                            p(class="text-xs text-gray-400 font-mono break-all", title=submission.githubFile)
+                                                = submission.githubFile.split('/').pop()
 
                                     //- Loại / Chấm bởi
                                     td(class="px-5 py-4")

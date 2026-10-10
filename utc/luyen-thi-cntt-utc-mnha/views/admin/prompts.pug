@@ -17,12 +17,22 @@ block content
                     else
                         | Cấu hình prompt AI dùng để chấm bài
 
-            a(
-                href=`/admin/prompts/create?kind=${promptKind}`
-                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
-            )
-                i(data-lucide="plus", class="w-4 h-4")
-                | Thêm Prompt #{isQuizTab ? 'trắc nghiệm' : 'tự luận'}
+            div(class="flex items-center gap-2")
+                form(method="POST", action="/admin/sync-github", class="inline")
+                    input(type="hidden", name="back", value=`/admin/prompts?kind=${promptKind}`)
+                    button(
+                        type="submit"
+                        title="Đọc lại toàn bộ file trên GitHub rồi cập nhật danh sách"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+                    )
+                        i(data-lucide="refresh-cw", class="w-4 h-4")
+                        | Đồng bộ GitHub
+                a(
+                    href=`/admin/prompts/create?kind=${promptKind}`
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
+                )
+                    i(data-lucide="plus", class="w-4 h-4")
+                    | Thêm Prompt #{isQuizTab ? 'trắc nghiệm' : 'tự luận'}
 
         //- TABS
         div(class="flex items-center gap-1 mb-6 border-b border-gray-200")
@@ -98,6 +108,10 @@ block content
                                     if !prompt.active
                                         span(class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600")
                                             | Đã tắt
+
+                                if prompt.githubFile
+                                    p(class="text-xs text-gray-400 font-mono mt-1 break-all", title=prompt.githubFile)
+                                        | File: #{prompt.githubFile.split('/').pop()}
 
                                 div(class="flex items-center gap-2 mt-2 flex-wrap text-xs")
                                     span(class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium")

@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const GradingPrompt = require('../models/GradingPrompt');
 const Subject = require('../models/Subject');
 const Lesson = require('../models/Lesson');
-const syncQueueService = require('../services/syncQueueService');
+const lessonContentService = require('../services/lessonContentService');
+const githubSync = require('../services/githubSyncService');
 const { paginate } = require('./pagination.controller');
 
 // ★ PHÂN QUYỀN THEO userKey
@@ -76,6 +77,32 @@ function normalizeIds(value) {
     return arr.filter((id) => id && mongoose.Types.ObjectId.isValid(id));
 }
 
+// ★ GitHub là nguồn sự thật: gán/gỡ prompt cho bài học phải ghi cả vào file JSON
+//   của bài (field promptId) — nếu chỉ ghi Mongo, lần sửa file bài sau sẽ ghi đè lại.
+async function setLessonPrompt(lessonIds, promptId, onlyIfPromptId = null) {
+    if (!lessonIds.length) return;
+    const filter = { _id: { $in: lessonIds } };
+    if (onlyIfPromptId) filter.promptId = onlyIfPromptId;
+    const lessons = await Lesson.find(filter).select('_id title githubFile').lean();
+
+    for (const l of lessons) {
+        const set = { promptId: promptId || null };
+        if (l.githubFile && githubService.isConfigured) {
+            try {
+                const r = await lessonContentService.patchLessonFile(
+                    l.githubFile,
+                    { promptId: promptId ? String(promptId) : null },
+                    `[Lesson] ${promptId ? 'Gán' : 'Gỡ'} prompt: ${l.title}`
+                );
+                if (r && r.sha) set.githubSha = r.sha;
+            } catch (e) {
+                console.warn(`[prompt] Không ghi được promptId vào ${l.githubFile}:`, e.message);
+            }
+        }
+        await Lesson.updateOne({ _id: l._id }, { $set: set }, { timestamps: false });
+    }
+}
+
 async function syncLessonAssignments(promptId, oldLessonIds, newLessonIds) {
     const oldSet = new Set(oldLessonIds.map(String));
     const newSet = new Set(newLessonIds.map(String));
@@ -83,15 +110,8 @@ async function syncLessonAssignments(promptId, oldLessonIds, newLessonIds) {
     const added = newLessonIds.filter((id) => !oldSet.has(String(id)));
     const removed = oldLessonIds.filter((id) => !newSet.has(String(id)));
 
-    if (added.length) {
-        await Lesson.updateMany({ _id: { $in: added } }, { $set: { promptId } });
-    }
-    if (removed.length) {
-        await Lesson.updateMany(
-            { _id: { $in: removed }, promptId },
-            { $set: { promptId: null } }
-        );
-    }
+    if (added.length) await setLessonPrompt(added, promptId);
+    if (removed.length) await setLessonPrompt(removed, null, promptId);
 }
 
 function parseRubric(body) {
@@ -162,60 +182,95 @@ async function readPromptJsonFromGithub(prompt) {
     }
 }
 
-// ★ CHANGED: nội dung được truyền vào dưới dạng tham số (content/rubric/
-//   variables) thay vì đọc từ prompt.* — vì các field đó KHÔNG còn trong
-//   schema GradingPrompt nữa.
-//
-// ★ FIX: trước đây hàm này fire-and-forget (không await được) — updatePrompt()
-//   redirect "thành công" ngay lập tức dù GitHub có thể chưa ghi xong (hoặc
-//   ghi thất bại hẳn sau khi hết retry). Giờ trả về 1 Promise, resolve khi
-//   syncQueueService thực sự ghi GitHub xong (onSuccess) và reject khi ghi
-//   thất bại vĩnh viễn sau retry (onFinalFail) — cả hai hook này vốn đã được
-//   syncQueueService hỗ trợ sẵn, chỉ cần nối dây vào Promise.
-//   Lưu ý: syncQueueService retry tối đa 5 lần, có thể mất tới ~30s nếu GitHub
-//   lỗi liên tục trước khi request trả lỗi — đây là đánh đổi có chủ đích để
-//   admin biết chắc chắn kết quả thay vì thấy "thành công" giả.
-function pushPromptToGithub(prompt, content, rubric, variables) {
-    return new Promise((resolve, reject) => {
-        if (!prompt.githubFile) {
-            resolve(null);
-            return;
-        }
+// ★ Ghi file JSON prompt lên GitHub (ĐỒNG BỘ, không qua queue) và trả về { sha, ... }.
+//   File chứa ĐỦ thông tin (kể cả isDefault, môn/bài gán, người tạo) để dựng lại
+//   GradingPrompt trong MongoDB chỉ từ GitHub. Lỗi → ném ra để nơi gọi KHÔNG lưu Mongo.
+async function pushPromptToGithub(prompt, content, rubric, variables, extra = {}) {
+    if (!prompt.githubFile) return null;
+    if (!githubService.isConfigured) throw new Error('GitHub chưa được cấu hình.');
 
+    const data = {
+        promptId: String(prompt._id),
+        name: prompt.name,
+        description: prompt.description || '',
+        content: content || '',
+        rubric: rubric || [],
+        strictness: prompt.strictness,
+        maxScore: prompt.maxScore,
+        scope: prompt.scope,
+        kind: normalizeKind(prompt.kind),
+        subjectId: prompt.subjectId ? String(prompt.subjectId) : null,
+        lessonIds: (prompt.lessonIds || []).map(String),
+        isDefault: Boolean(prompt.isDefault),
+        variables: variables || [],
+        version: prompt.version,
+        active: prompt.active !== false,
+        createdBy: extra.createdBy || null,
+        createdAt: extra.createdAt || prompt.createdAt || new Date(),
+        updatedAt: new Date()
+    };
+
+    const result = await githubService.writeJsonFile(
+        prompt.githubFile,
+        data,
+        `[Prompt] ${extra.isNew ? 'Create' : 'Update'}: ${prompt.name}`
+    );
+    console.log(`📤 [prompt] Đã ghi GitHub: ${prompt.githubFile}`);
+    return result;
+}
+
+// Người tạo prompt để ghi vào JSON: ưu tiên giá trị đã có trong file, rồi tới Mongo
+async function creatorMeta(prompt, previous) {
+    if (previous && previous.createdBy) return previous.createdBy;
+    if (!prompt.createdBy) return null;
+    try {
+        const User = require('../models/User');
+        const u = await User.findById(prompt.createdBy).select('name email').lean();
+        return u
+            ? { id: String(u._id), name: u.name || '', email: u.email || '' }
+            : { id: String(prompt.createdBy), name: '', email: '' };
+    } catch (_) {
+        return { id: String(prompt.createdBy), name: '', email: '' };
+    }
+}
+
+// Sửa một vài field trong file JSON prompt đã có (không đụng content/rubric).
+// File không còn trên GitHub → trả null (bản ghi sẽ tự biến mất ở lần đồng bộ sau).
+async function patchPromptJson(prompt, patch, message) {
+    if (!prompt || !prompt.githubFile || !githubService.isConfigured) return null;
+    try {
+        return await githubService.updateJsonFile(
+            prompt.githubFile,
+            (cur) => ({ ...(cur || {}), ...patch, updatedAt: new Date() }),
+            message
+        );
+    } catch (e) {
+        if (/không tồn tại/i.test(e.message) || e.status === 404) return null;
+        throw e;
+    }
+}
+
+// Bỏ cờ mặc định của các prompt CÙNG kind khác (cả Mongo lẫn file JSON)
+async function unsetOtherDefaults(kind, exceptId) {
+    const others = await GradingPrompt.find({
+        _id: { $ne: exceptId }, isDefault: true, ...kindFilter(kind)
+    }).select('_id name githubFile').lean();
+
+    for (const o of others) {
+        const set = { isDefault: false };
         try {
-            syncQueueService.enqueue({
-                type: 'putJson',
-                filePath: prompt.githubFile,
-                commitMessage: `[Prompt] ${prompt.isNew ? 'Create' : 'Update'}: ${prompt.name}`,
-                data: {
-                    promptId: String(prompt._id),
-                    name: prompt.name,
-                    description: prompt.description || '',
-                    content: content || '',
-                    rubric: rubric || [],
-                    strictness: prompt.strictness,
-                    maxScore: prompt.maxScore,
-                    scope: prompt.scope,
-                    kind: normalizeKind(prompt.kind),
-                    variables: variables || [],
-                    version: prompt.version,
-                    active: prompt.active,
-                    updatedAt: new Date()
-                },
-                onSuccess: async (result) => {
-                    console.log(`📤 [prompt] Đã đẩy lên GitHub: ${result.url}`);
-                    resolve(result);
-                },
-                onFinalFail: async (err) => {
-                    console.error(`❌ [prompt] Đẩy GitHub thất bại vĩnh viễn: ${err.message}`);
-                    reject(err);
-                }
-            });
+            const r = await patchPromptJson(o, { isDefault: false }, `[Prompt] Bỏ mặc định: ${o.name}`);
+            if (r && r.sha) set.githubSha = r.sha;
         } catch (e) {
-            console.warn('[prompt] Enqueue fail:', e.message);
-            reject(e);
+            console.warn(`[prompt] Không bỏ được cờ mặc định trong ${o.githubFile}:`, e.message);
         }
-    });
+        await GradingPrompt.updateOne({ _id: o._id }, { $set: set });
+    }
+}
+
+function actorMeta(req) {
+    const u = req.user || {};
+    return { id: String(u._id || ''), name: u.name || '', email: u.email || '' };
 }
 
 // ============================================================
@@ -225,6 +280,9 @@ exports.getPrompts = async (req, res, next) => {
     try {
         const { scope, active, search } = req.query;
         const actor = req.user;
+
+        // ★ Danh sách prompt lấy từ GitHub (prompts/*.json); bài học để hiện tên khi gán
+        await githubSync.syncKinds(['lessons', 'prompts']);
 
         // ★ Tab Tự luận | Trắc nghiệm (mặc định tự luận; khớp cả prompt cũ thiếu `kind`)
         const kind = normalizeKind(req.query.kind);
@@ -331,17 +389,15 @@ exports.createPrompt = async (req, res, next) => {
 
         // ★ Chỉ admin default được đặt prompt mặc định toàn hệ thống
         const setDefault = isDefaultAdmin(actor) && (isDefault === 'on' || isDefault === true);
-        if (setDefault) {
-            // ★ Mỗi `kind` có 1 mặc định riêng → chỉ bỏ cờ của prompt CÙNG kind
-            await GradingPrompt.updateMany(
-                { isDefault: true, ...kindFilter(kind) },
-                { $set: { isDefault: false } }
-            );
-        }
 
-        // ★ CHANGED: KHÔNG truyền content / rubric / variables vào Mongo nữa.
-        //   Chỉ lưu metadata.
-        const prompt = await GradingPrompt.create({
+        // ★ GitHub là nguồn sự thật → GHI GITHUB TRƯỚC, thành công mới tạo bản ghi Mongo.
+        //   Tên file NGẪU NHIÊN, đã kiểm tra không trùng với file nào đang có trên GitHub.
+        const _id = new mongoose.Types.ObjectId();
+        const createdAt = new Date();
+        const githubFile = await githubService.uniqueJsonPath('prompts');
+
+        const draft = {
+            _id,
             name: name.trim(),
             description: (description || '').trim(),
             kind,
@@ -353,6 +409,41 @@ exports.createPrompt = async (req, res, next) => {
             isDefault: setDefault,
             active: active !== 'off',
             version: 1,
+            githubFile,
+            createdAt
+        };
+
+        let saved;
+        try {
+            saved = await pushPromptToGithub(draft, content.trim(), rubric, variablesForKind(kind), {
+                isNew: true,
+                createdBy: actorMeta(req),
+                createdAt
+            });
+        } catch (e) {
+            console.error('[prompt] createPrompt: ghi GitHub lỗi, KHÔNG tạo prompt:', e.message);
+            return res.redirect(backUrl + encodeURIComponent('Không lưu được prompt lên GitHub nên chưa tạo: ' + e.message));
+        }
+
+        // ★ Mỗi `kind` có 1 mặc định riêng → chỉ bỏ cờ của prompt CÙNG kind (cả file JSON lẫn Mongo)
+        if (setDefault) await unsetOtherDefaults(kind, _id);
+
+        // MongoDB chỉ giữ metadata + con trỏ tới file
+        const prompt = await GradingPrompt.create({
+            _id,
+            name: draft.name,
+            description: draft.description,
+            kind,
+            strictness: draft.strictness,
+            maxScore: draft.maxScore,
+            scope: draft.scope,
+            subjectId: safeSubjectId,
+            lessonIds,
+            isDefault: setDefault,
+            active: draft.active,
+            version: 1,
+            githubFile,
+            githubSha: (saved && saved.sha) || null,
             createdBy: getUserId(req),
             updatedBy: getUserId(req)
         });
@@ -360,17 +451,6 @@ exports.createPrompt = async (req, res, next) => {
         if (lessonIds.length) {
             await syncLessonAssignments(prompt._id, [], lessonIds);
         }
-
-        // Gán githubFile theo _id (ổn định) rồi đẩy nội dung lên GitHub
-        prompt.githubFile = `prompts/${prompt._id}.json`;
-        prompt.isNew = true; // chỉ dùng cho commit message
-        await GradingPrompt.updateOne({ _id: prompt._id }, { $set: { githubFile: prompt.githubFile } });
-
-        // ★ CHANGED: truyền content/rubric/variables trực tiếp vào hàm push.
-        // ★ pushPromptToGithub trả Promise sẽ reject khi hết retry → phải .catch,
-        //   nếu không Node ≥15 báo unhandledRejection và có thể làm sập server.
-        pushPromptToGithub(prompt, content.trim(), rubric, variablesForKind(kind))
-            .catch((e) => console.error('[prompt] createPrompt: đẩy GitHub thất bại (prompt đã có trong Mongo):', e.message));
 
         return res.redirect(`/admin/prompts?kind=${kind}&success=` + encodeURIComponent(`Đã tạo prompt "${prompt.name}".`));
     } catch (err) {
@@ -569,12 +649,7 @@ exports.updatePrompt = async (req, res, next) => {
         const setDefault = isDefaultAdmin(actor)
             ? (isDefault === 'on' || isDefault === true)
             : prompt.isDefault;
-        if (setDefault && !prompt.isDefault) {
-            await GradingPrompt.updateMany(
-                { _id: { $ne: prompt._id }, isDefault: true, ...kindFilter(kind) },
-                { $set: { isDefault: false } }
-            );
-        }
+        const becameDefault = setDefault && !prompt.isDefault;
         prompt.isDefault = setDefault;
         prompt.active = active !== 'off';
 
@@ -584,50 +659,44 @@ exports.updatePrompt = async (req, res, next) => {
 
         prompt.updatedBy = getUserId(req);
 
+        // Prompt cũ chưa có file → cấp tên file ngẫu nhiên không trùng
         if (!prompt.githubFile) {
-            prompt.githubFile = `prompts/${prompt._id}.json`;
+            prompt.githubFile = await githubService.uniqueJsonPath('prompts');
         }
 
-        await prompt.save();
-
-        // ★ FIX: trước đây luôn gọi syncLessonAssignments(..., newLessonIds)
-        //   với newLessonIds ép về [] mỗi khi scope !== 'lesson' — khiến MỌI
-        //   lần sửa 1 prompt scope subject/global (dù chỉ đổi tên, maxScore...)
-        //   đều xoá sạch mọi Lesson.promptId đang trỏ về nó (có thể do gán
-        //   trực tiếp từ trang sửa Lesson). Giờ chỉ đụng vào Lesson.promptId
-        //   trong đúng 2 trường hợp có chủ đích:
-        if (scope === 'lesson') {
-            // 1) Đang sửa prompt scope=lesson → đồng bộ theo đúng checkbox
-            //    admin vừa chọn trong form này.
-            await syncLessonAssignments(prompt._id, oldLessonIds, newLessonIds);
-        } else if (previousScope === 'lesson' && oldLessonIds.length) {
-            // 2) Admin CHỦ ĐỘNG đổi scope từ 'lesson' sang scope khác → hợp lý
-            //    để gỡ hết lesson cũ, vì prompt không còn ở dạng lesson-scope nữa.
-            await syncLessonAssignments(prompt._id, oldLessonIds, []);
-        }
-        // else: scope không phải 'lesson' và trước đó cũng không phải 'lesson'
-        //   (vd. đang sửa 1 prompt scope=global) → KHÔNG đụng gì tới
-        //   Lesson.promptId, dù có lesson nào đang trỏ về đây qua đường khác.
-
-        // ★ CHANGED: đẩy nội dung mới nhất lên GitHub — đây là NƠI DUY NHẤT
-        //   lưu content/rubric/variables. variables giữ lại từ bản cũ trên
-        //   GitHub (nếu có), fallback về default.
+        // ★ GitHub là nguồn sự thật → GHI GITHUB TRƯỚC. Lỗi → KHÔNG lưu MongoDB
+        //   (nếu lưu Mongo trước, hai nơi sẽ lệch nhau).
         const variables = previous?.variables?.length ? previous.variables : variablesForKind(kind);
-
-        // ★ FIX: await thật sự việc ghi GitHub trước khi báo "thành công" —
-        //   trước đây redirect chạy ngay dù GitHub có thể chưa ghi xong hoặc
-        //   ghi lỗi, khiến admin tưởng đã lưu nhưng nội dung cũ vẫn còn.
+        const finalContent = (content && content.trim()) || oldContent;
+        let saved;
         try {
-            await pushPromptToGithub(prompt, (content || '').trim(), rubric, variables);
+            saved = await pushPromptToGithub(prompt, finalContent, rubric, variables, {
+                createdBy: await creatorMeta(prompt, previous),
+                createdAt: previous?.createdAt || prompt.createdAt
+            });
         } catch (githubErr) {
             return res.redirect(
                 `/admin/prompts/${id}/edit?error=` +
                 encodeURIComponent(
-                    'Đã lưu vào hệ thống nhưng đồng bộ GitHub thất bại: ' +
+                    'Không ghi được lên GitHub nên chưa lưu thay đổi: ' +
                     githubErr.message +
-                    '. Nội dung CŨ vẫn đang được dùng để chấm bài — vui lòng lưu lại.'
+                    '. Nội dung CŨ vẫn đang được dùng để chấm bài — vui lòng thử lại.'
                 )
             );
+        }
+        prompt.githubSha = (saved && saved.sha) || prompt.githubSha;
+
+        if (becameDefault) await unsetOtherDefaults(kind, prompt._id);
+
+        await prompt.save();
+
+        // Chỉ đụng vào Lesson.promptId trong đúng 2 trường hợp có chủ đích:
+        if (scope === 'lesson') {
+            // 1) Đang sửa prompt scope=lesson → đồng bộ theo đúng checkbox vừa chọn.
+            await syncLessonAssignments(prompt._id, oldLessonIds, newLessonIds);
+        } else if (previousScope === 'lesson' && oldLessonIds.length) {
+            // 2) Admin CHỦ ĐỘNG đổi scope từ 'lesson' sang scope khác → gỡ hết bài cũ.
+            await syncLessonAssignments(prompt._id, oldLessonIds, []);
         }
 
         return res.redirect(`/admin/prompts/${id}/edit?success=` + encodeURIComponent('Đã cập nhật prompt và đồng bộ GitHub thành công.'));
@@ -653,21 +722,24 @@ exports.setDefault = async (req, res, next) => {
         }
 
         // Kiểm tra tồn tại TRƯỚC khi gỡ default cũ (tránh id sai → mất luôn prompt mặc định)
-        const target = await GradingPrompt.findById(id).select('_id kind').lean();
+        const target = await GradingPrompt.findById(id).select('_id name kind githubFile').lean();
         if (!target) {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không tìm thấy prompt.'));
         }
 
+        // ★ GitHub là nguồn sự thật: đánh dấu mặc định trong file JSON TRƯỚC
+        const set = { isDefault: true, updatedBy: getUserId(req) };
+        try {
+            const r = await patchPromptJson(target, { isDefault: true }, `[Prompt] Đặt mặc định: ${target.name}`);
+            if (r && r.sha) set.githubSha = r.sha;
+        } catch (e) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không ghi được GitHub nên chưa đặt mặc định: ' + e.message));
+        }
+
         // ★ Mặc định là MỖI kind một prompt: chỉ bỏ cờ của prompt cùng kind
-        //   (trước đây updateMany({}) sẽ gỡ luôn mặc định của loại kia).
-        await GradingPrompt.updateMany(
-            { isDefault: true, ...kindFilter(target.kind) },
-            { $set: { isDefault: false } }
-        );
-        await GradingPrompt.updateOne(
-            { _id: id },
-            { $set: { isDefault: true, updatedBy: getUserId(req) } }
-        );
+        //   (cả file JSON lẫn Mongo; trước đây updateMany({}) sẽ gỡ luôn mặc định của loại kia).
+        await unsetOtherDefaults(target.kind, target._id);
+        await GradingPrompt.updateOne({ _id: id }, { $set: set });
 
         return res.redirect(`/admin/prompts?kind=${normalizeKind(target.kind)}&success=` + encodeURIComponent('Đã đặt làm prompt mặc định.'));
     } catch (err) {
@@ -695,6 +767,14 @@ exports.deletePrompt = async (req, res, next) => {
         }
         if (prompt.isDefault) {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể xoá prompt mặc định. Hãy đặt prompt khác làm default trước.'));
+        }
+
+        // ★ Ghi active:false vào file JSON TRƯỚC (nếu không lần đồng bộ sau sẽ bật lại)
+        try {
+            const r = await patchPromptJson(prompt, { active: false }, `[Prompt] Vô hiệu hoá: ${prompt.name}`);
+            if (r && r.sha) prompt.githubSha = r.sha;
+        } catch (e) {
+            return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không ghi được GitHub nên chưa vô hiệu hoá: ' + e.message));
         }
 
         prompt.active = false;
@@ -729,19 +809,18 @@ exports.hardDeletePrompt = async (req, res, next) => {
             return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không thể xoá prompt mặc định.'));
         }
 
-        await GradingPrompt.deleteOne({ _id: id });
-
-        if (prompt.githubFile) {
+        // ★ Xoá file JSON trên GitHub TRƯỚC (đồng bộ), rồi mới xoá bản ghi Mongo.
+        //   Chỉ xoá file nằm trong thư mục prompts/.
+        if (prompt.githubFile && /^prompts\/[^/]+\.json$/.test(prompt.githubFile) && githubService.isConfigured) {
             try {
-                syncQueueService.enqueue({
-                    type: 'deleteFile',
-                    filePath: prompt.githubFile,
-                    commitMessage: `[Prompt] Hard delete: ${prompt.name}`
-                });
+                await githubService.deleteFile(prompt.githubFile, `[Prompt] Hard delete: ${prompt.name}`);
             } catch (e) {
-                console.warn('[prompt] Enqueue deleteFile fail:', e.message);
+                console.error('[prompt] Xoá file GitHub lỗi:', e.message);
+                return res.redirect('/admin/prompts?error=' + encodeURIComponent('Không xoá được file trên GitHub nên chưa xoá prompt: ' + e.message));
             }
         }
+
+        await GradingPrompt.deleteOne({ _id: id });
 
         return res.redirect('/admin/prompts?success=' + encodeURIComponent('Đã xoá vĩnh viễn prompt.'));
     } catch (err) {

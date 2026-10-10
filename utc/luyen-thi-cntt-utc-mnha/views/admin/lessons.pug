@@ -14,6 +14,16 @@ block content
                     | Quản lý bài học và bài tập của từng môn
 
             div(class="flex items-center gap-2")
+                //- ★ Đọc lại toàn bộ file JSON từ GitHub (khi vừa sửa/xoá file trực tiếp trên GitHub)
+                form(method="POST", action="/admin/sync-github", class="inline")
+                    input(type="hidden", name="back", value="/admin/lessons")
+                    button(
+                        type="submit"
+                        title="Đọc lại toàn bộ file trên GitHub rồi cập nhật danh sách"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+                    )
+                        i(data-lucide="refresh-cw", class="w-4 h-4")
+                        | Đồng bộ GitHub
                 if !showDeleted
                     a(
                         href="/admin/lessons?deleted=1"
@@ -126,6 +136,11 @@ block content
                                 div(class="flex-1 min-w-0")
                                     h2(class="font-semibold text-gray-900 break-words")
                                         = lesson.title
+
+                                    //- ★ File JSON trên GitHub là nguồn dữ liệu của bài này
+                                    if lesson.githubFile
+                                        p(class="text-xs text-gray-400 font-mono mt-0.5 break-all", title=lesson.githubFile)
+                                            | File: #{lesson.githubFile.split('/').pop()}
 
                                     div(class="flex items-center gap-2 mt-1 flex-wrap text-xs")
                                         if lesson.subject

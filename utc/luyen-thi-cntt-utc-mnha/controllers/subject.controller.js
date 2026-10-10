@@ -5,6 +5,8 @@ const Lesson = require('../models/Lesson');
 const { paginate } = require('./pagination.controller');
 // ★ USER KEY: toàn bộ phạm vi xem/sửa môn học lấy từ đây
 const { getContentScope } = require('../services/userKeyService');
+// ★ GitHub là nguồn sự thật của bài học: đồng bộ trước khi đếm / liệt kê
+const githubSync = require('../services/githubSyncService');
 
 // ============================================================
 // HELPERS
@@ -125,6 +127,8 @@ const NOT_FOUND_MSG = 'Không tìm thấy môn học.';
 // GET /subjects
 exports.getSubjects = async (req, res, next) => {
     try {
+        await githubSync.syncKinds(['lessons']);
+
         // ★ USER KEY: admin default → {} ; admin user_key → userKey+createdBy của mình ;
         //   student → userKey ∈ [null (nếu default), tổ chức gốc, tổ chức đã kết nối]
         const scope = await getContentScope(req);
@@ -193,6 +197,8 @@ exports.getSubject = async (req, res, next) => {
 
         const subject = subjectAny;
 
+        await githubSync.syncKinds(['lessons']);
+
         const { items: lessons, pagination } = await paginate(
             Lesson,
             {
@@ -203,7 +209,8 @@ exports.getSubject = async (req, res, next) => {
             req,
             {
                 limit: 10,
-                sort: { createdAt: 1 },
+                // ★ Đề MỚI nhất lên đầu (mới → cũ)
+                sort: { createdAt: -1 },
                 populate: { path: 'createdBy', select: 'name' },
             }
         );
@@ -234,6 +241,7 @@ exports.getAdminSubjects = async (req, res, next) => {
     try {
         const scope = await requireAdminScope(req, res, '/');
         if (!scope) return;
+        await githubSync.syncKinds(['lessons']);
 
         const showDeleted = req.query.deleted === '1';
         const search = (req.query.search || '').trim();

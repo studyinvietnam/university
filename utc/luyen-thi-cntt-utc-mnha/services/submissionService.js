@@ -134,6 +134,8 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
                     // ★ Snapshot nhà cung cấp lúc chấm (vilao / gemini)
                     aiProvider: normalizeProvider(aiResult.aiProvider || aiResult.keyUsed?.provider),
                     latencyMs: aiResult.latencyMs,
+                    // ★ Số lỗi lưu nhẹ ở Mongo để trang lịch sử hiện đúng (grammar đầy đủ chỉ ở GitHub)
+                    errorCount: Array.isArray(aiResult.grammar?.errors) ? aiResult.grammar.errors.length : 0,
                     gradedAt: new Date(),
                     status: 'graded',
                     errorMessage: null
@@ -197,23 +199,17 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
         lesson.slug;
 
     if (canPushGitHub) {
-        // Tạo filePath
+        // ★ Mỗi bài nộp = 1 file JSON với TÊN NGẪU NHIÊN, không trùng file nào trên GitHub
+        //   (submissions/{môn}/{bài}/{tên-ngẫu-nhiên}.json)
         let filePath = null;
-        if (typeof githubService.submissionPath === 'function') {
-            filePath = githubService.submissionPath(
-                subject.slug,
-                lesson.slug,
-                String(userId),
-                submission.submittedAt
-            );
-        } else {
-            const ts = new Date(submission.submittedAt)
-                .toISOString()
-                .replace(/[:.]/g, '-');
-            filePath = `submissions/${subject.slug}/${lesson.slug}/${userId}-${ts}.json`;
+        try {
+            filePath = await githubService.uniqueJsonPath(`submissions/${subject.slug}/${lesson.slug}`);
+        } catch (e) {
+            console.warn(`[submissionService] Không sinh được tên file ngẫu nhiên: ${e.message}`);
         }
 
         try {
+            if (!filePath) throw new Error('Không có đường dẫn file bài nộp');
             enqueue({
                 type: 'putJson',
                 filePath,
@@ -294,6 +290,7 @@ async function gradeAndSave({ userId, lessonId, answerHtml, model, aiKeyId }) {
                                 $set: {
                                     syncStatus: 'committed',
                                     githubFile: filePath,
+                                    githubSha: result?.sha || null,
                                     syncedAt: new Date(),
                                     // ★ Xoá answerHtml — đã có trên GitHub
                                     answerHtml: '',

@@ -9,6 +9,7 @@ const Submission = require("../models/Submission");
 const GradingPrompt = require("../models/GradingPrompt");
 const githubService = require("../services/githubService");
 const lessonContentService = require("../services/lessonContentService");
+const githubSync = require("../services/githubSyncService");
 const { resolvePrompt, findUnknownPlaceholders } = require("../services/promptService");
 const { sanitizeExplanationHtml } = require("../services/sanitizeService");
 const { getContentScope } = require("../services/userKeyService");
@@ -139,6 +140,27 @@ async function attachSubjects(lessons) {
     });
 }
 
+// ★ GitHub là nguồn sự thật: thông tin người thao tác ghi vào JSON bài học
+//   để dựng lại được MongoDB chỉ từ GitHub.
+function actorMeta(req) {
+    const u = req.user || req.session?.user || {};
+    return { id: String(u._id || u.id || ""), name: u.name || "", email: u.email || "" };
+}
+
+async function userMeta(userId) {
+    if (!userId) return null;
+    try {
+        const User = require("../models/User");
+        const u = await User.findById(userId).select("name email").lean();
+        return u ? { id: String(u._id), name: u.name || "", email: u.email || "" } : { id: String(userId), name: "", email: "" };
+    } catch (_) {
+        return { id: String(userId), name: "", email: "" };
+    }
+}
+
+// Chỉ thao tác (chuyển/xoá) file nằm đúng quy ước subjects/{môn}/lessons/{file}.json
+const STD_LESSON_RE = /^subjects\/[^/]+\/lessons\/[^/]+\.json$/;
+
 // ★ FIX: helper đọc flash message an toàn (connect-flash trả về mảng)
 function readFlash(req, key) {
     if (typeof req.flash !== "function") return null;
@@ -176,6 +198,7 @@ exports.listSubjects = async (req, res, next) => {
     try {
         const isAdmin = req.user?.role === "admin";
         const scope = await getContentScope(req); // ★ USER KEY
+        await githubSync.syncKinds(["lessons"]);   // ★ số bài học lấy từ GitHub
 
         const { items: subjects, pagination } = await paginate(
             Subject,
@@ -239,10 +262,13 @@ exports.listLessons = async (req, res, next) => {
             });
         }
 
+        await githubSync.syncKinds(["lessons"]);
+
+        // ★ Đề mới nhất lên đầu (mới → cũ)
         const lessons = await Lesson.find({
             subjectId: subject._id,
             isDeleted: false,
-        }).sort({ createdAt: 1 }).lean();
+        }).sort({ createdAt: -1 }).populate("createdBy", "name").lean();
 
         const submittedMap = {};
         if (req.user) {
@@ -286,6 +312,7 @@ exports.listAllLessons = async (req, res, next) => {
         const isAdmin = user?.role === "admin";
 
         const scope = await getContentScope(req); // ★ USER KEY
+        await githubSync.syncKinds(["lessons"]);
 
         const subjectQuery = req.query.subject || req.query.subjectId || null;
         const filter = { isDeleted: false, ...scope.filter };
@@ -611,6 +638,7 @@ exports.getAdminLessons = async (req, res, next) => {
         const search = (req.query.search || "").trim();
 
         const scope = await getContentScope(req); // ★ USER KEY
+        await githubSync.syncKinds(["lessons"]);  // ★ danh sách lấy từ GitHub
         const filter = { isDeleted: showDeleted, ...scope.filter };
 
         if (subjectQuery && isObjectId(subjectQuery)) {
@@ -752,19 +780,31 @@ exports.createLesson = async (req, res, next) => {
             (scope.isDefaultAdmin && githubFile) || `subjects/${subject.slug}/lessons/${slug}.json`;
         const now = new Date();
 
+        const safePromptId = promptId && mongoose.Types.ObjectId.isValid(promptId) ? promptId : null;
+        // ★ USER KEY: chỉ admin default được gán AI key cho bài
+        const safeAiKeyId = scope.isDefaultAdmin && aiKeyId && mongoose.Types.ObjectId.isValid(aiKeyId) ? aiKeyId : null;
+
+        let saved = null;
         try {
-            await lessonContentService.saveLessonContent(
+            // ★ File JSON chứa ĐỦ thông tin để dựng lại bài học chỉ từ GitHub
+            saved = await lessonContentService.saveLessonContent(
                 resolvedGithubFile,
                 {
                     lessonId: String(lessonId),
+                    type: "essay",
                     title: trimmedTitle,
                     slug,
+                    subjectSlug: subject.slug,
                     description: description || "",
                     contentHtml: contentHtml || "",
                     sampleSolution: sampleSolution || "",
                     duration: Number(duration) || 20,
                     model: model ? String(model).trim() : null,
+                    promptId: safePromptId ? String(safePromptId) : null,
+                    aiKeyId: safeAiKeyId ? String(safeAiKeyId) : null,
                     isPublished: true,
+                    isDeleted: false,
+                    createdBy: actorMeta(req),
                     createdAt: now,
                     updatedAt: now,
                 },
@@ -785,13 +825,13 @@ exports.createLesson = async (req, res, next) => {
             description: description || "",
             // ⛔ KHÔNG lưu contentHtml vào MongoDB
             sampleSolution: sampleSolution || "",
-            promptId: promptId && mongoose.Types.ObjectId.isValid(promptId) ? promptId : null,
+            promptId: safePromptId,
             // ★ USER KEY: userKey kế thừa từ MÔN, không nhận từ body
             userKey: subject.userKey || null,
             githubFile: resolvedGithubFile,
+            githubSha: (saved && saved.sha) || null,
             duration: Number(duration) || 20,
-            // ★ USER KEY: chỉ admin default được gán AI key cho bài
-            aiKeyId: scope.isDefaultAdmin && aiKeyId && mongoose.Types.ObjectId.isValid(aiKeyId) ? aiKeyId : null,
+            aiKeyId: safeAiKeyId,
             model: model ? String(model).trim() : null,
             createdBy: currentUserId(req),
             updatedBy: currentUserId(req),
@@ -913,6 +953,7 @@ exports.updateLesson = async (req, res, next) => {
             return res.status(400).json({ error: "Bài trắc nghiệm được sửa ở trang riêng: /admin/quiz/" + lesson._id + "/edit" });
         }
 
+        let movedToSubject = null;
         if (title && title.trim() && title.trim() !== lesson.title) {
             lesson.title = title.trim();
             lesson.slug = slugify(title.trim());
@@ -930,6 +971,7 @@ exports.updateLesson = async (req, res, next) => {
             }
             lesson.subjectId = subjectId;
             lesson.userKey = newSubject.userKey || null;
+            movedToSubject = newSubject;
         }
         if (typeof description === "string") lesson.description = description;
         if (typeof sampleSolution === "string") lesson.sampleSolution = sampleSolution;
@@ -964,25 +1006,43 @@ exports.updateLesson = async (req, res, next) => {
         // ★ contentHtml CHỈ lưu ở GitHub → ghi GitHub TRƯỚC, thành công mới lưu MongoDB.
         //   GitHub lỗi → KHÔNG lưu gì (lesson chưa .save()).
         if (lesson.githubFile) {
+            const subjectForFile = movedToSubject
+                || await Subject.findById(lesson.subjectId).select("slug").lean();
+
+            // ★ Đổi môn → file phải nằm trong thư mục của môn mới, nếu không lần đồng bộ
+            //   kế tiếp sẽ suy ra môn từ đường dẫn và trả bài về môn cũ.
+            const oldFile = lesson.githubFile;
+            let newFile = oldFile;
+            if (movedToSubject && movedToSubject.slug && STD_LESSON_RE.test(oldFile)) {
+                newFile = `subjects/${movedToSubject.slug}/lessons/${oldFile.split("/").pop()}`;
+            }
+
             const patch = {
                 lessonId: String(lesson._id),
+                type: "essay",
                 title: lesson.title,
                 slug: lesson.slug,
+                subjectSlug: subjectForFile?.slug || null,
                 description: lesson.description || "",
                 sampleSolution: lesson.sampleSolution || "",
                 duration: lesson.duration || 20,
                 model: lesson.model || null,
+                promptId: lesson.promptId ? String(lesson.promptId) : null,
+                aiKeyId: lesson.aiKeyId ? String(lesson.aiKeyId) : null,
                 isPublished: lesson.isPublished !== false,
+                isDeleted: lesson.isDeleted === true,
                 updatedAt: new Date(),
             };
+            const creator = await userMeta(lesson.createdBy);
+            if (creator) patch.createdBy = creator;
             if (typeof contentHtml === "string") patch.contentHtml = contentHtml;
 
             try {
-                await lessonContentService.saveLessonContent(
-                    lesson.githubFile,
-                    patch,
-                    `[Lesson] Update: ${lesson.title}`
-                );
+                const saved = newFile !== oldFile
+                    ? await lessonContentService.moveLessonFile(oldFile, newFile, patch, `[Lesson] Update: ${lesson.title}`)
+                    : await lessonContentService.saveLessonContent(oldFile, patch, `[Lesson] Update: ${lesson.title}`);
+                lesson.githubFile = newFile;
+                lesson.githubSha = (saved && saved.sha) || lesson.githubSha || null;
             } catch (e) {
                 console.error("[lesson] Ghi GitHub lỗi, KHÔNG lưu cập nhật:", e.message);
                 return res.status(502).json({
@@ -1026,8 +1086,25 @@ exports.deleteLesson = async (req, res, next) => {
         const scope = await getContentScope(req); // ★ USER KEY
         if (!lesson || !scope.canAccess(lesson)) return res.status(404).json({ error: "Không tìm thấy" });
 
+        // ★ GitHub là nguồn sự thật: đánh dấu xoá mềm ngay trong file JSON TRƯỚC,
+        //   rồi mới ghi MongoDB (nếu không, lần đồng bộ sau sẽ khôi phục lại bài).
+        const deletedAt = new Date();
+        if (lesson.githubFile) {
+            try {
+                const saved = await lessonContentService.patchLessonFile(
+                    lesson.githubFile,
+                    { isDeleted: true, deletedAt, updatedAt: deletedAt },
+                    `[Lesson] Trash: ${lesson.title}`
+                );
+                lesson.githubSha = (saved && saved.sha) || lesson.githubSha;
+            } catch (e) {
+                console.error("[lesson] Ghi GitHub lỗi khi xoá mềm:", e.message);
+                return res.status(502).json({ error: `Không cập nhật được GitHub nên chưa xoá. (${e.message})` });
+            }
+        }
+
         lesson.isDeleted = true;
-        lesson.deletedAt = new Date();
+        lesson.deletedAt = deletedAt;
         lesson.updatedBy = currentUserId(req);   // ★ FIX
         lesson.deletedBy = currentUserId(req);   // ★ THÊM: ghi ai đã xoá (schema đã có field)
         await lesson.save();
@@ -1048,6 +1125,20 @@ exports.restoreLesson = async (req, res, next) => {
         const lesson = await Lesson.findById(id);
         const scope = await getContentScope(req); // ★ USER KEY
         if (!lesson || !scope.canAccess(lesson)) return res.status(404).json({ error: "Không tìm thấy" });
+
+        if (lesson.githubFile) {
+            try {
+                const saved = await lessonContentService.patchLessonFile(
+                    lesson.githubFile,
+                    { isDeleted: false, deletedAt: null, updatedAt: new Date() },
+                    `[Lesson] Restore: ${lesson.title}`
+                );
+                lesson.githubSha = (saved && saved.sha) || lesson.githubSha;
+            } catch (e) {
+                console.error("[lesson] Ghi GitHub lỗi khi khôi phục:", e.message);
+                return res.status(502).json({ error: `Không cập nhật được GitHub nên chưa khôi phục. (${e.message})` });
+            }
+        }
 
         lesson.isDeleted = false;
         lesson.deletedAt = null;
@@ -1081,6 +1172,23 @@ exports.hardDeleteLesson = async (req, res, next) => {
                 return res.redirect("/admin/lessons");
             }
             return res.status(400).json({ error: msg });
+        }
+
+        // ★ Xoá file JSON trên GitHub TRƯỚC (nguồn sự thật), rồi mới xoá khỏi MongoDB.
+        //   Chỉ xoá file đúng quy ước subjects/{môn}/lessons/{file}.json.
+        if (lesson.githubFile && STD_LESSON_RE.test(lesson.githubFile) && githubService.isConfigured) {
+            try {
+                await githubService.deleteFile(lesson.githubFile, `[Lesson] Hard delete: ${lesson.title}`);
+                lessonContentService.clearCache(lesson.githubFile);
+            } catch (e) {
+                console.error("[lesson] Xoá file GitHub lỗi:", e.message);
+                const msg = `Không xoá được file trên GitHub nên chưa xoá bài. (${e.message})`;
+                if (req.accepts("html") && !req.xhr) {
+                    req.flash?.("error", msg);
+                    return res.redirect("/admin/lessons?deleted=1");
+                }
+                return res.status(502).json({ error: msg });
+            }
         }
 
         // ★ Xoá thật khỏi database

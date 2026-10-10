@@ -108,23 +108,23 @@ const getDisputes = async (req, res) => {
     try {
         const disputes = await Dispute.find({})
             .populate('student', 'name email')
-            .populate({
-                path: 'submission',
-                populate: [
-                    {
-                        path: 'subject',
-                        select: 'name code'
-                    },
-                    {
-                        path: 'assignment',
-                        select: 'title maxScore'
-                    }
-                ]
-            })
             .sort({
                 createdAt: -1
             })
             .lean();
+
+        // Submission nằm ở GitHub (không còn collection Mongo) → Mongoose populate
+        // không còn tra được; gắn thủ công qua model GitHub.
+        const subs = await Submission.find({
+            _id: { $in: disputes.map((d) => d.submission).filter(Boolean) }
+        })
+            .populate('subjectId', 'name code')
+            .populate('lessonId', 'title')
+            .lean();
+        const subMap = new Map(subs.map((s) => [String(s._id), s]));
+        disputes.forEach((d) => {
+            d.submission = subMap.get(String(d.submission)) || null;
+        });
 
         return res.json({
             success: true,

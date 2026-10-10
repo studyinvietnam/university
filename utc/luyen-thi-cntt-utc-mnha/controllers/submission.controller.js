@@ -6,6 +6,7 @@ const submissionService = require('../services/submissionService');
 const notificationService = require('../services/notificationService');
 const githubService = require('../services/githubService');
 const lessonContentService = require('../services/lessonContentService');
+const githubSync = require('../services/githubSyncService');
 
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
@@ -421,16 +422,20 @@ const getMySubmissions = async (req, res) => {
         const user = req.session?.user;
         const userId = user.id || user._id;
 
+        // ★ Lịch sử lấy từ GitHub (submissions/**.json): xem có bao nhiêu file rồi tách thông tin ra
+        await githubSync.syncKinds(['lessons', 'submissions']);
+
         const { items: submissions, pagination } = await paginate(
             Submission,
             { userId },
             req,
             {
                 limit: 10,
-                sort: { createdAt: -1 },
+                // ★ Mới nộp lên đầu
+                sort: { submittedAt: -1, createdAt: -1 },
                 select: '-teacherCommentHistory',
                 populate: [
-                    { path: 'lessonId', select: 'title subject slug' },
+                    { path: 'lessonId', select: 'title subject slug githubFile' },
                     { path: 'subjectId', select: 'name code' }
                 ]
             }
@@ -458,6 +463,8 @@ const getMySubmissions = async (req, res) => {
 const getAdminSubmissions = async (req, res) => {
     try {
         const { search, status, subject } = req.query;
+
+        await githubSync.syncKinds(['lessons', 'submissions']);
 
         const filter = {};
         if (status) filter.status = status;
@@ -489,7 +496,7 @@ const getAdminSubmissions = async (req, res) => {
 
         const { items: submissions, pagination } = await paginate(Submission, filter, req, {
             limit: 15,
-            sort: { createdAt: -1 },
+            sort: { submittedAt: -1, createdAt: -1 },
             populate: [
                 { path: 'userId', select: 'name email' },
                 { path: 'lessonId', select: 'title' },
