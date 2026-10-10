@@ -653,7 +653,9 @@ exports.getAdminLessons = async (req, res, next) => {
         //   thay vì chỉ là ObjectId thô (xem lessons.pug)
         const { items: lessons, pagination } = await paginate(Lesson, filter, req, {
             limit: 10,
-            sort: { createdAt: -1 },
+            // ★ Mới nhất → cũ nhất, giống /subjects/:id: dùng _id (mốc thời gian tạo, ổn định)
+            //   vì createdAt/updatedAt bị đặt lại khi đồng bộ GitHub nên cùng ngày bị xáo trộn
+            sort: { _id: -1 },
             populate: [
                 { path: "createdBy", select: "name email" },
                 { path: "updatedBy", select: "name email" },

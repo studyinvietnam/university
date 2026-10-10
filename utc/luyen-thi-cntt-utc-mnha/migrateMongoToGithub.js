@@ -241,7 +241,7 @@ async function processPrompt(d) {
     let finalSha = remote ? remote.sha : null;
     let finalData = data;
     if (needWrite) {
-        if (!filePath) filePath = await githubService.uniqueJsonPath('prompts');
+        if (!filePath) filePath = await githubService.uniqueJsonPath('prompts', { timestamp: true });
         const res = await putJson(filePath, data, remote ? remote.sha : null, `[Migrate] Prompt: ${d.name}`);
         st.written++;
         const again = await githubService.readJsonFileWithSha(filePath);
@@ -513,7 +513,7 @@ async function processSubmission(s) {
     let finalSha = remote ? remote.sha : null;
     let finalData = data;
     if (needWrite) {
-        if (!filePath) filePath = await githubService.uniqueJsonPath(`submissions/${subject.slug}/${lesson.slug}`);
+        if (!filePath) filePath = await githubService.uniqueJsonPath(`submissions/${subject.slug}/${lesson.slug}`, { timestamp: true });
         const res = await putJson(
             filePath,
             data,

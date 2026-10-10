@@ -1,12 +1,15 @@
 extends ../layout
 
 block content
+    //- ★ Prompt trắc nghiệm vs tự luận dùng form/mẫu khác nhau
+    - const isQuiz = (typeof kind !== 'undefined' && kind === 'quiz')
+    - const backHref = `/admin/prompts?kind=${isQuiz ? 'quiz' : 'essay'}`
     div(class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8")
 
         //- Back
         div(class="mb-6")
             a(
-                href="/admin/prompts"
+                href=backHref
                 class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
             )
                 i(data-lucide="arrow-left", class="w-4 h-4")
@@ -23,15 +26,19 @@ block content
         .bg-white.border.border-gray-200.rounded-2xl.p-6.shadow-sm
             h1(class="text-2xl font-bold text-gray-900 mb-6")
                 if prompt
-                    | Sửa Prompt
+                    | Sửa Prompt #{isQuiz ? 'trắc nghiệm' : 'tự luận'}
                 else
-                    | Thêm Prompt
+                    | Thêm Prompt #{isQuiz ? 'trắc nghiệm' : 'tự luận'}
 
             form(
                 action=(prompt ? `/admin/prompts/${prompt._id}/edit` : '/admin/prompts')
                 method="POST"
                 class="space-y-5"
             )
+                //- ★ Gửi kind lúc tạo (trước đây thiếu → prompt trắc nghiệm bị lưu thành tự luận)
+                if !prompt
+                    input(type="hidden", name="kind", value=(isQuiz ? 'quiz' : 'essay'))
+
                 //- Tên
                 div
                     label(class="block text-sm font-medium text-gray-700 mb-2")
@@ -42,7 +49,7 @@ block content
                         required
                         value=(prompt && prompt.name) || ''
                         class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Ví dụ: Chấm chặt - Lập trình căn bản"
+                        placeholder=(isQuiz ? "Ví dụ: Phân tích lỗ hổng kiến thức - Trắc nghiệm" : "Ví dụ: Chấm chặt - Lập trình căn bản")
                     )
 
                 //- Mô tả
@@ -60,62 +67,71 @@ block content
                 //-   Ẩn field cần thiết để controller vẫn nhận scope=global.
                 input(type="hidden", name="scope", value="global")
 
-                div(class="grid grid-cols-1 sm:grid-cols-2 gap-4")
-                    div
-                        label(class="block text-sm font-medium text-gray-700 mb-2")
-                            | Mức độ chặt
-                        select(
-                            name="strictness"
-                            class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                        )
-                            option(value="lenient", selected=(prompt && prompt.strictness === 'lenient')) Nhẹ nhàng
-                            option(value="normal", selected=(!prompt || prompt.strictness === 'normal')) Bình thường
-                            option(value="strict", selected=(prompt && prompt.strictness === 'strict')) Chặt
-                            option(value="very_strict", selected=(prompt && prompt.strictness === 'very_strict')) Rất chặt
+                //- Trắc nghiệm: điểm do server chấm → không có mức độ chặt / điểm tối đa / rubric
+                unless isQuiz
+                    div(class="grid grid-cols-1 sm:grid-cols-2 gap-4")
+                        div
+                            label(class="block text-sm font-medium text-gray-700 mb-2")
+                                | Mức độ chặt
+                            select(
+                                name="strictness"
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                            )
+                                option(value="lenient", selected=(prompt && prompt.strictness === 'lenient')) Nhẹ nhàng
+                                option(value="normal", selected=(!prompt || prompt.strictness === 'normal')) Bình thường
+                                option(value="strict", selected=(prompt && prompt.strictness === 'strict')) Chặt
+                                option(value="very_strict", selected=(prompt && prompt.strictness === 'very_strict')) Rất chặt
 
-                    div
-                        label(class="block text-sm font-medium text-gray-700 mb-2")
-                            | Điểm tối đa
-                        input(
-                            type="number"
-                            name="maxScore"
-                            min="1"
-                            max="100"
-                            value=(prompt && prompt.maxScore) || 10
-                            class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                        )
+                        div
+                            label(class="block text-sm font-medium text-gray-700 mb-2")
+                                | Điểm tối đa
+                            input(
+                                type="number"
+                                name="maxScore"
+                                min="1"
+                                max="100"
+                                value=(prompt && prompt.maxScore) || 10
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                            )
 
                 //- ★ ĐÃ XOÁ: khối "Gán cho môn" (subjectBlock)
                 //- ★ ĐÃ XOÁ: khối "Gán cho các bài" (lessonBlock) + 2 script đi kèm
                 //- ★ ĐÃ XOÁ: select "Phạm vi" (thay bằng hidden input scope=global ở trên)
 
-                //- Rubric
-                div
-                    label(class="block text-sm font-medium text-gray-700 mb-2")
-                        | Rubric (tổng weight = 100%)
-                    p(class="text-xs text-gray-500 mb-2")
-                        | Nhập JSON: [{"criterion": "Tên tiêu chí", "weight": 50, "description": "Mô tả"}]
+                unless isQuiz
+                    //- Rubric
+                    div
+                        label(class="block text-sm font-medium text-gray-700 mb-2")
+                            | Rubric (tổng weight = 100%)
+                        p(class="text-xs text-gray-500 mb-2")
+                            | Nhập JSON: [{"criterion": "Tên tiêu chí", "weight": 50, "description": "Mô tả"}]
 
-                    textarea(
-                        name="rubricJson"
-                        rows="6"
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm resize-y"
-                        placeholder='[{"criterion":"Đúng logic","weight":50,"description":"Thuật toán đúng"},{"criterion":"Trình bày","weight":50,"description":"Rõ ràng"}]'
-                    )= prompt ? JSON.stringify(prompt.rubric || [], null, 2) : '[{"criterion": "Đúng logic", "weight": 50, "description": ""}, {"criterion": "Trình bày", "weight": 50, "description": ""}]'
+                        textarea(
+                            name="rubricJson"
+                            rows="6"
+                            class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm resize-y"
+                            placeholder='[{"criterion":"Đúng logic","weight":50,"description":"Thuật toán đúng"},{"criterion":"Trình bày","weight":50,"description":"Rõ ràng"}]'
+                        )= prompt ? JSON.stringify(prompt.rubric || [], null, 2) : '[{"criterion": "Đúng logic", "weight": 50, "description": ""}, {"criterion": "Trình bày", "weight": 50, "description": ""}]'
 
                 //- Content
                 div
                     label(class="block text-sm font-medium text-gray-700 mb-2")
                         | Nội dung prompt *
                     p(class="text-xs text-gray-500 mb-2")
-                        | Biến hỗ trợ: <code>{đề_bài}</code>, <code>{bài_làm}</code>, <code>{rubric}</code>, <code>{max_score}</code>, <code>{strictness}</code>, <code>{student_name}</code>, <code>{lời_giải_mẫu}</code>
+                        if isQuiz
+                            | Biến hỗ trợ (chỉ dùng các biến này):
+                            each v in (typeof quizVars !== 'undefined' && quizVars ? quizVars : [])
+                                |  
+                                code= v
+                        else
+                            | Biến hỗ trợ: <code>{đề_bài}</code>, <code>{bài_làm}</code>, <code>{rubric}</code>, <code>{max_score}</code>, <code>{strictness}</code>, <code>{student_name}</code>, <code>{lời_giải_mẫu}</code>
 
                     textarea(
                         name="content"
                         rows="16"
                         required
                         class="w-full px-3 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm resize-y"
-                    )= (prompt && prompt.content) || `Bạn là giảng viên chấm bài.\nHãy chấm theo rubric sau:\n{rubric}\n\nĐề bài:\n{đề_bài}\n\nBài làm sinh viên:\n{bài_làm}\n\nYêu cầu trả về DUY NHẤT một object JSON:\n{\n  "score": number,\n  "feedback": string,\n  "breakdown": [{"criterion": string, "score": number, "comment": string}]\n}\n\nĐiểm tối đa: {max_score}`
+                    )= (prompt && prompt.content) || (isQuiz ? (typeof quizDefaultContent !== 'undefined' ? quizDefaultContent : '') : `Bạn là giảng viên chấm bài.\nHãy chấm theo rubric sau:\n{rubric}\n\nĐề bài:\n{đề_bài}\n\nBài làm sinh viên:\n{bài_làm}\n\nYêu cầu trả về DUY NHẤT một object JSON:\n{\n  "score": number,\n  "feedback": string,\n  "breakdown": [{"criterion": string, "score": number, "comment": string}]\n}\n\nĐiểm tối đa: {max_score}`)
 
                 //- Checkboxes
                 div(class="grid grid-cols-1 sm:grid-cols-2 gap-4")

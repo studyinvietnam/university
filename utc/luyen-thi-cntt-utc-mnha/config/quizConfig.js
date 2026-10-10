@@ -159,3 +159,6 @@ Chỉ trả về DUY NHẤT một object JSON:
   // Câu đúng gửi rút gọn bao nhiêu ký tự cho AI
   CORRECT_QUESTION_PREVIEW_LEN: 200,
 };
+
+// ★ prompt.controller / promptService import tên QUIZ_PLACEHOLDERS; danh sách thật là QUIZ_PROMPT_VARS
+module.exports.QUIZ_PLACEHOLDERS = module.exports.QUIZ_PLACEHOLDERS || module.exports.QUIZ_PROMPT_VARS;

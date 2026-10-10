@@ -21,7 +21,7 @@ const {
     kindFilter,
     findUnknownPlaceholders
 } = require('../services/promptService');
-const { QUIZ_PLACEHOLDERS } = require('../config/quizConfig');
+const { QUIZ_PLACEHOLDERS, DEFAULT_QUIZ_ANALYSIS_PROMPT } = require('../config/quizConfig');
 
 // ============================================================
 // HELPERS
@@ -395,7 +395,7 @@ exports.createPrompt = async (req, res, next) => {
         //   Tên file NGẪU NHIÊN, đã kiểm tra không trùng với file nào đang có trên GitHub.
         const _id = new mongoose.Types.ObjectId();
         const createdAt = new Date();
-        const githubFile = await githubService.uniqueJsonPath('prompts');
+        const githubFile = await githubService.uniqueJsonPath('prompts', { timestamp: true });
 
         const draft = {
             _id,
@@ -520,6 +520,8 @@ exports.showEditPrompt = async (req, res, next) => {
             user: req.user,
             canSetDefault: isDefaultAdmin(actor),
             kind: normalizeKind(prompt.kind),
+            quizVars: QUIZ_PLACEHOLDERS,
+            quizDefaultContent: DEFAULT_QUIZ_ANALYSIS_PROMPT,
             prompt,
             subjects,
             lessons,
@@ -550,6 +552,8 @@ exports.showCreatePrompt = async (req, res, next) => {
             user: req.user,
             canSetDefault: isDefaultAdmin(actor),
             kind: normalizeKind(req.query.kind),
+            quizVars: QUIZ_PLACEHOLDERS,                      // ★ biến hợp lệ của prompt trắc nghiệm
+            quizDefaultContent: DEFAULT_QUIZ_ANALYSIS_PROMPT, // ★ mẫu prompt trắc nghiệm
             prompt: null,
             subjects,
             lessons,
@@ -662,7 +666,7 @@ exports.updatePrompt = async (req, res, next) => {
 
         // Prompt cũ chưa có file → cấp tên file ngẫu nhiên không trùng
         if (!prompt.githubFile) {
-            prompt.githubFile = await githubService.uniqueJsonPath('prompts');
+            prompt.githubFile = await githubService.uniqueJsonPath('prompts', { timestamp: true });
         }
 
         // ★ GitHub là nguồn sự thật → GHI GITHUB TRƯỚC. Lỗi → KHÔNG lưu MongoDB
