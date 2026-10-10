@@ -143,7 +143,7 @@ router.post("/sync-github", requireDefaultAdmin, async (req, res) => {
         const results = await githubSync.syncKinds(["lessons", "prompts", "submissions"], { force: true });
         const failed = results.find((r) => r && r.error);
         if (failed) {
-            return res.redirect(`${target}${sep}error=` + encodeURIComponent("Đồng bộ GitHub lỗi: " + failed.error));
+            return res.redirect(303, `${target}${sep}error=` + encodeURIComponent("Đồng bộ GitHub lỗi: " + failed.error));
         }
         const sum = (k) => results.find((r) => r && r.kind === k) || {};
         const part = (k, label) => {
@@ -155,10 +155,10 @@ router.post("/sync-github", requireDefaultAdmin, async (req, res) => {
         ].join(" · ");
 
         req.flash?.("success", msg);
-        return res.redirect(`${target}${sep}success=` + encodeURIComponent(msg));
+        return res.redirect(303, `${target}${sep}success=` + encodeURIComponent(msg));
     } catch (err) {
         console.error("sync-github error:", err);
-        return res.redirect(`${target}${sep}error=` + encodeURIComponent("Đồng bộ GitHub lỗi: " + err.message));
+        return res.redirect(303, `${target}${sep}error=` + encodeURIComponent("Đồng bộ GitHub lỗi: " + err.message));
     }
 });
 
@@ -170,7 +170,15 @@ router.post("/sync-github", requireDefaultAdmin, async (req, res) => {
 router.get("/lessons", lessonController.getAdminLessons);
 
 router.get("/lessons/create", lessonController.showCreateLesson);
-router.post("/lessons", lessonController.createLesson);
+// ★ Vercel/proxy có thể "phát lại" POST (307/308) tới URL đích của redirect sau đồng bộ
+//   (/admin/lessons?success=...) → createLesson báo "Thiếu subjectId hoặc title".
+//   Form tạo bài thật không bao giờ có ?success / ?error → coi đó là POST bị phát lại, đổi sang GET.
+router.post("/lessons", (req, res, next) => {
+    if (req.query.success !== undefined || req.query.error !== undefined) {
+        return res.redirect(303, req.originalUrl);
+    }
+    return next();
+}, lessonController.createLesson);
 
 router.get("/lessons/:id/edit", lessonController.showEditLesson);
 router.post("/lessons/:id/edit", lessonController.updateLesson);

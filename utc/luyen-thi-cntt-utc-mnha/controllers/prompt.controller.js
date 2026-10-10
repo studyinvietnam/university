@@ -301,7 +301,8 @@ exports.getPrompts = async (req, res, next) => {
                 populate: [
                     { path: 'subjectId', select: 'name code' },
                     { path: 'lessonIds', select: 'title' },
-                    { path: 'createdBy', select: 'name email' }
+                    { path: 'createdBy', select: 'name email' },
+                    { path: 'updatedBy', select: 'name email' }   // ★ hiển thị "Cập nhật bởi"
                 ]
             }),
             Subject.find({ deletedAt: null, deletedForever: { $ne: true }, ...ownContentFilter(actor, Subject) })

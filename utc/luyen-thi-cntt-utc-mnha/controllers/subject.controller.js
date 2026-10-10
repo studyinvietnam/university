@@ -59,6 +59,7 @@ function findSubjectByParamAny(param) {
     const baseFilter = isObjectId(param) ? { _id: param } : { slug: param };
     return Subject.findOne(baseFilter)
         .populate('createdBy', 'name')
+        .populate('updatedBy', 'name')   // ★ hiển thị "Cập nhật bởi" ở header môn
         .lean();
 }
 
@@ -153,7 +154,8 @@ exports.getSubjects = async (req, res, next) => {
             req,
             {
                 limit: 9,
-                sort: { order: 1, createdAt: -1 },
+                // ★ Mới nhất → cũ nhất; _id làm tiêu chí phụ để các môn tạo cùng lúc không bị xáo
+                sort: { createdAt: -1, _id: -1 },
                 populate: { path: 'createdBy', select: 'name' },
             }
         );
@@ -226,9 +228,13 @@ exports.getSubject = async (req, res, next) => {
             req,
             {
                 limit: 10,
-                // ★ Đề MỚI nhất lên đầu (mới → cũ)
-                sort: { createdAt: -1 },
-                populate: { path: 'createdBy', select: 'name' },
+                // ★ Đề MỚI nhất lên đầu (mới → cũ). Dùng _id (mốc thời gian tạo, ổn định)
+                //   thay vì createdAt/updatedAt vì đồng bộ GitHub làm các mốc này trùng/đổi.
+                sort: { _id: -1 },
+                populate: [
+                    { path: 'createdBy', select: 'name' },
+                    { path: 'updatedBy', select: 'name' }, // ★ Cập nhật bởi
+                ],
             }
         );
 

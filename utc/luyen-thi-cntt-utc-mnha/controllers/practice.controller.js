@@ -67,7 +67,10 @@ exports.listPractice = async (req, res, next) => {
 
         const { items: lessons, pagination } = await paginate(Lesson, withSearch(lessonQuery, searchClause), req, {
             limit: 9,
-            sort: { order: 1, createdAt: -1 }
+            // ★ Mới nhất → cũ nhất. Bài học lưu ở GitHub nên createdAt có thể trùng/bị đặt lại
+            //   khi đồng bộ (cold start Vercel) → dùng _id (ObjectId mang mốc thời gian tạo,
+            //   luôn duy nhất, ổn định) để thứ tự không bị xáo trộn.
+            sort: { _id: -1 }
         });
 
         // Gắn subject cho từng lesson

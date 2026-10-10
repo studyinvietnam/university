@@ -273,6 +273,7 @@ const S = {
     recs: { lessons: new Map(), prompts: new Map(), submissions: new Map() },   // id(hex) → record
     paths: { lessons: new Map(), prompts: new Map(), submissions: new Map() },  // path → id(hex)
     shas: { lessons: new Map(), prompts: new Map(), submissions: new Map() },   // path → blob sha
+    skipShas: { lessons: new Map(), prompts: new Map(), submissions: new Map() }, // path → sha của file ĐÃ BỊ BỎ QUA (không tải lại khi sha không đổi)
     lastPatch: new Map(),     // id(hex) → chuỗi patch đã khớp với GitHub
     confirmed: new Set(),     // id(hex) đã thấy trên GitHub (xoá file → gỡ ngay, không chờ)
     localAt: new Map(),       // id(hex) → thời điểm tạo cục bộ (chưa chắc đã có trong cây thư mục)
@@ -359,7 +360,9 @@ function applyFile(kind, path, m, file, ctx) {
     if (!file || !file.data || typeof file.data !== 'object') return 'skipped';
     const res = K.fromJson(path, m, file.data, ctx);
     if (res.skip) {
-        console.warn(`[githubStore] Bỏ qua ${path}: ${res.skip}.`);
+        // Chỉ in chi tiết từng file khi bật GITHUB_STORE_VERBOSE=1; mặc định gom thành 1 dòng tổng (xem syncFromTree)
+        if (process.env.GITHUB_STORE_VERBOSE === '1') console.warn(`[githubStore] Bỏ qua ${path}: ${res.skip}.`);
+        if (file.sha) S.skipShas[kind].set(path, file.sha);   // lần sau cùng sha → khỏi tải lại / khỏi cảnh báo lại
         return 'skipped';
     }
 
@@ -398,6 +401,7 @@ function dropPath(kind, path) {
     clearContentCache(path);
     const id = S.paths[kind].get(path);
     S.shas[kind].delete(path);
+    S.skipShas[kind].delete(path);
     S.paths[kind].delete(path);
     if (id) { S.recs[kind].delete(id); S.lastPatch.delete(id); S.confirmed.delete(id); S.localAt.delete(id); return true; }
     return false;
@@ -422,7 +426,13 @@ async function syncFromTree({ force = false } = {}) {
         }
         const stat = { kind, files: remote.length, imported: 0, updated: 0, removed: 0, skipped: 0, pending: 0 };
 
-        const todo = remote.filter((r) => force || S.shas[kind].get(r.path) !== r.sha);
+        // Bài học vừa mới/được cập nhật → bài nộp từng bị bỏ qua (vì chưa thấy bài học) được thử lại
+        if (kind === 'submissions' && (stats.lessons?.imported || stats.lessons?.updated)) S.skipShas.submissions.clear();
+
+        // File đã từng bị bỏ qua mà sha không đổi → KHÔNG tải lại (trước đây tải lại mỗi lần đồng bộ)
+        const todo = remote.filter((r) =>
+            force || (S.shas[kind].get(r.path) !== r.sha && S.skipShas[kind].get(r.path) !== r.sha)
+        );
         const files = await readMany(todo.map((r) => r.path));
         const ctx = makeCtx(subjects);
         for (const r of todo) {
@@ -443,6 +453,7 @@ async function syncFromTree({ force = false } = {}) {
             }
         }
         stats[kind] = stat;
+        if (stat.skipped > 0 && process.env.GITHUB_STORE_VERBOSE === '1') console.warn(`[githubStore] ${kind}: bỏ qua ${stat.skipped} file không hợp lệ/mồ côi (đặt GITHUB_STORE_VERBOSE=1 để xem từng file).`);
     }
     S.headSha = null;       // buộc kiểm tra lại đầu nhánh lần tới
     S.checkedAt = Date.now();
@@ -634,7 +645,7 @@ async function refresh(kinds, opts = {}) {
 
 function _reset() {      // chỉ cho test
     S.loaded = false; S.loading = null; S.headSha = null; S.etag = null; S.checkedAt = 0;
-    for (const k of KIND_NAMES) { S.recs[k].clear(); S.paths[k].clear(); S.shas[k].clear(); }
+    for (const k of KIND_NAMES) { S.recs[k].clear(); S.paths[k].clear(); S.shas[k].clear(); S.skipShas[k].clear(); }
     S.lastPatch.clear(); S.persistChain.clear(); S.confirmed.clear(); S.localAt.clear();
 }
 
