@@ -392,7 +392,8 @@ exports.create = async (req, res) => {
 
     let slug = slugify(body.slug || c.title);
     if (await Lesson.exists({ subjectId: subject._id, slug })) slug += '-' + Date.now().toString(36);
-    const githubFile = `subjects/${subject.slug}/lessons/${slug}.json`;
+    // ★ Thêm timestamp (giây unix) ở đuôi để giảm tỉ lệ trùng tên file: <slug>_<unix>.json
+    const githubFile = `subjects/${subject.slug}/lessons/${slug}_${Math.floor(Date.now() / 1000)}.json`;
     if (await A.ghRead(githubFile)) return fail(res, 409, 'Đã có file trùng đường dẫn trên GitHub. Đổi tiêu đề / slug.');
 
     if (c.audioUrl) c.built.quiz.audioUrl = c.audioUrl;
@@ -507,7 +508,7 @@ exports.submit = async (req, res) => {
     const subject = await Subject.findById(lesson.subjectId).select('slug').lean();
     const now = new Date();
     // ★ Tên file NGẪU NHIÊN, không trùng file nào trên GitHub
-    const path = await githubService.uniqueJsonPath(`submissions/${subject.slug}/${lesson.slug}`);
+    const path = await githubService.uniqueJsonPath(`submissions/${subject.slug}/${lesson.slug}`, { timestamp: true });
     const subId = new mongoose.Types.ObjectId();
 
     const sub = await Submission.create({

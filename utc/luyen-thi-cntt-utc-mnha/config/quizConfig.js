@@ -40,7 +40,7 @@ module.exports = {
   TF_DEFAULT_SCORING: 'equal',
   TF_SCORING_LABEL: {
     equal: '1. Chia đều các ý',
-    thptqg: '2. Theo THPTQG (đúng 1 ý = 0,1 · 2 ý = 0,25 · 3 ý = 0,5 · 4 ý = 1 điểm của câu)',
+    thptqg: '2. Theo THPTQG (đúng 1 ý = 0,1 × điểm/câu · 2 ý = 0,25 × điểm/câu · 3 ý = 0,5 × điểm/câu · 4 ý = điểm/câu)',
   },
   TF_THPTQG_STATEMENTS: 4,   // THPTQG chỉ định nghĩa cho câu đúng 4 ý
   TF_THPTQG_RATIOS: { 0: 0, 1: 0.1, 2: 0.25, 3: 0.5, 4: 1 },

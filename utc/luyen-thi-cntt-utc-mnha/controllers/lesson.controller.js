@@ -779,7 +779,9 @@ exports.createLesson = async (req, res, next) => {
         const lessonId = new mongoose.Types.ObjectId();
         const trimmedTitle = title.trim();
         const resolvedGithubFile =
-            (scope.isDefaultAdmin && githubFile) || `subjects/${subject.slug}/lessons/${slug}.json`;
+            (scope.isDefaultAdmin && githubFile) ||
+            // ★ Thêm timestamp (giây unix) ở đuôi để giảm tỉ lệ trùng tên file: <slug>_<unix>.json
+            `subjects/${subject.slug}/lessons/${slug}_${Math.floor(Date.now() / 1000)}.json`;
         const now = new Date();
 
         const safePromptId = promptId && mongoose.Types.ObjectId.isValid(promptId) ? promptId : null;

@@ -111,7 +111,7 @@
         var p = CFG.parts && CFG.parts.tf;
         var ppq = p && p.pointsPerQuestion != null ? fmtPts(p.pointsPerQuestion) : null;
         if (p && p.scoring === "thptqg") {
-            return "Cách tính điểm THPTQG: đúng 1 ý = 10%, 2 ý = 25%, 3 ý = 50%, đủ 4 ý = 100%" + (ppq ? " của " + ppq + "đ / câu" : "") + ".";
+            return "Cách tính điểm THPTQG: đúng 1 ý = 0.1 × điểm/câu, 2 ý = 0.25 × điểm/câu, 3 ý = 0.5 × điểm/câu, đủ 4 ý = điểm/câu" + (ppq ? " (điểm/câu = " + ppq + "đ)" : "") + ".";
         }
         return "Cách tính điểm: chia đều cho các ý, mỗi ý đúng được một phần điểm" + (ppq ? " (tối đa " + ppq + "đ / câu)" : "") + ".";
     }

@@ -131,12 +131,29 @@ block content
                             - var tfSc = (q0.parts && q0.parts.tf && q0.parts.tf.scoring) || cfgq.TF_DEFAULT_SCORING || 'equal'
                             div(class="qf-wide qf-scoring")
                                 span(class="qf-scoring-title") Cách chia điểm phần Đúng/Sai
-                                label(class="qf-check")
-                                    input(type="radio", name="scoring_tf", value="equal", checked=(tfSc === 'equal'))
-                                    span Chia đều các ý
-                                label(class="qf-check")
-                                    input(type="radio", name="scoring_tf", value="thptqg", checked=(tfSc === 'thptqg'))
-                                    span THPTQG (đúng 1 ý = 0.1, 2 ý = 0.25, 3 ý = 0.5, 4 ý = 1 điểm)
+                                div(class="qf-opts")
+                                    label(class="qf-opt")
+                                        input(type="radio", name="scoring_tf", value="equal", checked=(tfSc === 'equal'))
+                                        span(class="qf-opt-body")
+                                            strong(class="qf-opt-name") Chia đều các ý
+                                            span(class="qf-opt-desc") Đúng k trên n ý thì được k/n × điểm/câu.
+                                    label(class="qf-opt")
+                                        input(type="radio", name="scoring_tf", value="thptqg", checked=(tfSc === 'thptqg'))
+                                        span(class="qf-opt-body")
+                                            strong(class="qf-opt-name") THPTQG
+                                            span(class="qf-opt-rows")
+                                                span(class="qf-opt-row")
+                                                    | Đúng 1 ý
+                                                    b 0.1 × điểm/câu
+                                                span(class="qf-opt-row")
+                                                    | Đúng 2 ý
+                                                    b 0.25 × điểm/câu
+                                                span(class="qf-opt-row")
+                                                    | Đúng 3 ý
+                                                    b 0.5 × điểm/câu
+                                                span(class="qf-opt-row")
+                                                    | Đúng 4 ý
+                                                    b điểm/câu
                         if part.k === 'fill'
                             label
                                 | Sai số cho phép
@@ -153,8 +170,27 @@ block content
             button(type="button", id="btnSave", class="qf-btn primary big")= isEdit ? '💾 Lưu thay đổi' : '💾 Tạo bài trắc nghiệm'
 
     style.
-        .qf-scoring { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
-        .qf-scoring-title { font-weight: 600; width: 100%; }
+        /* ★ Khối "Điểm / câu" + "Cách chia điểm" (phần Đúng/Sai) */
+        .qf-partcfg { align-items: flex-start; gap: 16px 24px; }
+        .qf-partcfg > label:first-child { flex: 0 0 200px; }
+        .qf-partcfg > label:first-child input { font-size: 18px; font-weight: 700; padding: 10px 12px; }
+        .qf-partcfg .qf-scoring { display: flex; flex-direction: column; gap: 8px; flex: 1 1 440px; min-width: 0; }
+        .qf-scoring-title { font-size: 12px; font-weight: 700; color: #555; }
+        .qf-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+        .qf-partcfg .qf-scoring .qf-opt { position: relative; display: block; min-width: 0; cursor: pointer; font-weight: 400; }
+        .qf-opt input { position: absolute; opacity: 0; pointer-events: none; }
+        .qf-opt-body { position: relative; display: flex; flex-direction: column; gap: 8px; height: 100%; padding: 12px 14px 12px 42px; border: 1.5px solid #d3d7de; border-radius: 10px; background: #fff; transition: border-color .15s, background .15s, box-shadow .15s; }
+        .qf-opt-body::before { content: ""; position: absolute; left: 14px; top: 14px; width: 16px; height: 16px; border: 2px solid #b6bdc9; border-radius: 50%; background: #fff; transition: all .15s; }
+        .qf-opt:hover .qf-opt-body { border-color: #a8b3c4; }
+        .qf-opt input:checked + .qf-opt-body { border-color: #a61c2f; background: #fff7f8; box-shadow: 0 0 0 3px rgba(166, 28, 47, .08); }
+        .qf-opt input:checked + .qf-opt-body::before { border-color: #a61c2f; background: radial-gradient(circle, #a61c2f 0 40%, #fff 45%); }
+        .qf-opt input:focus-visible + .qf-opt-body { outline: 2px solid #2c71c2; outline-offset: 2px; }
+        .qf-opt-name { font-size: 14px; font-weight: 700; color: #222; line-height: 1.3; }
+        .qf-opt-desc { font-size: 12.5px; color: #6b7280; line-height: 1.5; }
+        .qf-opt-rows { display: flex; flex-direction: column; gap: 4px; }
+        .qf-opt-row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 8px; border-radius: 6px; background: #f3f5f9; font-size: 12.5px; color: #4b5563; }
+        .qf-opt-row b { color: #1c4385; font-weight: 700; white-space: nowrap; }
+        .qf-opt input:checked + .qf-opt-body .qf-opt-row { background: #fdecee; }
         .qf-audio-warn { color: #b91c1c; font-size: 13px; margin-top: 6px; }
         .qf-audio-prev { display: block; width: 100%; max-width: 520px; margin-top: 10px; }
         .qf-audio-prev[hidden], .qf-audio-warn[hidden] { display: none; }
